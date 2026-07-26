@@ -77,7 +77,7 @@ def score_all(con, uptae, site_area=None, verbose=True):
     #    kinder than the validation era, so we report measured rates instead.
     #  - final: refit on everything to score today.
     # site_area is excluded from ranking on purpose. It is the strongest single
-    # predictor (AUC 0.6227 alone; 25㎡ shops survive 44.8% vs 74.4% at 90㎡+),
+    # predictor (AUC 0.6221 alone; 25㎡ shops survive 44.8% vs 74.4% at 90㎡+),
     # but it describes the SHOP, not the LOCATION - and in a recommendation the
     # user fixes it, so it is identical across every candidate cell. Leaving it
     # in would inflate the reported grade without changing the order.
@@ -177,9 +177,9 @@ def main():
 
     print("\n" + "=" * 78)
     print("주의")
-    print(" · 순위는 입지 피처만으로 매긴다(점포 면적 제외). 홀드아웃 성능 AUC 0.588,")
-    print("   상위 10% 실측 생존율 73.1% vs 전체 61.7% — 무작위보다 나은 수준이다.")
-    print(" · 상위 10% 자리에서도 약 27%는 3년 내 폐업한다. 입지는 일부일 뿐이다.")
+    print(" · 순위는 입지 피처만으로 매긴다(점포 면적 제외). 홀드아웃 성능 AUC 0.6025,")
+    print("   상위 10% 실측 생존율 74.9% vs 전체 61.7% — 무작위보다 나은 수준이다.")
+    print(" · 상위 10% 자리에서도 약 25%는 3년 내 폐업한다. 입지는 일부일 뿐이다.")
     print(" · 점포 면적은 순위에서 뺐지만 생존과 강하게 연관된다(25㎡ 44.8% ↔ 90㎡+ 74.4%).")
     print("   자리를 고른 뒤 '얼마나 큰 가게를 낼 수 있는가'가 별개로 중요하다.")
     return 0

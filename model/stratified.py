@@ -20,8 +20,9 @@ from sklearn.metrics import roc_auc_score
 
 from pipeline.db import init
 
-from .evaluate import TEST_YEARS, TRAIN_YEARS, load_split
-from .train import NUM, fit_predict
+from .cache import cached_split
+from .evaluate import TEST_YEARS
+from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 
 BANDS = [(0, 25), (25, 37), (37, 56), (56, 90), (90, 10**6)]
 
@@ -32,12 +33,12 @@ def main():
     a = ap.parse_args()
 
     con = init()
-    train, test = load_split(con, TRAIN_YEARS, TEST_YEARS, 3, verbose=False)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     Xte, yte, _ = test
 
     # rank on location only - size is the variable being controlled, not used
-    loc_cols = [c for c in NUM if c != "site_area"]
-    p, _ = fit_predict("gbm", train, test, num=loc_cols)
+    loc_cols = list(DEPLOY)
+    p, _ = fit_predict(WINNER, train, test, num=loc_cols)
 
     areas = np.array([f["site_area"] or 0 for f in Xte], dtype=float)
 
