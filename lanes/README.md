@@ -31,7 +31,7 @@ score_meta(k TEXT, v TEXT)   -- as_of, observed_by_grade, overall_survival
 ```
 A가 모델을 바꿔도 이 스키마만 유지하면 B는 영향받지 않는다. 재계산은 `python -m service.precompute` (84초).
 
-**B → C: HTTP API**  — **스펙 미확정.** 협의 문서 나오면 그때 확정한다. 그 전까지 C는 `docs/ui-data-contract.md`의 "제공 가능한 데이터" 목록으로 화면을 설계한다.
+**B → C: HTTP API**  — **UI 스펙 설계안 나옴** (`frontend/design/ui-spec.md`, 협의 대기). **목업 데이터·폴백 금지**: C는 처음부터 B의 실 API만 소비한다. 따라서 B가 최소 엔드포인트(격자 조회·랭킹)를 먼저 세우는 것이 C의 선행 조건이다. API가 없거나 죽으면 화면은 명시적 에러 상태를 그린다 — 가짜 데이터로 채우지 않는다.
 
 ## 병렬 실행 방식
 

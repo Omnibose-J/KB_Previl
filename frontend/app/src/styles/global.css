@@ -1,0 +1,12 @@
+/* Layout shell only — visual design tokens come from ../../design/tokens/tokens.css.
+   New screens use the 4px spacing grid and the 10-step type ramp (ui-spec §5). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans KR", sans-serif;
+  min-width: 1440px; /* fixed desktop demo — no breakpoints (ui-spec §5) */
+}

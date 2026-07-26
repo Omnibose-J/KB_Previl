@@ -15,7 +15,7 @@
 - `grid_detail(grid_id, uptae)` / `at_point(lon, lat, uptae)`
 - `district_summary(uptae)` — 자치구별 상위등급 비율
 
-HTTP 계층은 **협의 문서 나온 뒤** 작성한다. FastAPI 0.115.6 설치돼 있음.
+**HTTP 골격 있음: `service/app.py`** — `ui-spec.md` §7의 엔드포인트 7종이 501 스텁으로 매핑돼 있고, 각 스텁에 연결할 원천 함수가 적혀 있다. 실행: `uvicorn service.app:app --reload --port 8000`. FastAPI 0.140.0 / starlette 1.3.1 (2026-07-27 호환 정비 — 0.115.6+starlette 1.0 조합은 임포트가 깨졌었다).
 
 ## 데이터 원천
 
@@ -33,7 +33,7 @@ score_meta(k, v)                                     -- as_of, observed_by_grade
 1. **`observed`를 쓰고 `score`를 노출하지 않는다.** 모델 확률은 2.7~6.7%p 낙관 편향이라, 등급에서 실제로 관측된 생존율을 보여준다.
 2. **NULL은 NULL로.** 매출 없는 격자(46.8%)를 0으로 내보내면 UI가 "최악의 입지"로 그린다. `available: false` 같은 플래그로 구분.
 3. **출처 해상도를 함께 준다.** 생활인구·사업체는 행정동, 매출·유동인구는 상권(반경 ~151m), 경쟁·이력은 격자. `api.RESOLUTION` 참고.
-4. **한계 문구를 meta에 싣는다.** 상위 10%도 27% 폐업 · AUC 0.59는 무작위보다 나은 수준.
+4. **한계 문구를 meta에 싣는다.** 상위 10%도 약 26% 폐업 · AUC 0.59는 무작위보다 나은 수준. (수치 계보: `docs/model-findings.md` §4-C)
 
 ## 손익 계산
 
@@ -48,4 +48,6 @@ DB 경로는 `pipeline.config.DB_PATH`. 환경변수 `KB_DB`로 덮어쓸 수 �
 
 ## 레인 C와의 계약
 
-**미확정.** 스펙 협의 후 여기에 엔드포인트·응답 스키마를 기록한다. 그 전까지 C는 `docs/ui-data-contract.md`를 본다.
+**UI 스펙 설계안 나옴 — `frontend/design/ui-spec.md` (협의·확정 대기).** 확정되면 여기에 엔드포인트·응답 스키마를 기록한다.
+
+C는 **목업 데이터 금지** 정책이라 실 API만 소비한다 → **B의 최소 엔드포인트(meta·recommend·at_point·grid_detail의 HTTP 래핑)가 C 착수의 선행 조건.** `api.py` 초안 함수 4종이 스펙의 플로우와 이미 대응한다(`at_point` = "이 자리 어때?" 진단 모드). 추가 요구: 격자 폴리곤 위경도 변환(EPSG:5179 노출 금지) · `score_meta`의 등급별 생존율(+CI, A1 산출 후) 동봉 · **등급 방향(grade 1 = 최상) 응답 스키마에 명시** · What-if 임대료 재계산 엔드포인트(economics 호출).

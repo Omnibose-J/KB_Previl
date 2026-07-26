@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/api/client.ts","./src/api/types.ts","./src/components/caveatstrip.tsx","./src/components/gradebadge.tsx","./src/components/states.tsx","./src/screens/s1landing.tsx","./src/screens/s2input.tsx","./src/screens/s3results.tsx","./src/screens/s4detail.tsx"],"version":"5.9.3"}
