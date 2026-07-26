@@ -390,6 +390,19 @@ class ExtraIndex:
         }
 
 
+G2X_FEATURES = {
+    "openings_6m":   "직전 6개월 격자 개업 수 — 개업일이 (T-6, T]",
+    "openings_24m":  "직전 24개월 격자 개업 수",
+    "closures_6m":   "직전 6개월 격자 폐업 수 — 폐업일이 (T-6, T]",
+    "closures_12m":  "직전 12개월 격자 폐업 수",
+    "closures_24m":  "직전 24개월 격자 폐업 수",
+    "churn_12m":     "closures_12m / (open_cnt + closures_12m) — 단기 자리 교체율",
+    "growth_12m":    "open_cnt(T) / open_cnt(T-12) — 단기 밀도 추세",
+    "open_accel":    "최근 12개월 개업 / 36개월 연평균 개업 — >1이면 개업이 가속 중",
+    "close_accel":   "최근 12개월 폐업 / 36개월 연평균 폐업 — >1이면 폐업이 가속 중",
+    "net_flow_12m":  "(직전 12개월 개업 − 폐업) / 영업 점포 수 — 순유입 강도",
+}
+
 EXTRA_FEATURES = {
     "chain_share_r1":  "이웃 영업 점포 중 체인(서울에 동일 상호 3곳 이상, 개업<=T만 집계) 비중",
     "reoccupy_12m":    "이웃 주소 중 폐업(<=T-12) 후 12개월 내 재개업 비율 — 창이 T 이전에 닫힌다",
@@ -467,6 +480,7 @@ REST_FEATURES = {
 
 # Every feature the model may see must carry an observability note here; the
 # leakage guard fails the build on any set member that is missing one.
+FEATURES.update(G2X_FEATURES)
 FEATURES.update(ACCESS_FEATURES)
 FEATURES.update(EXTRA_FEATURES)
 FEATURES.update(REST_FEATURES)
@@ -486,11 +500,20 @@ class AsOf:
         return [s for s in self.by_cell.get(cell, ()) if s[2] <= t and (s[3] is None or s[3] > t)]
 
     def cell_state(self, cell, t, uptae=None):
-        """State of one cell at month t. Never touches anything after t."""
+        """State of one cell at month t. Never touches anything after t.
+
+        The short windows (6/12/24m) exist because the ablation table said the
+        dynamics group carries more than any other information source, and the
+        v1 set expressed it at one time scale only. A block that is churning
+        this year and a block that churned three years ago look identical under
+        a 36-month window; they are not the same location.
+        """
         shops = self.by_cell.get(cell, ())
         op = [s for s in shops if s[2] <= t and (s[3] is None or s[3] > t)]
         op_past = [s for s in shops if s[2] <= t - RECENT_M
                    and (s[3] is None or s[3] > t - RECENT_M)]
+        op_past12 = [s for s in shops if s[2] <= t - 12
+                     and (s[3] is None or s[3] > t - 12)]
         openings = [s for s in shops if t - RECENT_M < s[2] <= t]
         closures = [s for s in shops if s[3] is not None and t - RECENT_M < s[3] <= t]
         areas = sorted(s[4] for s in op if s[4])
@@ -502,9 +525,25 @@ class AsOf:
             "closures_36m": len(closures),
             "growth_36m": (len(op) / len(op_past)) if op_past else 1.0,
             "median_area": areas[len(areas) // 2] if areas else None,
+            # --- G2X: same events, finer time resolution -------------------
+            "openings_6m": sum(1 for s in openings if s[2] > t - 6),
+            "openings_24m": sum(1 for s in openings if s[2] > t - 24),
+            "closures_6m": sum(1 for s in closures if s[3] > t - 6),
+            "closures_12m": sum(1 for s in closures if s[3] > t - 12),
+            "closures_24m": sum(1 for s in closures if s[3] > t - 24),
+            "growth_12m": (len(op) / len(op_past12)) if op_past12 else 1.0,
         }
         denom = d["open_cnt"] + d["closures_36m"]
         d["churn_36m"] = d["closures_36m"] / denom if denom else 0.0
+        d12 = d["open_cnt"] + d["closures_12m"]
+        d["churn_12m"] = d["closures_12m"] / d12 if d12 else 0.0
+        # acceleration: last 12 months against the 36-month annual average. >1 =
+        # the block is opening/closing faster now than it has been.
+        op12 = sum(1 for s in openings if s[2] > t - 12)
+        d["open_accel"] = (op12 / (d["openings_36m"] / 3.0)) if d["openings_36m"] else None
+        d["close_accel"] = ((d["closures_12m"] / (d["closures_36m"] / 3.0))
+                            if d["closures_36m"] else None)
+        d["net_flow_12m"] = ((op12 - d["closures_12m"]) / d["open_cnt"]) if d["open_cnt"] else None
         return d
 
     def ring_state(self, cell, t, uptae=None):
@@ -635,11 +674,12 @@ def selftest_cut(con, n_cells=40, months=((2011, 6), (2015, 6), (2019, 6))):
     """
     shops = load_shop_details(con)
     rest = load_rest(con)
+    plain = load_shops(con)
     cells = [r[0] for r in con.execute(
         "SELECT grid_id FROM licence WHERE grid_id IS NOT NULL GROUP BY grid_id "
         "ORDER BY count(*) DESC LIMIT ?", (n_cells,))]
 
-    full_x, full_r = ExtraIndex(rows=shops), RestIndex(rows=rest)
+    full_x, full_r, full_a = ExtraIndex(rows=shops), RestIndex(rows=rest), AsOf(plain)
     bad = defaultdict(int)
     checked = 0
     for y, m in months:
@@ -648,17 +688,20 @@ def selftest_cut(con, n_cells=40, months=((2011, 6), (2015, 6), (2019, 6))):
                                  for g, u, nm, a, o, c in shops if o <= t])
         cut_r = RestIndex(rows=[(g, o, (c if (c is not None and c <= t) else None))
                                 for g, o, c in rest if o <= t])
+        cut_a = AsOf([(g, u, o, (c if (c is not None and c <= t) else None), ar)
+                      for g, u, o, c, ar in plain if o <= t])
         for cell in cells:
             for a, b in ((full_x.features(cell, t), cut_x.features(cell, t)),
-                         (full_r.features(cell, t), cut_r.features(cell, t))):
+                         (full_r.features(cell, t), cut_r.features(cell, t)),
+                         (full_a.cell_state(cell, t), cut_a.cell_state(cell, t))):
                 for k in a:
                     checked += 1
                     if a[k] != b[k]:
                         bad[k] += 1
 
     print(f"≤T 셀프테스트 — 격자 {len(cells)} × 시점 {len(months)} × 피처 "
-          f"{len(EXTRA_FEATURES) + len(REST_FEATURES)} = {checked:,}회 비교")
-    for k in list(EXTRA_FEATURES) + list(REST_FEATURES):
+          f"{len(EXTRA_FEATURES) + len(REST_FEATURES) + len(G2X_FEATURES)} = {checked:,}회 비교")
+    for k in list(G2X_FEATURES) + list(EXTRA_FEATURES) + list(REST_FEATURES):
         n = bad.get(k, 0)
         print(f"  {k:<20} {'PASS' if n == 0 else f'FAIL — T 이후 행에 의존 {n}회'}")
     ok = not bad

@@ -39,6 +39,15 @@ TIER2 = ["rest_cnt_r1", "rest_openings_36m", "rest_closures_36m",
 # Tier 3 coverage starts 2015-01, so it can only be judged on a sub-bench.
 TIER3 = ["ride_12m", "ride_growth"]
 
+# Round 4 candidate block: the dynamics group at more than one time scale. The
+# ablation table (§7-B) put G2 at delta-AUC +0.0216, ahead of every other source,
+# while the deployed set expressed it through a single 36-month window. This is
+# the only extension direction the measurements actually point at - the five new
+# external sources all came back indistinguishable from zero.
+G2X = ["openings_6m", "openings_12m", "openings_24m", "closures_6m", "closures_12m",
+       "closures_24m", "churn_12m", "growth_12m", "open_accel", "close_accel",
+       "net_flow_12m"]
+
 # --- Stage 1 outcome (docs/experiment-plan.md E1·E2, measured 2026-07-27) -----
 # E1 adopted: train reaches back to 2005 (holdout AUC 0.5884 -> 0.5982 on LOC2,
 #   top decile 73.2% -> 75.0%). The plan's tie-break between "wide period, no
@@ -50,6 +59,19 @@ TIER3 = ["ride_12m", "ride_growth"]
 #   to 0.0267, below the pre-registered 0.0350. Labels stay as they are.
 CONFIRMED_TRAIN_YEARS = list(range(2005, 2019))
 CONFIRMED_EXCLUDE_SUCCESSION = False
+
+# --- Round 4: a holdout nobody has looked at ----------------------------------
+# 2019-2022 was opened many times across rounds 2-3 (E1, E2, E-M, the extension
+# bundle, the ablation programme, the trend re-test). Every single comparison was
+# pre-registered, but the cumulative exposure is not undoable: it is no longer a
+# clean test set, and any future "+0.005" claim measured on it has to be
+# discounted. 2023 openings reach their 3-year verdict in 2026 and have never
+# been scored, so they are the only pristine rows available.
+# Cost of the swap, stated up front: 7,915 rows (Jan-Jul 2023 openings; Aug 2023
+# onward is still censored at the 2026-07 observation cut) against 48,889. The
+# top decile is n=791, so its standard error is ~1.5%p instead of ~0.6%p.
+FRESH_TRAIN_YEARS = list(range(2005, 2023))
+FRESH_TEST_YEARS = [2023]
 
 # --- Stage 2 outcome, re-decided under the decile criterion (2026-07-27) ------
 # Round 2 selected on AUC and adopted RandomForest (+0.0043, CI [+0.0022,
