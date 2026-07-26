@@ -41,6 +41,14 @@ TREND = ["trend_12m", "trend_growth"]
 CONFIRMED_TRAIN_YEARS = list(range(2005, 2019))
 CONFIRMED_EXCLUDE_SUCCESSION = False
 
+# --- Stage 2 outcome (docs/experiment-plan.md E-M, 2026-07-27) ----------------
+# RandomForest(300, min_samples_leaf=50) won the internal validation (0.5685 vs
+# the incumbent gbm's 0.5593) and cleared the holdout gate: paired-bootstrap
+# dAUC +0.0043, 95% CI [+0.0022, +0.0063], deciles monotone. Its Brier is worse
+# than gbm's (0.2334 vs 0.2317) - the API serves per-grade OBSERVED survival,
+# not raw probabilities, so ranking quality is what the gate measures.
+WINNER = "rf"
+
 # The set actually served. service/precompute.py reads this and nothing else, so
 # "what the UI ranks by" and "what the headline was measured on" cannot drift.
 # Changing it requires re-running precompute and updating §4-C.
@@ -94,6 +102,9 @@ class Encoder:
 # environment and is deliberately not installed - recorded as an excluded
 # candidate rather than a silently missing one.
 SCALED = {"logit", "mlp"}
+# lbfgs on a fixed design is reproducible, so a seed sweep would fit the same
+# model five times. Callers averaging over seeds short-circuit on this set.
+DETERMINISTIC = {"logit"}
 
 
 def build_model(kind, seed=0, params=None):
@@ -112,10 +123,12 @@ def build_model(kind, seed=0, params=None):
             subsample=0.9, colsample_bytree=0.9, random_state=seed, verbose=-1, n_jobs=8)
 
     if kind in ("rf", "et"):
+        # rf defaults ARE the E-M winner's settings, so `--model rf` anywhere in
+        # the repo reproduces the tournament winner without threading params.
         from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
         cls = RandomForestClassifier if kind == "rf" else ExtraTreesClassifier
-        return cls(n_estimators=p.get("n_estimators", 400),
-                   min_samples_leaf=p.get("min_samples_leaf", 20),
+        return cls(n_estimators=p.get("n_estimators", 300),
+                   min_samples_leaf=p.get("min_samples_leaf", 50 if kind == "rf" else 20),
                    max_features=p.get("max_features", "sqrt"),
                    random_state=seed, n_jobs=8)
 
