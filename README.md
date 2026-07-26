@@ -66,6 +66,7 @@ python -m model.stratified       # 면적 통제 후 입지 효과
 | `docs/api-applications.md` | 직접 신청해야 하는 API (공정위·R-ONE·VWORLD) |
 | `docs/experiment-plan.md` | 제출 전 실험 라운드 2 설계 (사전 등록 기준·일정) |
 | `docs/submission.md` | **제출물 설계** — zip 패키징 · 기술설명서 서사 교체 매핑 · 마감 8/3 16:00 |
+| `docs/goodwill-report-design.md` | 권리금 적정가 리포트 + 건물·층 해상도 사다리 — 원안 조정판 |
 | `frontend/design/ui-spec.md` | UI 스펙 v2 — 시안 대비 차분 · 플로우 · 컴포넌트 규칙 |
 | `docs/tracking/criteria-*.md` | 수용 기준과 통과 증거 |
 
