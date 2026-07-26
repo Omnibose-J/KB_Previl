@@ -21,8 +21,8 @@ from pipeline.db import init
 
 from .asof import AccessIndex, AsOf, load_shops, ym
 from .cache import cached_split
-from .evaluate import TEST_YEARS, TRAIN_YEARS
-from .train import DEPLOY, fit_predict
+from .evaluate import TEST_YEARS
+from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, fit_predict
 
 MIN_RING_HISTORY = 20      # shops ever opened in the 3x3 ring
 NOW = None                 # resolved from data, not the wall clock
@@ -83,7 +83,7 @@ def score_all(con, uptae, site_area=None, verbose=True):
     # in would inflate the reported grade without changing the order.
     rank_cols = list(DEPLOY)
 
-    train, test = cached_split(con, TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     p_hold, _ = fit_predict("gbm", train, test, num=rank_cols)
     yte = test[1]
 

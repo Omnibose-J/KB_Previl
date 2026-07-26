@@ -30,7 +30,7 @@ def observation_cut(con):
 
 
 def build(con, year, horizon=3, verbose=False, with_trend=False,
-          with_mention=False, gu=None):
+          with_mention=False, gu=None, exclude_succession=False):
     shops = load_shops(con)
     ao = AsOf(shops)
     ti = TrendIndex(con) if with_trend else None
@@ -39,17 +39,22 @@ def build(con, year, horizon=3, verbose=False, with_trend=False,
     cut = observation_cut(con)
     hm = horizon * 12
 
+    # Succession exclusion is a ROW filter on the labelled cohort, identical to
+    # pipeline.cohort.compute(exclude_succession=True) - the dropped shops stay in
+    # the as-of universe, so a neighbour's handover still counts as a neighbour.
+    succ = " AND l.succession_suspect=0" if exclude_succession else ""
     if gu:
         rows = con.execute(
             "SELECT l.grid_id, l.uptae, l.open_y, l.open_m, l.close_y, l.close_m, "
             "  l.is_closed, l.site_area FROM licence l "
             "JOIN grid_sgis gs ON l.grid_id=gs.grid_id "
-            "WHERE l.grid_id IS NOT NULL AND l.open_y=? AND gs.sgis_adm_nm LIKE ?",
+            "WHERE l.grid_id IS NOT NULL AND l.open_y=? AND gs.sgis_adm_nm LIKE ?" + succ,
             (year, f"%{gu}%")).fetchall()
     else:
         rows = con.execute(
-            "SELECT grid_id, uptae, open_y, open_m, close_y, close_m, is_closed, site_area "
-            "FROM licence WHERE grid_id IS NOT NULL AND open_y=?", (year,)).fetchall()
+            "SELECT l.grid_id, l.uptae, l.open_y, l.open_m, l.close_y, l.close_m, "
+            "l.is_closed, l.site_area "
+            "FROM licence l WHERE l.grid_id IS NOT NULL AND l.open_y=?" + succ, (year,)).fetchall()
 
     # memoize cell state per (cell, month) - a cohort year has <=12 distinct months
     @lru_cache(maxsize=None)

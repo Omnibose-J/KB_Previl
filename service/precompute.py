@@ -18,9 +18,9 @@ import numpy as np
 
 from model.asof import AccessIndex, AsOf, group_of, load_shops
 from model.cache import cached_split
-from model.evaluate import TEST_YEARS, TRAIN_YEARS
+from model.evaluate import TEST_YEARS
 from model.recommend import MIN_RING_HISTORY, current_month
-from model.train import DEPLOY, fit_predict
+from model.train import CONFIRMED_TRAIN_YEARS, DEPLOY, fit_predict
 from pipeline.db import init
 from pipeline.grid import neighbors
 
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS score_meta (
 
 def calibration(con, rank_cols, model="gbm"):
     """Grade boundaries + observed survival per grade, from the held-out split."""
-    train, test = cached_split(con, TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     p, _ = fit_predict(model, train, test, num=rank_cols)
     yte = test[1]
     order = np.argsort(-p)
@@ -106,8 +106,9 @@ def main():
     t = current_month(con)
     ao = AsOf(load_shops(con))
     ai = AccessIndex(con)
-    if not ai.available:
-        raise SystemExit("grid_access 없음 — 접근성 피처가 전부 결측 대치되어 "
+    if not ai.available and any(c.startswith("station") or c.startswith("transfer")
+                                for c in rank_cols):
+        raise SystemExit("grid_access 없음 — 접근성 피처가 전부 중앙값 대치되어 "
                          "배포 점수가 학습 세트와 어긋난다. 파이프라인 먼저 실행할 것.")
     cells = [r["grid_id"] for r in con.execute("SELECT grid_id FROM grid")]
 

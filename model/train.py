@@ -29,10 +29,22 @@ LOC3 = [c for c in NUM3 if c != "site_area"]
 
 TREND = ["trend_12m", "trend_growth"]
 
+# --- Stage 1 outcome (docs/experiment-plan.md E1·E2, measured 2026-07-27) -----
+# E1 adopted: train reaches back to 2005 (holdout AUC 0.5884 -> 0.5982 on LOC2,
+#   top decile 73.2% -> 75.0%). The plan's tie-break between "wide period, no
+#   accessibility" and "current period, with accessibility" was settled on the
+#   INTERNAL validation (2017-2018): LOC2/2005-2016 0.5590 > LOC3/2013-2016
+#   0.5568. The wide period cannot carry ACCESS because asof.py has no line
+#   opening dates, so a 2005 shop would see stations built after it opened.
+# E2 rejected: succession-excluded labels drop the model's edge over prior_surv
+#   to 0.0267, below the pre-registered 0.0350. Labels stay as they are.
+CONFIRMED_TRAIN_YEARS = list(range(2005, 2019))
+CONFIRMED_EXCLUDE_SUCCESSION = False
+
 # The set actually served. service/precompute.py reads this and nothing else, so
 # "what the UI ranks by" and "what the headline was measured on" cannot drift.
 # Changing it requires re-running precompute and updating §4-C.
-DEPLOY = LOC3
+DEPLOY = LOC2
 
 
 class Encoder:
