@@ -29,6 +29,16 @@ LOC3 = [c for c in NUM3 if c != "site_area"]
 
 TREND = ["trend_12m", "trend_growth"]
 
+# Extension candidates (docs/experiment-plan.md E-A "유니버스 확장 후보").
+# Measured in the ablation table regardless; entering the deploy set is a
+# separate gate decided on internal validation, then confirmed once as a bundle.
+TIER1 = ["chain_share_r1", "reoccupy_12m", "vacancy_fill_m", "close_age_m",
+         "grid_age_y", "uptae_switch_r1", "density_grad", "openings_12m"]
+TIER2 = ["rest_cnt_r1", "rest_openings_36m", "rest_closures_36m",
+         "rest_churn_36m", "rest_growth_36m"]
+# Tier 3 coverage starts 2015-01, so it can only be judged on a sub-bench.
+TIER3 = ["ride_12m", "ride_growth"]
+
 # --- Stage 1 outcome (docs/experiment-plan.md E1·E2, measured 2026-07-27) -----
 # E1 adopted: train reaches back to 2005 (holdout AUC 0.5884 -> 0.5982 on LOC2,
 #   top decile 73.2% -> 75.0%). The plan's tie-break between "wide period, no

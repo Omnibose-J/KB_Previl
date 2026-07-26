@@ -193,6 +193,53 @@ MENTION_FEATURES = {
 }
 
 
+class RideIndex:
+    """Tier 3 — monthly ridership of a cell's nearest subway station.
+
+    Unlike station distance, this one moves with time, so it is the first
+    external feature that can say a location's catchment was growing. Coverage
+    starts 2015-01 (CardSubwayTime), which is why it is measured on the
+    2017-2018 sub-bench rather than the confirmed 2005-2018 bench - on the wide
+    bench most training rows would be imputed and the result would be a
+    coverage artefact wearing the clothes of a negative finding.
+
+    The value is a STATION-unit value attached through the nearest station, so
+    cells sharing a station tie on it. That is the deliberate alternative to
+    interpolating a per-cell number the data cannot support.
+    """
+
+    def __init__(self, con):
+        self.series = defaultdict(dict)
+        self.station_of = {}
+        try:
+            for st, t, v in con.execute("SELECT station, ym, riders FROM station_ride"):
+                self.series[st][t] = v
+            for gid, st in con.execute(
+                    "SELECT grid_id, station_name FROM grid_access WHERE station_name IS NOT NULL"):
+                self.station_of[gid] = st
+        except Exception:
+            pass
+        self.available = bool(self.series)
+
+    def features(self, cell, t):
+        s = self.series.get(self.station_of.get(cell))
+        if not s:
+            return {"ride_12m": None, "ride_growth": None}
+        recent = [s[k] for k in range(t - 12, t) if k in s]
+        prior = [s[k] for k in range(t - 24, t - 12) if k in s]
+        if len(recent) < 6:
+            return {"ride_12m": None, "ride_growth": None}
+        r = sum(recent) / len(recent)
+        g = (r / (sum(prior) / len(prior))) if len(prior) >= 6 and sum(prior) else None
+        return {"ride_12m": r, "ride_growth": g}
+
+
+RIDE_FEATURES = {
+    "ride_12m":     "최근접 지하철역의 직전 12개월 평균 월 승하차 인원 (역 단위 값)",
+    "ride_growth":  "직전 12개월 평균 / 그 이전 12개월 평균 — 역 이용 추세",
+}
+
+
 class AccessIndex:
     """Transit distance per cell. Time-invariant over the study window, so it
     is as-of valid by construction (with the noted exception of lines opened
@@ -224,6 +271,207 @@ ACCESS_FEATURES = {
     "stations_1km":    "반경 1km 내 역 수",
     "transfer_dist_m": "최근접 환승역까지 거리 (m)",
 }
+
+
+CHAIN_N = 3          # shops under one 상호 before it counts as a chain
+VACANCY_CAP_M = 24   # months a vacancy is followed for; see ExtraIndex
+
+
+def load_shop_details(con):
+    """Shops with the address and trade name the Tier-1 features need."""
+    rows = con.execute(
+        "SELECT grid_id, uptae, bplcnm, addr, open_y, open_m, close_y, close_m, is_closed "
+        "FROM licence WHERE grid_id IS NOT NULL AND open_y IS NOT NULL").fetchall()
+    out = []
+    for r in rows:
+        o = ym(r["open_y"], r["open_m"])
+        c = ym(r["close_y"], r["close_m"]) if (r["is_closed"] and r["close_y"]) else None
+        out.append((r["grid_id"], r["uptae"] or "기타", r["bplcnm"] or "",
+                    r["addr"] or "", o, c))
+    return out
+
+
+class ExtraIndex:
+    """Tier 1 — re-derivations of the licensing table on mechanisms the existing
+    features do not express: how fast a premises refills, how old the pitch is,
+    how much of the block is chain-operated.
+
+    Every window is closed at or before T by construction, which is stricter than
+    it looks. `reoccupy_12m` only counts closures at or before T-12 so its
+    12-month window cannot extend past T; `vacancy_fill_m` only counts closures at
+    or before T-24 and caps the answer at 24 months, so a premises still empty at
+    T is a fully observed "24", not a missing value that would otherwise have to
+    be imputed from the future. Chain membership is evaluated as of T too - a
+    brand that reached three branches in 2020 is not a chain in 2013.
+
+    The existing leakage guard checks the base NUM set at an AUC 0.90 threshold
+    and would not notice a +0.02 leak from a new feature, so each of these is
+    additionally covered by the cut-at-T self-test in `selftest_cut`.
+    """
+
+    def __init__(self, con=None, rows=None):
+        import bisect
+        self._bisect = bisect
+        self.by_cell = defaultdict(list)      # cell -> [(addr, uptae, open, close, name)]
+        chain_opens = defaultdict(list)
+        for gid, ut, nm, addr, o, c in (rows if rows is not None else load_shop_details(con)):
+            self.by_cell[gid].append((addr, ut, o, c, nm))
+            if nm:
+                chain_opens[nm].append(o)
+        self.chain_opens = {k: sorted(v) for k, v in chain_opens.items()
+                            if len(v) >= CHAIN_N}
+        self.available = bool(self.by_cell)
+
+    def _is_chain_at(self, name, t):
+        opens = self.chain_opens.get(name)
+        if not opens:
+            return False
+        return self._bisect.bisect_right(opens, t) >= CHAIN_N
+
+    def features(self, cell, t):
+        """All Tier-1 values for one (cell, month). Uptae-independent."""
+        ring = neighbors(cell, 1)
+        by_addr = defaultdict(list)
+        operating = chain = 0
+        close_ages, opens_12m = [], 0
+        for c in ring:
+            for addr, ut, o, cl, nm in self.by_cell.get(c, ()):
+                if o > t:
+                    continue                      # not yet licensed at t
+                if cl is None or cl > t:
+                    operating += 1
+                    if self._is_chain_at(nm, t):
+                        chain += 1
+                if cl is not None and cl <= t:
+                    close_ages.append(cl - o)
+                if c == cell and t - 12 < o <= t:
+                    opens_12m += 1
+                by_addr[addr].append((o, cl, ut))
+
+        refill, switch_n, switch_diff, fills = [0, 0], 0, 0, []
+        for addr, evs in by_addr.items():
+            if len(evs) < 2 or not addr:
+                continue
+            evs.sort(key=lambda e: e[0])      # by opening; close may be None
+            for o, cl, ut in evs:
+                if cl is None or cl > t:
+                    continue
+                nxt = next(((o2, u2) for o2, _, u2 in evs if o2 > cl), None)
+                if cl <= t - 12:
+                    refill[1] += 1
+                    if nxt and nxt[0] - cl <= 12:
+                        refill[0] += 1
+                if cl <= t - VACANCY_CAP_M:
+                    gap = (nxt[0] - cl) if nxt else VACANCY_CAP_M + 1
+                    fills.append(min(gap, VACANCY_CAP_M))
+                if nxt and nxt[0] <= t:
+                    switch_n += 1
+                    switch_diff += 1 if nxt[1] != ut else 0
+
+        # density gradient: 5x5 per-cell density against 3x3 per-cell density
+        n_r1 = sum(1 for c in ring for _, _, o, cl, _ in self.by_cell.get(c, ())
+                   if o <= t and (cl is None or cl > t))
+        r2 = neighbors(cell, 2)
+        n_r2 = sum(1 for c in r2 for _, _, o, cl, _ in self.by_cell.get(c, ())
+                   if o <= t and (cl is None or cl > t))
+        cell_opens = [o for _, _, o, _, _ in self.by_cell.get(cell, ()) if o <= t]
+
+        close_ages.sort()
+        fills.sort()
+        return {
+            "chain_share_r1": (chain / operating) if operating else None,
+            "reoccupy_12m": (refill[0] / refill[1]) if refill[1] >= 5 else None,
+            "vacancy_fill_m": (fills[len(fills) // 2]) if len(fills) >= 5 else None,
+            "close_age_m": (close_ages[len(close_ages) // 2]) if len(close_ages) >= 5 else None,
+            "grid_age_y": ((t - min(cell_opens)) / 12.0) if cell_opens else None,
+            "uptae_switch_r1": (switch_diff / switch_n) if switch_n >= 5 else None,
+            "density_grad": ((n_r2 / len(r2)) / (n_r1 / len(ring))) if n_r1 else None,
+            "openings_12m": opens_12m,
+        }
+
+
+EXTRA_FEATURES = {
+    "chain_share_r1":  "이웃 영업 점포 중 체인(서울에 동일 상호 3곳 이상, 개업<=T만 집계) 비중",
+    "reoccupy_12m":    "이웃 주소 중 폐업(<=T-12) 후 12개월 내 재개업 비율 — 창이 T 이전에 닫힌다",
+    "vacancy_fill_m":  "이웃 주소 공실 회전 개월 중앙값 (폐업<=T-24만, 24개월 상한 = 미충원도 관측값)",
+    "close_age_m":     "이웃 폐업 점포(<=T)의 영업 개월 중앙값 — 일찍 죽는 자리 vs 오래 살다 바뀌는 자리",
+    "grid_age_y":      "격자 첫 인허가(<=T) 이후 경과 연수 — 상권 성숙도",
+    "uptae_switch_r1": "이웃 주소 재개업(<=T) 중 업태가 바뀐 비율 — 자리 정체성 불안정",
+    "density_grad":    "5x5 셀당 밀도 / 3x3 셀당 밀도 (<=T 영업) — <1이면 상권 핵심부",
+    "openings_12m":    "격자 직전 12개월 개업 수 — 36m 지표의 단기판",
+}
+
+
+def load_rest(con):
+    """휴게음식점 as (cell, open, close). Empty if Tier 2 was never loaded."""
+    try:
+        rows = con.execute(
+            "SELECT grid_id, open_y, open_m, close_y, close_m, is_closed "
+            "FROM licence_rest WHERE grid_id IS NOT NULL AND open_y IS NOT NULL").fetchall()
+    except Exception:
+        return []
+    out = []
+    for r in rows:
+        o = ym(r["open_y"], r["open_m"])
+        c = ym(r["close_y"], r["close_m"]) if (r["is_closed"] and r["close_y"]) else None
+        out.append((r["grid_id"], o, c))
+    return out
+
+
+class RestIndex:
+    """Tier 2 — 휴게음식점 (cafes, fast food, bakeries) as a second licensing
+    source. The main table is 일반음식점 only, so every cafe on the block is
+    currently invisible to the competition and agglomeration features: a street
+    of coffee shops reads as an empty street. Same LOCALDATA format and the same
+    open/close dates, so the as-of reconstruction is the identical replay.
+    """
+
+    def __init__(self, con=None, rows=None):
+        self.by_cell = defaultdict(list)
+        for gid, o, c in (rows if rows is not None else load_rest(con)):
+            self.by_cell[gid].append((o, c))
+        self.available = bool(self.by_cell)
+
+    def features(self, cell, t):
+        if not self.available:
+            return {k: None for k in REST_FEATURES}
+        op = openings = closures = op_past = 0
+        for c in neighbors(cell, 1):
+            for o, cl in self.by_cell.get(c, ()):
+                if o <= t and (cl is None or cl > t):
+                    op += 1
+                if t - RECENT_M < o <= t:
+                    openings += 1
+                if cl is not None and t - RECENT_M < cl <= t:
+                    closures += 1
+                if o <= t - RECENT_M and (cl is None or cl > t - RECENT_M):
+                    op_past += 1
+        denom = op + closures
+        return {
+            "rest_cnt_r1": op,
+            "rest_openings_36m": openings,
+            "rest_closures_36m": closures,
+            "rest_churn_36m": (closures / denom) if denom else 0.0,
+            "rest_growth_36m": (op / op_past) if op_past else 1.0,
+        }
+
+
+REST_FEATURES = {
+    "rest_cnt_r1":       "3x3 이웃 휴게음식점 T 시점 영업 수 — 카페·패스트푸드 경쟁/집적",
+    "rest_openings_36m": "이웃 휴게음식점 직전 36개월 개업 수",
+    "rest_closures_36m": "이웃 휴게음식점 직전 36개월 폐업 수",
+    "rest_churn_36m":    "휴게음식점 자리 교체율",
+    "rest_growth_36m":   "휴게음식점 밀도 추세 (T / T-36)",
+}
+
+
+# Every feature the model may see must carry an observability note here; the
+# leakage guard fails the build on any set member that is missing one.
+FEATURES.update(ACCESS_FEATURES)
+FEATURES.update(EXTRA_FEATURES)
+FEATURES.update(REST_FEATURES)
+FEATURES.update(RIDE_FEATURES)
+FEATURES.update(TREND_FEATURES)
 
 
 class AsOf:
@@ -375,6 +623,49 @@ def selftest(con):
     return True
 
 
+def selftest_cut(con, n_cells=40, months=((2011, 6), (2015, 6), (2019, 6))):
+    """Prove each new feature is a function of the past only.
+
+    The test deletes every event after T - shops opened later stop existing, and
+    a closure dated after T becomes "still operating", which is exactly what an
+    observer standing at T would see - then recomputes. Any feature whose value
+    moves was reading the future. This is the guard the existing RED/GREEN test
+    cannot provide: that one only checks the base NUM set, and only fires above
+    AUC 0.90, so a new feature leaking +0.02 passes it silently.
+    """
+    shops = load_shop_details(con)
+    rest = load_rest(con)
+    cells = [r[0] for r in con.execute(
+        "SELECT grid_id FROM licence WHERE grid_id IS NOT NULL GROUP BY grid_id "
+        "ORDER BY count(*) DESC LIMIT ?", (n_cells,))]
+
+    full_x, full_r = ExtraIndex(rows=shops), RestIndex(rows=rest)
+    bad = defaultdict(int)
+    checked = 0
+    for y, m in months:
+        t = ym(y, m)
+        cut_x = ExtraIndex(rows=[(g, u, nm, a, o, (c if (c is not None and c <= t) else None))
+                                 for g, u, nm, a, o, c in shops if o <= t])
+        cut_r = RestIndex(rows=[(g, o, (c if (c is not None and c <= t) else None))
+                                for g, o, c in rest if o <= t])
+        for cell in cells:
+            for a, b in ((full_x.features(cell, t), cut_x.features(cell, t)),
+                         (full_r.features(cell, t), cut_r.features(cell, t))):
+                for k in a:
+                    checked += 1
+                    if a[k] != b[k]:
+                        bad[k] += 1
+
+    print(f"≤T 셀프테스트 — 격자 {len(cells)} × 시점 {len(months)} × 피처 "
+          f"{len(EXTRA_FEATURES) + len(REST_FEATURES)} = {checked:,}회 비교")
+    for k in list(EXTRA_FEATURES) + list(REST_FEATURES):
+        n = bad.get(k, 0)
+        print(f"  {k:<20} {'PASS' if n == 0 else f'FAIL — T 이후 행에 의존 {n}회'}")
+    ok = not bad
+    print(f"-> ≤T 불변성 {'PASS' if ok else 'FAIL'}")
+    return ok
+
+
 def describe():
     print("as-of 피처 — 각 항목이 T 시점에 관측 가능한 근거\n")
     for k, v in FEATURES.items():
@@ -388,8 +679,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--describe", action="store_true")
+    ap.add_argument("--selftest-cut", action="store_true",
+                    help="신규 피처: T 이후 행을 지워도 값이 불변인지")
     a = ap.parse_args()
     if a.describe:
         describe()
     if a.selftest:
         selftest(init())
+    if a.selftest_cut:
+        raise SystemExit(0 if selftest_cut(init()) else 1)

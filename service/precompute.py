@@ -16,7 +16,8 @@ import time
 
 import numpy as np
 
-from model.asof import AccessIndex, AsOf, group_of, load_shops
+from model.asof import (AccessIndex, AsOf, ExtraIndex, RestIndex, RideIndex, group_of,
+                        load_shops)
 from model.cache import cached_split
 from model.evaluate import TEST_YEARS
 from model.recommend import MIN_RING_HISTORY, current_month
@@ -46,19 +47,38 @@ CREATE TABLE IF NOT EXISTS score_meta (
 """
 
 
+def wilson(k, n, z=1.96):
+    """95% CI for a proportion. Wilson rather than normal-approximation because
+    the grade cells are proportions near 0.75 where the naive interval is
+    asymmetric in the wrong direction and can exceed 1."""
+    if not n:
+        return (0.0, 1.0)
+    p = k / n
+    d = 1 + z * z / n
+    c = p + z * z / (2 * n)
+    r = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5)
+    return ((c - r) / d, (c + r) / d)
+
+
 def calibration(con, rank_cols, model="gbm"):
-    """Grade boundaries + observed survival per grade, from the held-out split."""
+    """Grade boundaries + observed survival per grade, from the held-out split.
+
+    The interval is computed here, off the same segmentation that produces the
+    point estimate, so the UI can never show a rate and an interval that were
+    derived from different splits (A1).
+    """
     train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     p, _ = fit_predict(model, train, test, num=rank_cols)
     yte = test[1]
     order = np.argsort(-p)
     n = len(p)
-    edges, observed = [], []
+    edges, observed, ci = [], [], []
     for i in range(10):
         seg = order[int(n * i / 10):int(n * (i + 1) / 10)]
         edges.append(float(p[seg].min()))
         observed.append(float(yte[seg].mean()))
-    return train, test, edges, observed
+        ci.append(wilson(int(yte[seg].sum()), len(seg)))
+    return train, test, edges, observed, ci
 
 
 def uptae_terms(ao, gid, t, uptae):
@@ -96,9 +116,10 @@ def main():
     rank_cols = list(DEPLOY)
     print(f"모델 {a.model} · 순위 피처 {len(rank_cols)}개")
     print("보정 기준 계산 (홀드아웃)...")
-    train, test, edges, observed = calibration(con, rank_cols, a.model)
-    print(f"  등급별 실측 생존율: 1등급 {observed[0]*100:.1f}% ... "
-          f"10등급 {observed[-1]*100:.1f}%")
+    train, test, edges, observed, ci = calibration(con, rank_cols, a.model)
+    print(f"  등급별 실측 생존율: 1등급 {observed[0]*100:.1f}% "
+          f"({ci[0][0]*100:.1f}-{ci[0][1]*100:.1f}) ... 10등급 {observed[-1]*100:.1f}% "
+          f"({ci[-1][0]*100:.1f}-{ci[-1][1]*100:.1f})")
 
     Xtr = train[0] + test[0]
     ytr = np.concatenate([train[1], test[1]])
@@ -106,6 +127,7 @@ def main():
     t = current_month(con)
     ao = AsOf(load_shops(con))
     ai = AccessIndex(con)
+    xi, ri, di = ExtraIndex(con), RestIndex(con), RideIndex(con)
     if not ai.available and any(c.startswith("station") or c.startswith("transfer")
                                 for c in rank_cols):
         raise SystemExit("grid_access 없음 — 접근성 피처가 전부 중앙값 대치되어 "
@@ -118,6 +140,9 @@ def main():
         f = ao.cell_state(gid, t, None)
         f.update(ao.ring_state(gid, t, None))
         f.update(ai.features(gid))
+        f.update(xi.features(gid, t))
+        f.update(ri.features(gid, t))
+        f.update(di.features(gid, t))
         if (f["prior_surv_n"] or 0) >= MIN_RING_HISTORY:
             base[gid] = f
         if (i + 1) % 5000 == 0:
@@ -159,6 +184,7 @@ def main():
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
         ("as_of", f"{t//12}-{t%12 or 12:02d}"),
         ("observed_by_grade", ",".join(f"{o:.4f}" for o in observed)),
+        ("observed_ci_by_grade", ",".join(f"{lo:.4f}:{hi:.4f}" for lo, hi in ci)),
         ("overall_survival", f"{float(test[1].mean()):.4f}"),
         ("rank_features", ",".join(rank_cols)),
         ("rank_model", a.model),

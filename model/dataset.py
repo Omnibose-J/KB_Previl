@@ -19,7 +19,8 @@ from functools import lru_cache
 
 from pipeline.db import init
 
-from .asof import AccessIndex, AsOf, MentionIndex, TrendIndex, load_shops, ym
+from .asof import (AccessIndex, AsOf, ExtraIndex, MentionIndex, RestIndex, RideIndex,
+                   TrendIndex, load_shops, ym)
 
 
 def observation_cut(con):
@@ -36,6 +37,9 @@ def build(con, year, horizon=3, verbose=False, with_trend=False,
     ti = TrendIndex(con) if with_trend else None
     mi = MentionIndex(con) if with_mention else None
     ai = AccessIndex(con)
+    xi = ExtraIndex(con)
+    ri = RestIndex(con)
+    di = RideIndex(con)
     cut = observation_cut(con)
     hm = horizon * 12
 
@@ -63,6 +67,15 @@ def build(con, year, horizon=3, verbose=False, with_trend=False,
         f.update(ao.ring_state(cell, t, uptae))
         return f
 
+    # Tier 1/2 values do not vary with 업태, so they are memoized without it -
+    # otherwise the same cell-month would be recomputed once per 업태 present.
+    @lru_cache(maxsize=None)
+    def cell_extra(cell, t):
+        f = xi.features(cell, t)
+        f.update(ri.features(cell, t))
+        f.update(di.features(cell, t))
+        return f
+
     X, y, censored, meta = [], [], 0, []
     for r in rows:
         o = ym(r["open_y"], r["open_m"])
@@ -71,6 +84,7 @@ def build(con, year, horizon=3, verbose=False, with_trend=False,
             continue                      # horizon not elapsed -> no verdict
         ut = r["uptae"] or "기타"
         f = dict(cell_ring(r["grid_id"], o - 1, ut))
+        f.update(cell_extra(r["grid_id"], o - 1))
         f["site_area"] = r["site_area"]
         f["open_month"] = r["open_m"] or 1
         f["uptae"] = ut

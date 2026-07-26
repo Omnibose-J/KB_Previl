@@ -27,8 +27,9 @@ import numpy as np
 from pipeline.db import init
 
 from .asof import ym
-from .evaluate import TEST_YEARS, TRAIN_YEARS, load_split
-from .train import NUM, fit_predict
+from .cache import cached_split
+from .evaluate import TEST_YEARS
+from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 
 # Margin BEFORE rent, not operating margin. The published 음식점업 operating
 # margin (~10-15%) already has rent deducted; subtracting rent again on top of
@@ -48,10 +49,9 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
     "top 10%" reflects shops that a model trained on earlier years would have
     ranked top 10% - not hindsight.
     """
-    train, test = load_split(con, TRAIN_YEARS, TEST_YEARS, 3, verbose=False)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     Xte, yte, mte = test
-    loc_cols = [c for c in NUM if c != "site_area"]
-    p, _ = fit_predict("gbm", train, test, num=loc_cols)
+    p, _ = fit_predict(WINNER, train, test, num=list(DEPLOY))
 
     order = np.argsort(-p)
     n = len(p)
@@ -63,12 +63,7 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
         for j in seg:
             grade_of[j] = i + 1
 
-    # duration in months for each test shop
-    rows = {r["mgtno"]: r for r in ()}
-    dur = []
-    for i, m in enumerate(mte):
-        dur.append(None)
-    # recompute durations from the licence table keyed by (grid, open_ym)
+    # durations from the licence table, keyed by (cell, opening month)
     lic = defaultdict(list)
     for r in con.execute(
             "SELECT grid_id, open_y, open_m, close_y, close_m, is_closed "

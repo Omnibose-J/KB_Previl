@@ -79,3 +79,31 @@ def only_one_group_in(cols, group):
     Encoder regardless, which is G0 and never ablated)."""
     keep = set(GROUPS[group])
     return [c for c in cols if c in keep]
+
+
+def deciles(y, p, k=10):
+    order = np.argsort(-np.asarray(p))
+    y = np.asarray(y)[order]
+    n = len(y)
+    return [float(y[int(n * i / k):int(n * (i + 1) / k)].mean()) for i in range(k)]
+
+
+def permutation_importance_auc(model, Xenc, y, blocks, n_repeats=5, seed=0, scale=False):
+    """AUC drop when a block of encoded columns is shuffled together.
+
+    Blocks rather than single columns because the 업태 one-hot only means
+    anything as a unit - permuting its columns independently would produce rows
+    that are one-hot-invalid and measure an artefact instead of the feature.
+    """
+    rng = np.random.default_rng(seed)
+    base = roc_auc_score(y, model.predict_proba(Xenc)[:, 1])
+    out = {}
+    for name, idx in blocks.items():
+        drops = []
+        for _ in range(n_repeats):
+            Z = Xenc.copy()
+            perm = rng.permutation(len(Z))
+            Z[:, idx] = Z[perm][:, idx]
+            drops.append(base - roc_auc_score(y, model.predict_proba(Z)[:, 1]))
+        out[name] = (float(np.mean(drops)), float(np.std(drops)))
+    return base, out
