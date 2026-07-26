@@ -28,3 +28,14 @@ displacement — the loss is the standing guard, not a known defect.
 
 **Note** — after the fix these two checks make live Kakao API calls, so 17/17 additionally
 requires `KAKAO_REST_API_KEY` and network.
+
+**Both checks were confirmed to pass** — replicated read-only against the live Kakao API
+(nothing in the repo touched), same seeds and same thresholds as the real checks:
+
+```
+district     표본 60  일치 60 / 불일치 0  = 100.0%      (임계: 없음 — 불일치가 있으면 CRS 의심)
+dongaccuracy 표본 80  일치 80 / 불일치 0  = 100.0%      (임계 n>=50 & >=99.0% -> True)
+```
+
+So the fix is the 2-token rename and nothing else: applying it takes the suite to 17/17, and
+the CRS/dong assignments themselves are sound. The guard was missing, not the correctness.
