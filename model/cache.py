@@ -16,11 +16,22 @@ CACHE_DIR = Path(os.environ.get("KB_MODEL_CACHE") or (Path(__file__).parent / ".
 SOURCES = ("asof.py", "dataset.py", "evaluate.py")
 
 
-def fingerprint():
+def _hash_sources():
     h = hashlib.sha256()
     for name in SOURCES:
         h.update((Path(__file__).parent / name).read_bytes())
     return h.hexdigest()[:12]
+
+
+# Computed once, at import. A long build must be keyed by the code the process
+# actually LOADED, not by whatever is on disk when it happens to finish: editing
+# a feature module mid-run would otherwise write rows built by the old code under
+# the new code's key - a poisoned cache that looks current.
+FINGERPRINT = _hash_sources()
+
+
+def fingerprint():
+    return FINGERPRINT
 
 
 def cached_split(con, train_years, test_years, horizon=3, verbose=False, **kw):

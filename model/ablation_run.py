@@ -32,7 +32,8 @@ from .ablation import (GROUPS, deciles, leave_one_group_out, only_one_group_in,
                        paired_bootstrap_ci, permutation_importance_auc, seed_avg_predict)
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, LOC3, TREND, WINNER, Encoder, weights
+from .train import (CONFIRMED_TRAIN_YEARS, DEPLOY, LOC3, TIER1, TIER2, TIER3, TREND,
+                    WINNER, Encoder, weights)
 
 TREND_TRAIN = [2017, 2018]
 LOC3_TRAIN = list(range(2013, 2019))
@@ -83,6 +84,7 @@ def main():
     rank = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
     loc3 = cached_split(con, LOC3_TRAIN, TEST_YEARS, 3)
     trend = cached_split(con, TREND_TRAIN, TEST_YEARS, 3, with_trend=True)
+    sub = cached_split(con, TREND_TRAIN, TEST_YEARS, 3)
     rank_cols = list(DEPLOY)
     meas_cols = rank_cols + ["site_area"]
     print(f"  순위 벤치 n_tr={len(rank[0][1]):,} · 측정 벤치 +site_area · "
@@ -118,6 +120,18 @@ def main():
     if r:
         rows.append(r)
 
+    # Extension groups sit on their own bench (deploy set + both tiers) so their
+    # leave-one-out delta is measured the same way as G1-G5 rather than as an
+    # add-one screen. They are measured despite the bundle being rejected: the
+    # rejection is the finding, and it only means something if the number is shown.
+    print(f"\n[확장 측정 벤치] DEPLOY + Tier1 + Tier2 — 편입은 기각됐고 측정만 한다")
+    ext_cols = rank_cols + TIER1 + TIER2
+    p_ext = seed_avg_predict(a.model, rank[0], rank[1], ext_cols)
+    for g in ("G8_tier1_rederived", "G9_tier2_rest"):
+        r = measure(g, rank, ext_cols, g, a.model, note="측정 전용·편입 기각", p_full=p_ext)
+        if r:
+            rows.append(r)
+
     print(f"\n[G4 부표] LOC3 · train {LOC3_TRAIN[0]}-{LOC3_TRAIN[-1]} "
           f"— 확대 기간엔 노선 개통일이 없어 실을 수 없다")
     r = measure("G4_access", loc3, list(LOC3), "G4_access", a.model,
@@ -129,6 +143,13 @@ def main():
           f"— 트렌드 커버리지가 2016-01부터라 확대 벤치에선 구조적 0이 된다")
     r = measure("G7_trend", trend, list(DEPLOY) + TREND, "G7_trend", a.model,
                 note="표본 제약: train 2017-2018")
+    if r:
+        rows.append(r)
+
+    print(f"\n[G10 부표] train {TREND_TRAIN[0]}-{TREND_TRAIN[-1]} "
+          f"— 승하차 커버리지가 2015-01부터라 확정 벤치엔 실을 수 없다")
+    r = measure("G10_tier3_ridership", sub, list(DEPLOY) + TIER3, "G10_tier3_ridership",
+                a.model, note="표본 제약: train 2017-2018")
     if r:
         rows.append(r)
 

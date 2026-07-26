@@ -30,6 +30,14 @@ GROUPS = {
     "G6_store_attrs": ["site_area"],  # measurement bench only — never in the ranking model
     # G7 trend runs on the 2017-2018 sub-bench only (coverage starts 2016-01).
     "G7_trend": ["trend_12m", "trend_growth"],
+    # Extension groups: measured on a bench that carries them, never deployed -
+    # the bundle failed its holdout gate. Kept in the table because "we measured
+    # it and it did not help" is the finding, and dropping the row would hide it.
+    "G8_tier1_rederived": ["chain_share_r1", "reoccupy_12m", "vacancy_fill_m", "close_age_m",
+                            "grid_age_y", "uptae_switch_r1", "density_grad", "openings_12m"],
+    "G9_tier2_rest": ["rest_cnt_r1", "rest_openings_36m", "rest_closures_36m",
+                       "rest_churn_36m", "rest_growth_36m"],
+    "G10_tier3_ridership": ["ride_12m", "ride_growth"],
 }
 
 

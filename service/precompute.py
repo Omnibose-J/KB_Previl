@@ -21,7 +21,7 @@ from model.asof import (AccessIndex, AsOf, ExtraIndex, RestIndex, RideIndex, gro
 from model.cache import cached_split
 from model.evaluate import TEST_YEARS
 from model.recommend import MIN_RING_HISTORY, current_month
-from model.train import CONFIRMED_TRAIN_YEARS, DEPLOY, fit_predict
+from model.train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 from pipeline.db import init
 from pipeline.grid import neighbors
 
@@ -103,8 +103,8 @@ def uptae_terms(ao, gid, t, uptae):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--uptae", nargs="*", default=UPTAE)
-    ap.add_argument("--model", default="gbm",
-                    help="ranking model — must match the tournament winner (E-M)")
+    ap.add_argument("--model", default=WINNER,
+                    help="ranking model — defaults to the E-M tournament winner")
     a = ap.parse_args()
 
     t0 = time.time()

@@ -166,6 +166,10 @@ def fit_predict(kind, train, test, num=None, seed=0, params=None, enc=None):
     """
     Xtr, ytr, _ = train
     Xte, _, _ = test
+    if enc is not None and num is not None and list(num) != enc.NUM:
+        raise ValueError(
+            f"enc는 {len(enc.NUM)}개 컬럼에 적합됐는데 num은 {len(num)}개다 — "
+            "재사용 인코더와 피처셋이 어긋나면 절제 실험이 조용히 다른 것을 잰다")
     enc = enc or Encoder(num).fit(Xtr)
     scale = kind in SCALED
     m = build_model(kind, seed, params)

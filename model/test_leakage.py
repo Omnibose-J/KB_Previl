@@ -58,9 +58,13 @@ def main():
 
     print("\n3) 피처 목록에 금지 소스가 없는지 확인")
     from .asof import FEATURES, LEAKY
-    from .train import NUM
-    unknown = [n for n in NUM if n not in FEATURES]
-    print(f"   NUM 피처 {len(NUM)}개 중 as-of 문서 미등재: {unknown or '없음'}")
+    from .train import DEPLOY, LOC3, NUM, TIER1, TIER2, TIER3
+    # Every set a model may be fitted on, not just the v1 NUM set: a feature can
+    # only be used if asof.FEATURES states when it becomes observable.
+    covered = sorted(set(NUM) | set(LOC3) | set(DEPLOY) | set(TIER1 + TIER2 + TIER3))
+    unknown = [n for n in covered if n not in FEATURES]
+    print(f"   검사 대상 {len(covered)}개 (NUM·LOC3·DEPLOY·Tier1~3) 중 "
+          f"as-of 문서 미등재: {unknown or '없음'}")
     print(f"   금지 목록 {len(LEAKY)}종은 코드 어디에서도 참조되지 않음")
     doc_ok = not unknown
 
