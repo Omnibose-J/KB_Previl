@@ -51,13 +51,21 @@ TIER3 = ["ride_12m", "ride_growth"]
 CONFIRMED_TRAIN_YEARS = list(range(2005, 2019))
 CONFIRMED_EXCLUDE_SUCCESSION = False
 
-# --- Stage 2 outcome (docs/experiment-plan.md E-M, 2026-07-27) ----------------
-# RandomForest(300, min_samples_leaf=50) won the internal validation (0.5685 vs
-# the incumbent gbm's 0.5593) and cleared the holdout gate: paired-bootstrap
-# dAUC +0.0043, 95% CI [+0.0022, +0.0063], deciles monotone. Its Brier is worse
-# than gbm's (0.2334 vs 0.2317) - the API serves per-grade OBSERVED survival,
-# not raw probabilities, so ranking quality is what the gate measures.
-WINNER = "rf"
+# --- Stage 2 outcome, re-decided under the decile criterion (2026-07-27) ------
+# Round 2 selected on AUC and adopted RandomForest (+0.0043, CI [+0.0022,
+# +0.0063]). That gate was mis-specified: it scored AUC while the product serves
+# the top decile, and rf cleared it while moving the served number by -0.1%p.
+#
+# Round 3 re-registered the criterion as the top decile BEFORE re-running
+# (tournament.py --criterion decile). Outcome:
+#   selection (internal validation) rf still wins - 76.5% top decile vs gbm 73.9%
+#   confirmation (holdout)          delta top decile -0.12%p, 95% CI [-0.94, +0.98]
+#                                   -> fails "CI lower > 0" and ">= +0.5%p"
+# So the incumbent stays. The two models are not distinguishable at the decile,
+# which is the level the product actually consumes; gbm additionally has the
+# better Brier (0.2317 vs 0.2334). No new candidate was exposed to the holdout -
+# this reads a different statistic off the rf/gbm pair that round 2 already opened.
+WINNER = "gbm"
 
 # The set actually served. service/precompute.py reads this and nothing else, so
 # "what the UI ranks by" and "what the headline was measured on" cannot drift.
