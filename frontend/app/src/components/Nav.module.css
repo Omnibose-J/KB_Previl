@@ -1,0 +1,102 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 var(--space-16);
+  background: var(--color-surface-0);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.navDark {
+  composes: nav;
+  background: transparent;
+  border-bottom: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-yellow);
+  color: var(--color-brand-on-yellow);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.wordmark {
+  font-size: var(--font-size-subhead-sm);
+  line-height: var(--line-height-subhead-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.navDark .wordmark {
+  color: var(--color-text-on-dark-primary);
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-faint);
+}
+
+.stepsDark {
+  composes: steps;
+  color: var(--color-text-on-dark-subtle);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stepOn {
+  composes: step;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.stepsDark .stepOn {
+  color: var(--color-text-on-dark-primary);
+}
+
+.stepNum {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-400);
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-caption);
+}
+
+.stepOn .stepNum {
+  background: var(--color-ink-800);
+  color: var(--color-brand-yellow);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}

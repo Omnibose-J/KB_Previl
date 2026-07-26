@@ -6,6 +6,12 @@ import react from "@vitejs/plugin-react";
 // requests fail loudly - do NOT add a mock fallback here.
 export default defineConfig({
   plugins: [react()],
+  // MapLibre spawns its GeoJSON parser in a Web Worker via `new Worker(new
+  // URL(...))`. esbuild's dep pre-bundling rewrites that URL and the worker
+  // dies silently: raster tiles still render (main thread) but every
+  // vector/GeoJSON layer stays empty with no console error. Excluding it keeps
+  // the worker resolvable in dev.
+  optimizeDeps: { exclude: ["maplibre-gl"] },
   server: {
     proxy: {
       "/api": { target: "http://localhost:8000", changeOrigin: true },

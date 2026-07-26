@@ -1,0 +1,20 @@
+/* KB금융그룹 전용서체 (KBFG Text). Files live in public/fonts/ and are converted
+   from the official OTF release to woff2 (see public/fonts/README.md).
+   Only weights we actually ship get a @font-face — declaring a missing file
+   would 404 on every load. 700 is currently synthesised until Bold lands. */
+
+@font-face {
+  font-family: "KBFG Text";
+  src: url("/fonts/KBFGText-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "KBFG Text";
+  src: url("/fonts/KBFGText-Medium.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}

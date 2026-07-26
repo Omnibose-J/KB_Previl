@@ -1,0 +1,194 @@
+.body {
+  display: grid;
+  grid-template-columns: var(--layout-detail-main) var(--layout-detail-sidebar);
+  gap: var(--layout-detail-gap);
+  padding: var(--space-8) var(--layout-gutter-detail) var(--space-16);
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: var(--space-6);
+}
+
+.crumb {
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+}
+
+.place {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-muted);
+}
+
+.heroGrade {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* 숫자보다 문장 먼저 (§0 원칙 2): the sentence is the headline, the percentage
+   is its footnote — the reverse of the mockup's "62%" hero. */
+.heroSentence {
+  margin-top: var(--space-4);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.02em;
+}
+
+.heroSub {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- kpi ---------- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.kpi {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.kpiTitle {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.kpiBig {
+  font-size: var(--font-size-subhead);
+  line-height: var(--line-height-subhead);
+  font-weight: var(--font-weight-medium);
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-tertiary);
+}
+
+.line strong {
+  font-size: var(--font-size-subhead-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* ---------- sidebar ---------- */
+
+.sideTitle {
+  font-size: var(--font-size-subhead);
+  line-height: var(--line-height-subhead);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-4);
+}
+
+.gradeTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.gradeTable th,
+.gradeTable td {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-label);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.gradeTable th {
+  text-align: left;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+.gradeTable td {
+  text-align: right;
+  font-weight: var(--font-weight-medium);
+}
+
+.sample {
+  color: var(--color-text-faint);
+  font-weight: var(--font-weight-regular) !important;
+}
+
+.rowOn th,
+.rowOn td {
+  background: var(--color-brand-yellow-bg);
+  color: var(--color-brand-gold-text);
+}
+
+.limits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.limits li {
+  padding-left: var(--space-4);
+  position: relative;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-secondary);
+}
+
+.limits li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-text-ghost);
+}
+
+.sourceTitle {
+  margin-top: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.sources {
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-secondary);
+}

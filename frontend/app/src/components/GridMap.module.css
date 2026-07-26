@@ -1,0 +1,119 @@
+.wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Loading/error float over the map instead of replacing it — a blank panel
+   reads as "no cells here", which is a different claim (§4). */
+.overlay {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.overlay > * {
+  pointer-events: auto;
+  background: var(--color-surface-0);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-ink-800);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 24%);
+  white-space: nowrap;
+}
+
+.bubble strong {
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-yellow);
+}
+
+.bubble span {
+  font-size: var(--font-size-label);
+  color: var(--color-text-on-dark-secondary);
+}
+
+.legend {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 2;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-0);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+}
+
+.legendTitle {
+  display: block;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.ramp {
+  display: flex;
+  width: 180px;
+}
+
+.ramp i {
+  flex: 1;
+  height: 10px;
+}
+
+.ramp i:first-child {
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+}
+
+.ramp i:last-child {
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+}
+
+.legendScale {
+  display: flex;
+  justify-content: space-between;
+  width: 180px;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption-xs);
+  color: var(--color-text-muted);
+}
+
+.legendNote {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption-xs);
+  color: var(--color-text-subtle);
+}
+
+/* Server-enforced cell cap: the map refuses to draw a sampled subset, because
+   a thinned map would read as "these are all the cells" (lane B contract). */
+.zoomHint {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-text-secondary);
+}

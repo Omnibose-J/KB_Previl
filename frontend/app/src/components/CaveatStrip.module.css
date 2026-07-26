@@ -1,0 +1,20 @@
+/* One quiet line, always present. Not an alert colour: the limitation is a
+   standing property of the model, not an incident (ui-spec §4). */
+.strip {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-surface-200);
+  border-top: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+
+.item + .item::before {
+  content: "·";
+  margin-right: var(--space-5);
+  color: var(--color-text-ghost);
+}

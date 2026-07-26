@@ -1,0 +1,159 @@
+/* The single dark surface in the product. The mockup had three (hero, table,
+   what-if), which flattened the hierarchy signal (ui-spec §0 슬롭 표). */
+.hero {
+  background: var(--color-ink-800);
+  padding-bottom: var(--space-20);
+}
+
+.heroBody {
+  padding: var(--space-16) var(--layout-gutter-landing) 0;
+  max-width: var(--layout-landing-content);
+}
+
+.badge {
+  display: inline-block;
+  border: 1px solid var(--color-ink-border-strong);
+  background: var(--color-ink-raised-alt);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-brand-yellow);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-label);
+}
+
+/* Left-aligned, like KB's own brand sites — the mockup centred it. */
+.title {
+  margin-top: var(--space-5);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-hero);
+  line-height: var(--line-height-hero);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-on-dark-primary);
+  letter-spacing: -0.02em;
+}
+
+/* The one brand accent on this screen (§0 원칙 5). */
+.titleAccent {
+  font-style: normal;
+  color: var(--color-brand-yellow);
+}
+
+.sub {
+  margin-top: var(--space-5);
+  max-width: 720px;
+  font-size: var(--font-size-subhead-lg);
+  line-height: 30px;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-on-dark-secondary);
+}
+
+.sub strong {
+  color: var(--color-text-on-dark-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.searchCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 640px;
+  margin-top: var(--space-10);
+  padding: var(--space-3);
+  background: var(--color-surface-0);
+  border-radius: var(--radius-2xl);
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-5);
+}
+
+.fieldLabel {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-subtle);
+}
+
+.select {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: var(--font-size-subhead);
+  line-height: var(--line-height-subhead);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.sources {
+  margin-top: var(--space-8);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-label);
+  color: var(--color-text-on-dark-subtle);
+}
+
+/* 정직성 스트립 — sits directly under the hero so the caveat is unavoidable. */
+.honesty {
+  padding: var(--space-5) var(--layout-gutter-landing);
+  background: var(--color-brand-yellow-bg);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.honestyText {
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+  color: var(--color-brand-gold-text);
+}
+
+.features {
+  padding: var(--space-20) var(--layout-gutter-landing);
+  background: var(--color-surface-0);
+}
+
+.features h2 {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-10);
+}
+
+/* Deliberately uneven: one lead card at double width, two supporting cards.
+   Six identical cards was the mockup's "AI-generated landing" tell (§0). */
+.featureGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.feature {
+  background: var(--color-surface-50);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-7);
+}
+
+.featureLead {
+  composes: feature;
+  background: var(--color-surface-100);
+  padding: var(--space-8);
+}
+
+.featureLead h3 {
+  font-size: var(--font-size-title-xl);
+  line-height: var(--line-height-title-xl);
+}
+
+.featureNum {
+  display: block;
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-gold);
+}
+
+.feature h3,
+.featureLead h3 {
+  margin-bottom: var(--space-3);
+}

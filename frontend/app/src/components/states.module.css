@@ -1,0 +1,48 @@
+.loading {
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.error {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-default);
+  border-left: 3px solid var(--color-caution-base);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-0);
+}
+
+.errorTitle {
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.errorDetail {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.retry {
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-0);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+}
+
+.empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+}

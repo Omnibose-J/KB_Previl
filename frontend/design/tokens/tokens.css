@@ -77,20 +77,28 @@
   --color-map-water: #D9E4EC;
 
   /* color / heatmap */
-  --color-heatmap-1: rgba(255, 188, 0, 0.15);
-  --color-heatmap-2: rgba(255, 188, 0, 0.30);
-  --color-heatmap-3: rgba(255, 188, 0, 0.45);
-  --color-heatmap-4: rgba(255, 188, 0, 0.65);
-  --color-heatmap-5: rgba(255, 188, 0, 0.90);
+  --color-heatmap-1: #123A6B;
+  --color-heatmap-2: #17498A;
+  --color-heatmap-3: #1D5AA8;
+  --color-heatmap-4: #2A6DC0;
+  --color-heatmap-5: #4083D0;
+  --color-heatmap-6: #5E9ADB;
+  --color-heatmap-7: #85B3E6;
+  --color-heatmap-8: #AACCF0;
+  --color-heatmap-9: #CCE0F7;
+  --color-heatmap-10: #E8F1FB;
+  --color-heatmap-null: #C9C6C0;
 
   /* font family */
-  --font-family-base: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-base: 'KBFG Text', 'KBFGText', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-display: 'KBFG Display', 'KBFGDisplay', 'KBFG Text', 'Noto Sans KR', sans-serif;
 
   /* font weight */
-  --font-weight-regular: 400;
+  --font-weight-light: 300;
+  --font-weight-regular: 300;
   --font-weight-medium: 500;
-  --font-weight-bold: 700;
-  --font-weight-black: 900;
+  --font-weight-bold: 500;
+  --font-weight-black: 500;
 
   /* type scale (size + matching line-height) */
   --font-size-caption-xs: 10px;

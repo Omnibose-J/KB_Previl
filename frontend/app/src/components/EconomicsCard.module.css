@@ -1,0 +1,206 @@
+.card {
+  background: var(--color-surface-0);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+}
+
+.head {
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--font-size-title-lg);
+  line-height: var(--line-height-title-lg);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-tertiary);
+}
+
+.req {
+  font-style: normal;
+  font-size: var(--font-size-caption-xs);
+  color: var(--color-brand-gold-text);
+  background: var(--color-brand-yellow-bg);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
+}
+
+.fieldInput {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border-strong);
+  padding-bottom: var(--space-1);
+}
+
+.fieldInput input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: var(--font-size-subhead);
+  line-height: var(--line-height-subhead);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.fieldInput input:focus {
+  outline: none;
+}
+
+.fieldInput input::placeholder {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-ghost);
+  font-size: var(--font-size-body);
+}
+
+.unit {
+  flex: none;
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+}
+
+.prompt {
+  padding: var(--space-8) 0 var(--space-2);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-lg);
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  background: var(--color-surface-50);
+  border-radius: var(--radius-lg);
+}
+
+/* The risk-adjusted pair is the point of the screen — it gets the weight. */
+.resultStrong {
+  composes: result;
+  background: var(--color-surface-100);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.resultLabel {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-tertiary);
+}
+
+.resultValue {
+  font-size: var(--font-size-metric);
+  line-height: var(--line-height-metric);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.positive .resultValue {
+  color: var(--color-positive-base);
+}
+
+.negative .resultValue {
+  color: var(--color-negative-base);
+}
+
+.resultNote {
+  font-size: var(--font-size-caption-xs);
+  line-height: var(--line-height-caption-xs);
+  color: var(--color-text-muted);
+}
+
+/* Mandatory whenever revenue was not supplied (§4). Styled as a standing
+   qualifier, not a warning — it is how the number is defined. */
+.caption {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-100);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-tertiary);
+}
+
+.sensitive {
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-caution-bg);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-caution-text);
+}
+
+.compare {
+  margin-top: var(--space-6);
+}
+
+.compareTitle {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.table th {
+  text-align: left;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+.table td {
+  text-align: right;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.rowOn th,
+.rowOn td {
+  background: var(--color-brand-yellow-bg);
+  color: var(--color-brand-gold-text);
+}

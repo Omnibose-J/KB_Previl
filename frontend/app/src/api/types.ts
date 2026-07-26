@@ -1,23 +1,48 @@
-// Response types for the B->C contract.
-// Field names below are PROVISIONAL: lane B fixes the canonical schema in
-// lanes/B-backend.md, and this file must be updated to match it 1:1.
-// Numbers displayed on screen must come from these payloads (ui-spec.md §4:
-// no front-end hardcoding of survival rates, grid counts, grade bounds).
+// B->C contract, 1:1 with the schema lane B fixed in lanes/B-backend.md
+// (2026-07-27, decision B-001-camelcase-observed-contract).
+//
+// JSON is camelCase, coordinates are [lon, lat] WGS84, rates are 0..1, money is
+// 만원 unless stated. grade is 1..10 and 1 IS BEST. No response ever carries
+// `score` — the model probability runs 2.7~6.7%p optimistic, so the screen
+// shows the survival actually observed in that grade instead.
+//
+// Every `| null` below is load-bearing: NULL means "not observable" and must
+// never be rendered as 0 (ui-spec §4). Fields lane A has not produced yet
+// (openings36m, signal, n/ciLow/ciHigh) arrive as null and the screen draws the
+// common NULL pattern rather than substituting anything.
 
 /** grade 1 = best (top 10%). Direction is part of the API contract. */
 export type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
+/** [lon, lat] — EPSG:5179 never crosses the API. */
+export type Point = [number, number];
+
 export type Confidence = "full" | "partial";
 
+/** Field path -> human-readable source resolution ("행정동", "상권 반경 151m"). */
+export type Resolutions = Record<string, string>;
+
+export interface ObservedGrade {
+  grade: Grade;
+  survival: number;
+  n: number | null;
+  ciLow: number | null;
+  ciHigh: number | null;
+}
+
 export interface Meta {
-  asOf: string;
+  asOf: string | null;
   uptae: string[]; // render chips with these values verbatim (ui-spec §7)
   districts: string[];
-  /** observed 3y survival per grade, index 0 = grade 1; with Wilson CI once A1 lands */
-  observedByGrade: { survival: number; n: number; ciLow?: number; ciHigh?: number }[];
-  overallSurvival: number;
+  observedByGrade: ObservedGrade[];
+  overallSurvival: number | null;
+  /** total scored grids — S2 funnel row 1 (never hardcode the count) */
+  gridCount: number;
+  gradeDirection: "1_is_best";
   /** mandatory caveat strings (AUC framing, ~26% failure line) — render, don't rewrite */
   caveats: string[];
+  modelNote: string;
+  resolutions: Resolutions;
 }
 
 export interface GridCell {
@@ -26,30 +51,125 @@ export interface GridCell {
   grade: Grade;
   observedSurvival: number;
   confidence: Confidence;
-  /** WGS84 polygon corners provided by B (EPSG:5179 never crosses the API) */
-  polygon: [number, number][];
+  /** closed ring: first point equals last */
+  polygon: Point[];
+  center: Point;
+  /** false = outside every trade area (46.8%); sales views hatch these */
+  salesAvailable: boolean;
 }
 
+export interface StationAnchor {
+  name: string;
+  distanceM: number | null;
+  stations500m: number | null;
+}
+
+export interface Competition {
+  shopsHere: number | null;
+  shopsNeighbor: number | null;
+  /** lane A backlog — null until the 36-month window column lands */
+  openings36m: number | null;
+  openingsTotal: number | null;
+  closuresTotal: number | null;
+}
+
+export interface AreaSurvival {
+  rate: number | null;
+  sample: number | null;
+}
+
+/** All 행정동-resolution: identical for every grid in the same dong. */
+export interface Demand {
+  dayPopulation: number | null;
+  nightPopulation: number | null;
+  businesses: number | null;
+  workers: number | null;
+  workerPerResident: number | null;
+  populationDensity: number | null;
+}
+
+/** 상권 resolution (median radius 151m); absent outside trade areas. */
+export interface Sales {
+  quarterlyAmount: number | null;
+  quarterlyCount: number | null;
+  footTraffic: number | null;
+  available: boolean;
+}
+
+/** Verified-vs-overheated verdict computed by lane A — never derived client-side. */
+export type MarketSignal = "verified" | "overheated" | null;
+
 export interface GridDetail extends GridCell {
-  admDong: string; // from grid_sgis, used for card titles (ui-spec §3-S3)
-  nearestStation?: { name: string; distanceM: number };
-  // competition / history / demand fields: fill in from B's schema when fixed.
-  // NULL fields stay null — render with the common NULL pattern (ui-spec §4).
+  admDong: string | null;
+  district: string | null;
+  nearestStation: StationAnchor | null;
+  competition: Competition;
+  areaSurvival: AreaSurvival;
+  demand: Demand;
+  sales: Sales;
+  signal: MarketSignal;
+  /** which axes are empty when confidence = partial */
+  missingAxes: string[];
+  resolutions: Resolutions;
+}
+
+export interface RecommendResponse {
+  uptae: string;
+  districts: string[];
+  totalGrids: number;
+  inScope: number;
+  count: number;
+  items: GridDetail[];
+  resolutions: Resolutions;
+}
+
+export interface GridsResponse {
+  count: number;
+  /** server cap; exceeding it is a 413, never a silent truncation */
+  maxCells: number;
+  items: GridCell[];
+  resolutions: Resolutions;
 }
 
 export interface EconomicsInput {
   gridId: string;
   uptae: string;
-  rentMonthly: number; // 만원, user input — never from data (ui-data-contract)
+  rentMonthly: number; // 만원, user input — never from data
   upfront: number; // 만원
-  revenueMonthly?: number; // 만원; absent -> Seoul average, caption required
-  margin?: number; // default 0.25, pre-rent margin
+  /** omit to use the contracted Seoul trade-area average (caption becomes mandatory) */
+  revenueMonthly?: number;
+  /** pre-rent margin, default 0.25 server-side */
+  margin?: number;
 }
 
-export interface EconomicsResult {
+export interface GradeComparison {
+  grade: Grade;
+  expectedProfit3y: number;
+}
+
+export interface EconomicsResponse {
+  gridId: string;
+  uptae: string;
+  grade: Grade;
+  revenueMonthly: number;
+  revenueSource: "user_input" | "seoul_trade_area_average";
+  revenueAsOfQuarter: string | null;
   simplePaybackMonths: number | null;
-  riskAdjustedPaybackMonths: number | null; // null = not within 36m
-  expectedProfit3y: number; // 만원, survival-weighted
-  usedSeoulAverageRevenue: boolean; // true -> show mandatory caption
-  marginSensitive: boolean; // A2: sign flips within margin 20-30% band
+  /** null = not recovered within 36 months — a real answer, not a gap */
+  riskAdjustedPaybackMonths: number | null;
+  expectedProfit3y: number;
+  monthlyProfit: number;
+  survival36m: number;
+  usedSeoulAverageRevenue: boolean;
+  margin: number;
+  /** sign of the 3y result flips within the 20~30% margin band */
+  marginSensitive: boolean;
+  gradeComparison: GradeComparison[];
+}
+
+export interface ReportResponse {
+  gridId: string;
+  uptae: string;
+  /** 3~5 sentences; the closing limitation line is inserted server-side */
+  sentences: string[];
 }

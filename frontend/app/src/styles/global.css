@@ -1,5 +1,6 @@
 /* Layout shell only — visual design tokens come from ../../design/tokens/tokens.css.
-   New screens use the 4px spacing grid and the 10-step type ramp (ui-spec §5). */
+   New screens use the 4px spacing grid and the 10-step type ramp (ui-spec §5).
+   Reusable primitives (card/btn/chip/pill/tile) live in ui.module.css. */
 
 * {
   box-sizing: border-box;
@@ -7,6 +8,56 @@
 
 body {
   margin: 0;
-  font-family: "Noto Sans KR", sans-serif;
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: var(--color-surface-100);
   min-width: 1440px; /* fixed desktop demo — no breakpoints (ui-spec §5) */
+  -webkit-font-smoothing: antialiased;
+  /* KBFG Text ships Light+Medium only. Without this the browser smears a
+     synthetic bold over dense Hangul at body size; hierarchy is 300 vs 500. */
+  font-synthesis: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The whole app is a fixed 1440 frame; screens center themselves inside it. */
+#root {
+  width: var(--layout-frame-width);
+  margin: 0 auto;
+}
+
+/* Screen-reader-only text for tooltip targets and badge explanations. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
