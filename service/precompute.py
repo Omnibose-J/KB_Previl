@@ -16,10 +16,11 @@ import time
 
 import numpy as np
 
-from model.asof import AsOf, group_of, load_shops
-from model.evaluate import TEST_YEARS, TRAIN_YEARS, load_split
+from model.asof import AccessIndex, AsOf, group_of, load_shops
+from model.cache import cached_split
+from model.evaluate import TEST_YEARS, TRAIN_YEARS
 from model.recommend import MIN_RING_HISTORY, current_month
-from model.train import NUM, fit_predict
+from model.train import DEPLOY, fit_predict
 from pipeline.db import init
 from pipeline.grid import neighbors
 
@@ -45,10 +46,10 @@ CREATE TABLE IF NOT EXISTS score_meta (
 """
 
 
-def calibration(con, rank_cols):
+def calibration(con, rank_cols, model="gbm"):
     """Grade boundaries + observed survival per grade, from the held-out split."""
-    train, test = load_split(con, TRAIN_YEARS, TEST_YEARS, 3, verbose=False)
-    p, _ = fit_predict("gbm", train, test, num=rank_cols)
+    train, test = cached_split(con, TRAIN_YEARS, TEST_YEARS, 3)
+    p, _ = fit_predict(model, train, test, num=rank_cols)
     yte = test[1]
     order = np.argsort(-p)
     n = len(p)
@@ -82,15 +83,20 @@ def uptae_terms(ao, gid, t, uptae):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--uptae", nargs="*", default=UPTAE)
+    ap.add_argument("--model", default="gbm",
+                    help="ranking model — must match the tournament winner (E-M)")
     a = ap.parse_args()
 
     t0 = time.time()
     con = init()
     con.executescript(SCHEMA)
 
-    rank_cols = [c for c in NUM if c != "site_area"]
+    # The deployed ranking set lives in model.train.DEPLOY so the served scores
+    # and the documented headline can never drift apart (E0).
+    rank_cols = list(DEPLOY)
+    print(f"모델 {a.model} · 순위 피처 {len(rank_cols)}개")
     print("보정 기준 계산 (홀드아웃)...")
-    train, test, edges, observed = calibration(con, rank_cols)
+    train, test, edges, observed = calibration(con, rank_cols, a.model)
     print(f"  등급별 실측 생존율: 1등급 {observed[0]*100:.1f}% ... "
           f"10등급 {observed[-1]*100:.1f}%")
 
@@ -99,6 +105,10 @@ def main():
 
     t = current_month(con)
     ao = AsOf(load_shops(con))
+    ai = AccessIndex(con)
+    if not ai.available:
+        raise SystemExit("grid_access 없음 — 접근성 피처가 전부 결측 대치되어 "
+                         "배포 점수가 학습 세트와 어긋난다. 파이프라인 먼저 실행할 것.")
     cells = [r["grid_id"] for r in con.execute("SELECT grid_id FROM grid")]
 
     print(f"격자 {len(cells):,}개 기준상태 계산 (T={t//12}-{t%12 or 12:02d})...")
@@ -106,6 +116,7 @@ def main():
     for i, gid in enumerate(cells):
         f = ao.cell_state(gid, t, None)
         f.update(ao.ring_state(gid, t, None))
+        f.update(ai.features(gid))
         if (f["prior_surv_n"] or 0) >= MIN_RING_HISTORY:
             base[gid] = f
         if (i + 1) % 5000 == 0:
@@ -135,7 +146,7 @@ def main():
             X.append(f)
             keep.append(gid)
 
-        p, _ = fit_predict("gbm", (Xtr, ytr, None), (X, None, None), num=rank_cols)
+        p, _ = fit_predict(a.model, (Xtr, ytr, None), (X, None, None), num=rank_cols)
         rows = []
         for gid, s in zip(keep, p):
             g, obs = grade_of(float(s))
@@ -149,6 +160,7 @@ def main():
         ("observed_by_grade", ",".join(f"{o:.4f}" for o in observed)),
         ("overall_survival", f"{float(test[1].mean()):.4f}"),
         ("rank_features", ",".join(rank_cols)),
+        ("rank_model", a.model),
     ])
     con.commit()
     n = con.execute("SELECT count(*) FROM grid_score").fetchone()[0]

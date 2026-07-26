@@ -29,6 +29,11 @@ LOC3 = [c for c in NUM3 if c != "site_area"]
 
 TREND = ["trend_12m", "trend_growth"]
 
+# The set actually served. service/precompute.py reads this and nothing else, so
+# "what the UI ranks by" and "what the headline was measured on" cannot drift.
+# Changing it requires re-running precompute and updating §4-C.
+DEPLOY = LOC3
+
 
 class Encoder:
     """Fit on train: median imputation + category vocabulary + scaling."""
@@ -72,27 +77,65 @@ class Encoder:
         return self.NUM + [f"uptae={c}" for c in self.cats] + ["uptae=__other__"]
 
 
-def fit_predict(kind, train, test, num=None):
-    """-> (test probabilities, fitted object). Nothing is fitted on test."""
-    Xtr, ytr, _ = train
-    Xte, _, _ = test
-    enc = Encoder(num).fit(Xtr)
+# Candidates for the E-M tournament. Trees read raw (median-imputed) columns;
+# only the distance/gradient learners get the scaler. XGBoost is absent from the
+# environment and is deliberately not installed - recorded as an excluded
+# candidate rather than a silently missing one.
+SCALED = {"logit", "mlp"}
+
+
+def build_model(kind, seed=0, params=None):
+    """Construct an unfitted candidate. `seed` is threaded everywhere it matters
+    so the ablation programme can average over seeds (E-A step 4)."""
+    p = dict(params or {})
 
     if kind == "logit":
-        m = LogisticRegression(max_iter=2000, C=1.0)
-        m.fit(enc.transform(Xtr), ytr)
-        return m.predict_proba(enc.transform(Xte))[:, 1], (m, enc)
+        return LogisticRegression(max_iter=2000, C=p.get("C", 1.0))
 
     if kind == "gbm":
         import lightgbm as lgb
-        m = lgb.LGBMClassifier(
-            n_estimators=400, learning_rate=0.05, num_leaves=31,
-            min_child_samples=100, subsample=0.9, colsample_bytree=0.9,
-            random_state=0, verbose=-1)
-        m.fit(enc.transform(Xtr, scale=False), ytr)
-        return m.predict_proba(enc.transform(Xte, scale=False))[:, 1], (m, enc)
+        return lgb.LGBMClassifier(
+            n_estimators=p.get("n_estimators", 400), learning_rate=p.get("learning_rate", 0.05),
+            num_leaves=p.get("num_leaves", 31), min_child_samples=p.get("min_child_samples", 100),
+            subsample=0.9, colsample_bytree=0.9, random_state=seed, verbose=-1, n_jobs=8)
+
+    if kind in ("rf", "et"):
+        from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+        cls = RandomForestClassifier if kind == "rf" else ExtraTreesClassifier
+        return cls(n_estimators=p.get("n_estimators", 400),
+                   min_samples_leaf=p.get("min_samples_leaf", 20),
+                   max_features=p.get("max_features", "sqrt"),
+                   random_state=seed, n_jobs=8)
+
+    if kind == "hgb":
+        from sklearn.ensemble import HistGradientBoostingClassifier
+        return HistGradientBoostingClassifier(
+            max_iter=p.get("max_iter", 400), learning_rate=p.get("learning_rate", 0.05),
+            max_leaf_nodes=p.get("max_leaf_nodes", 31),
+            min_samples_leaf=p.get("min_samples_leaf", 100), random_state=seed)
+
+    if kind == "mlp":
+        from sklearn.neural_network import MLPClassifier
+        return MLPClassifier(hidden_layer_sizes=p.get("hidden_layer_sizes", (32,)),
+                             alpha=p.get("alpha", 1e-3), max_iter=p.get("max_iter", 300),
+                             early_stopping=True, n_iter_no_change=10, random_state=seed)
 
     raise ValueError(f"unknown model: {kind}")
+
+
+def fit_predict(kind, train, test, num=None, seed=0, params=None, enc=None):
+    """-> (test probabilities, (model, encoder)). Nothing is fitted on test.
+
+    `enc` accepts a pre-fitted encoder so a seed sweep does not re-fit the
+    imputer/scaler five times over the same training rows.
+    """
+    Xtr, ytr, _ = train
+    Xte, _, _ = test
+    enc = enc or Encoder(num).fit(Xtr)
+    scale = kind in SCALED
+    m = build_model(kind, seed, params)
+    m.fit(enc.transform(Xtr, scale=scale), ytr)
+    return m.predict_proba(enc.transform(Xte, scale=scale))[:, 1], (m, enc)
 
 
 def weights(train, top=20, num=None):

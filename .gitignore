@@ -11,3 +11,6 @@ archive/
 
 # lane worktrees (created outside the tree by lanes/setup-worktrees.ps1)
 enter.ps1
+
+# lane A model split cache (rebuilt from kb.db, fingerprinted on feature source)
+model/.cache/

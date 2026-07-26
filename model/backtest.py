@@ -18,8 +18,10 @@ import numpy as np
 
 from pipeline.db import init
 
-from .evaluate import BASELINES, TEST_YEARS, TRAIN_YEARS, load_split
-from .train import NUM, fit_predict
+from .cache import cached_split
+from .evaluate import TEST_YEARS, TRAIN_YEARS
+from .robustness import FEATURE_SETS
+from .train import fit_predict
 
 
 def deciles(y, p, k=10):
@@ -48,15 +50,19 @@ def calibration(y, p, bins=10):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="gbm")
+    ap.add_argument("--features", default="NUM",
+                    help="피처셋 이름 또는 쉼표구분 컬럼명. 헤드라인 계보①는 LOC3")
     a = ap.parse_args()
 
+    cols = FEATURE_SETS.get(a.features) or [c for c in a.features.split(",") if c]
     con = init()
-    train, test = load_split(con, TRAIN_YEARS, TEST_YEARS, 3, verbose=False)
+    train, test = cached_split(con, TRAIN_YEARS, TEST_YEARS, 3)
     Xte, yte, mte = test
-    p, _ = fit_predict(a.model, train, test, num=NUM)
+    p, _ = fit_predict(a.model, train, test, num=cols)
 
     overall = yte.mean()
-    print(f"검증 대상: {TEST_YEARS[0]}~{TEST_YEARS[-1]}년 개업 {len(yte):,}건")
+    print(f"검증 대상: {TEST_YEARS[0]}~{TEST_YEARS[-1]}년 개업 {len(yte):,}건 "
+          f"· 모델 {a.model} · 피처셋 {a.features}({len(cols)})")
     print(f"실제 3년 생존율(전체): {overall*100:.1f}%\n")
 
     print("모델 점수 십분위별 실제 생존율")

@@ -19,9 +19,10 @@ import numpy as np
 
 from pipeline.db import init
 
-from .asof import AsOf, load_shops, ym
-from .evaluate import TEST_YEARS, TRAIN_YEARS, load_split
-from .train import NUM, fit_predict
+from .asof import AccessIndex, AsOf, load_shops, ym
+from .cache import cached_split
+from .evaluate import TEST_YEARS, TRAIN_YEARS
+from .train import DEPLOY, fit_predict
 
 MIN_RING_HISTORY = 20      # shops ever opened in the 3x3 ring
 NOW = None                 # resolved from data, not the wall clock
@@ -53,10 +54,12 @@ def score_all(con, uptae, site_area=None, verbose=True):
         if verbose:
             print(f"점포 면적 미지정 → 해당 업태 중앙값 {site_area:.1f}㎡ 사용")
 
+    ai = AccessIndex(con)
     cells = [r["grid_id"] for r in con.execute("SELECT grid_id FROM grid")]
     X, keep = [], []
     for gid in cells:
         f = ao.features(gid, t, uptae, site_area, (t % 12) or 12)
+        f.update(ai.features(gid))
         if f["prior_surv_n"] < MIN_RING_HISTORY:
             continue           # not enough history to say anything
         X.append(f)
@@ -78,9 +81,9 @@ def score_all(con, uptae, site_area=None, verbose=True):
     # but it describes the SHOP, not the LOCATION - and in a recommendation the
     # user fixes it, so it is identical across every candidate cell. Leaving it
     # in would inflate the reported grade without changing the order.
-    rank_cols = [c for c in NUM if c != "site_area"]
+    rank_cols = list(DEPLOY)
 
-    train, test = load_split(con, TRAIN_YEARS, TEST_YEARS, 3, verbose=False)
+    train, test = cached_split(con, TRAIN_YEARS, TEST_YEARS, 3)
     p_hold, _ = fit_predict("gbm", train, test, num=rank_cols)
     yte = test[1]
 
