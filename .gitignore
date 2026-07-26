@@ -1,0 +1,13 @@
+.env
+.env.bak
+kb.db
+kb.db-wal
+kb.db-shm
+pipeline/cache/
+probe/results/
+__pycache__/
+*.pyc
+archive/
+
+# lane worktrees (created outside the tree by lanes/setup-worktrees.ps1)
+enter.ps1
