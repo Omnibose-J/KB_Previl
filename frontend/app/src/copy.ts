@@ -11,7 +11,7 @@
  *  stated here — they are lineage-dependent and come from the API
  *  (survivalByPeriod.testWindow). */
 export const PROVENANCE = {
-  recordCount: "인허가 53.5만 건",
+  recordCount: "53.5만 건",
   recordSince: "1924년부터",
 } as const;
 
@@ -29,16 +29,16 @@ export const SOURCES = [
  *  (2026-07-27 UX critique: ③④⑤ restated ①). */
 export const FEATURES_3 = [
   {
-    title: "실측으로 검증된 등급",
-    body: "같은 등급을 받았던 자리들이 실제로 몇 곳이나 3년을 버텼는지, 학습에 쓰지 않은 뒷 기간으로 검증합니다. 격자마다 경쟁·이력·접근성 근거를 함께 제시합니다.",
+    title: "기록으로 매긴 등급",
+    body: "같은 등급을 받았던 자리들이 실제로 몇 곳이나 3년을 버텼는지 세었습니다. 등급을 매길 때 쓰지 않은 뒷 기간의 기록으로 확인한 숫자입니다.",
   },
   {
-    title: "업종별 사전계산 등급",
-    body: "카페와 고깃집은 좋은 자리가 다릅니다. 12개 업태 각각 등급을 따로 계산합니다.",
+    title: "업종마다 다른 등급",
+    body: "한식에 좋은 자리와 카페에 좋은 자리는 다릅니다. 12개 업태 각각 따로 매깁니다.",
   },
   {
-    title: "What-if 재계산",
-    body: "업종·범위·임대료를 바꾸면 추천과 손익·권리금 참고가가 실제로 다시 계산됩니다.",
+    title: "조건을 바꾸면 다시 계산",
+    body: "업종·범위·임대료를 바꾸면 추천과 손익, 권리금 참고가가 그 자리에서 다시 계산됩니다.",
   },
 ] as const;
 

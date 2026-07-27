@@ -74,7 +74,7 @@ export default function CandidateCard({
       </div>
 
       <div className={s.micro}>
-        <Micro label="등급 실측 생존율" value={pct0(cell.observedSurvival)} />
+        <Micro label="같은 등급 자리 기록" value={pct0(cell.observedSurvival)} />
         <Micro
           label="영업 점포"
           value={cell.competition.shopsHere !== null ? `${int(cell.competition.shopsHere)}곳` : null}

@@ -138,7 +138,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         <div className={s.heroGrade}>
           <span className={s.heroGradeLabel}>입지 등급</span>
           <strong className={s.heroGradeNum}>{d.grade}등급</strong>
-          <span className={s.heroGradeCap}>이 등급 자리 실측 3년 생존율 {pct1(d.observedSurvival)}</span>
+          <span className={s.heroGradeCap}>같은 등급 자리의 실제 3년 생존율 {pct1(d.observedSurvival)}</span>
         </div>
       </header>
 
@@ -160,12 +160,12 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {/* ── KPI row ──────────────────────────────────────────── */}
           <div className={s.kpis}>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>실측 3년 생존율</span>
+              <span className={s.kpiLabel}>실제 3년 생존율</span>
               <p className={s.kpiV}>
                 <strong className={s.kpiGreen}>{pct0(d.observedSurvival)}</strong>
               </p>
               <span className={s.kpiCap}>
-                같은 등급 자리 실측{overall !== null ? ` · 서울 전체 ${pct0(overall)}` : ""}
+                같은 등급 자리의 기록{overall !== null ? ` · 서울 전체 ${pct0(overall)}` : ""}
               </span>
             </div>
             <div className={s.kpi}>
@@ -212,7 +212,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {/* ── why this grid: honest comparisons ────────────────── */}
           <section className={s.card}>
             <div className={s.cardHead}>
-              <h2>왜 이 자리인가 · 실측 신호</h2>
+              <h2>이 자리의 기록</h2>
               <p>이웃·서울 전체와의 비교. 상관이며 인과가 아닙니다.</p>
             </div>
             <div className={s.bars}>
@@ -336,15 +336,15 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {/* ── observed by grade (figma 매물 slot → real table) ──── */}
           <section className={s.card}>
             <div className={s.cardHead}>
-              <h2>등급별 실측 3년 생존율</h2>
-              <p>자리 등급만 다를 때의 실측 기록입니다.</p>
+              <h2>등급별 실제 3년 생존율</h2>
+              <p>자리 등급만 다를 때 실제로 남은 기록입니다.</p>
             </div>
             {meta ? (
               <table className={s.table}>
                 <thead>
                   <tr>
                     <th>등급</th>
-                    <th>실측 3년 생존율</th>
+                    <th>실제 3년 생존율</th>
                     <th>관측 표본</th>
                     <th>신뢰구간</th>
                   </tr>
@@ -383,7 +383,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {meta && meta.survivalByPeriod.length > 0 ? (
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>기간별 실측 생존율</h2>
+                <h2>1년·3년·5년 뒤의 기록</h2>
                 <p>같은 밴드의 자리가 1년·3년·5년 뒤 실제로 남아 있던 비율입니다.</p>
               </div>
               <PeriodTable meta={meta} grade={d.grade} />
@@ -398,7 +398,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {meta?.gradeArea ? (
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>가게 면적별 실측 생존율</h2>
+                <h2>가게 면적별 기록</h2>
                 <p>관측된 결과이지 인과가 아닙니다 — 면적은 자본력과 얽혀 있습니다. 면적은 추천 순위에 반영되지 않습니다.</p>
               </div>
               <table className={s.table}>
@@ -444,7 +444,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             <h3>이 자리의 분석 결과로 대출 상담을 이어갈 수 있습니다</h3>
             <ul className={s.loanList}>
               <li>함께 전달되는 것 · 입지 등급</li>
-              <li>등급별 실측 3년 생존율</li>
+              <li>등급별 실제 3년 생존율</li>
               <li>입력한 조건의 손익 계산 결과</li>
             </ul>
             <span className={s.loanCap}>한도·금리 시뮬레이션은 제공하지 않습니다.</span>

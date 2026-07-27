@@ -113,7 +113,7 @@ export default function EconomicsCard({
               label="위험반영 회수"
               value={q.data.riskAdjustedPaybackMonths}
               render={months}
-              note="이 등급의 실측 생존율을 반영"
+              note="이 등급 자리들의 실제 생존 기록을 반영"
               emphasis
               missingNote="3년 안에 회수되지 않습니다"
             />
