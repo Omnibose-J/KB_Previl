@@ -1,6 +1,6 @@
-# Findings — problems found in-flight that are out of the finder's write scope
+﻿# Findings ??problems found in-flight that are out of the finder's write scope
 
-## F-A1. ~~`pipeline.consistency` is 15/17~~ — RESOLVED 2026-07-27 (`_ENV_PATH` NameError)
+## F-A1. ~~`pipeline.consistency` is 15/17~~ ??RESOLVED 2026-07-27 (`_ENV_PATH` NameError)
 
 **Symptom**
 ```
@@ -10,53 +10,54 @@ $ python -m pipeline.consistency
 15/17 PASS  FAILED: ['district', 'dongaccuracy']   (exit 1)
 ```
 
-**Cause** — `pipeline/consistency.py:152` imports `ENV_PATH` from `.config` but lines 154 and
+**Cause** ??`pipeline/consistency.py:152` imports `ENV_PATH` from `.config` but lines 154 and
 321 dereference `_ENV_PATH`. Unconditional NameError, so both reverse-geocoding checks have
 never run in this checkout. Introduced when `config.py` gained the `KB_ENV` worktree override
 (`ENV_PATH`) and these two call sites kept the old private name.
 
-**Resolution** — the owner authorised the edit on 2026-07-27 and it is applied. It was three
+**Resolution** ??the owner authorised the edit on 2026-07-27 and it is applied. It was three
 tokens, not two: `c_district` already imported `ENV_PATH` and only needed the dereference
 fixed, but `c_dongaccuracy` imported `ROOT` alone, so its import line needed `ENV_PATH` added
 as well. Both functions keep their own inline .env parse, matching the surrounding style.
 
 ```
 $ python -m pipeline.consistency
-[district]     역지오코딩 표본 200건 · 자치구 일치 200 / 불일치 0 (100.0%)  -> PASS
-[dongaccuracy] 표본 200건 일치 200 / 불일치 0 (100.0%) 실패 0              -> PASS
+[district]     ????ㅼ퐫???쒕낯 200嫄?쨌 ?먯튂援??쇱튂 200 / 遺덉씪移?0 (100.0%)  -> PASS
+[dongaccuracy] ?쒕낯 200嫄??쇱튂 200 / 遺덉씪移?0 (100.0%) ?ㅽ뙣 0              -> PASS
 17/17 PASS   (exit 0)
 ```
 
-The CRS and dong assignments were sound all along — what was missing was the guard, not the
+The CRS and dong assignments were sound all along ??what was missing was the guard, not the
 correctness. Both checks now make live Kakao calls, so 17/17 requires `KAKAO_REST_API_KEY`
 and network; without either they return `None` and are skipped rather than failing.
 
-**Blast radius** — the two dead checks are the *external* CRS witnesses (Kakao reverse-geocode
+**Blast radius** ??the two dead checks are the *external* CRS witnesses (Kakao reverse-geocode
 of stored lon/lat vs the row's own address). Their silence is exactly the failure mode
 `CLAUDE.md` rule 2 was written about: an EPSG mix-up passes every internal check while
-displacing every point 1–2 cells. Everything else (15 internal checks) passes, and
+displacing every point 1?? cells. Everything else (15 internal checks) passes, and
 `probe/p8_crs.py` measured the CRS empirically, so there is no evidence of an actual
-displacement — the loss is the standing guard, not a known defect.
+displacement ??the loss is the standing guard, not a known defect.
 
-**Note** — after the fix these two checks make live Kakao API calls, so 17/17 additionally
+**Note** ??after the fix these two checks make live Kakao API calls, so 17/17 additionally
 requires `KAKAO_REST_API_KEY` and network.
 
 (Before the fix was authorised, both checks had been replicated read-only at n=60/80 with the
 same 100.0% result, which is what made the repair a known-safe two-line change rather than a
 gamble.)
 
-## F-C1. Goodwill report has no honest caller — benchmark values are not exposed over HTTP
+## F-C1. Goodwill report has no honest caller ??benchmark values are not exposed over HTTP
 
 **Found** 2026-07-27 (lane C, while wiring remaining P1 screens).
 
-**Problem** — `POST /api/goodwill` requires `benchmarkMonthlyRevenue` + `benchmarkLevel`
+**Problem** ??`POST /api/goodwill` requires `benchmarkMonthlyRevenue` + `benchmarkLevel`
 in the request, and lanes/B-backend.md explicitly forbids the frontend from computing or
-inventing these ("C는 이 값을 계산하거나 지어내지 않는다"). No endpoint serves the
-Level-4 benchmark (서울 전체 x 동일 업종 평균 매출), so the frontend cannot construct a
-valid request without fabricating the benchmark — which the no-mock rule forbids.
+inventing these ("C????媛믪쓣 怨꾩궛?섍굅??吏?대궡吏 ?딅뒗??). No endpoint serves the
+Level-4 benchmark (?쒖슱 ?꾩껜 x ?숈씪 ?낆쥌 ?됯퇏 留ㅼ텧), so the frontend cannot construct a
+valid request without fabricating the benchmark ??which the no-mock rule forbids.
 
-**Why it cannot be solved now** — producing the benchmark is lane A/B territory: the
+**Why it cannot be solved now** ??producing the benchmark is lane A/B territory: the
 value already exists server-side (economics uses the contracted Seoul trade-area
-average) but is not exposed. Blast radius: the 권리금 협상 리포트 card (P1) stays
+average) but is not exposed. Blast radius: the 沅뚮━湲??묒긽 由ы룷??card (P1) stays
 unbuilt; everything else ships. Fix is small: expose per-uptae benchmark revenue
 (+ level + as-of) on /meta or a dedicated endpoint, then lane C builds the card.
+
