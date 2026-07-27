@@ -57,8 +57,9 @@ export default function S4Detail({
     <div className={s.page}>
       {/* ── breadcrumb bar ─────────────────────────────────────────── */}
       <div className={s.crumb}>
-        <button className={s.back} onClick={() => go(from === "results" ? { name: "results" } : { name: "landing" })}>
-          ← {from === "results" ? "결과 목록으로" : "처음으로"}
+        {/* diagnosis entries come from the S3 map — back returns there too */}
+        <button className={s.back} onClick={() => go({ name: "results" })}>
+          ← {from === "results" ? "결과 목록으로" : "지도로 돌아가기"}
         </button>
         <span className={s.crumbPath}>
           {from === "results" ? (rank > 0 ? `추천 ${rank}위` : "추천 후보") : "진단 결과"}

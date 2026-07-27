@@ -86,6 +86,7 @@ export default function GridMap({
   selectedId,
   hoveredId,
   onSelect,
+  onOpenDetail,
 }: {
   uptae: string;
   focus: Point | null;
@@ -95,6 +96,8 @@ export default function GridMap({
   selectedId: string | null;
   hoveredId: string | null;
   onSelect: (cell: GridCell) => void;
+  /** diagnosis entry: any tapped cell can open its full report */
+  onOpenDetail?: (cell: GridCell) => void;
 }) {
   const holder = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
@@ -248,20 +251,25 @@ export default function GridMap({
       </div>
       <Legend />
       {selectedId && q.data ? (
-        <Bubble cell={q.data.items.find((c) => c.gridId === selectedId)} />
+        <Bubble cell={q.data.items.find((c) => c.gridId === selectedId)} onOpen={onOpenDetail} />
       ) : null}
     </div>
   );
 }
 
-/** 값 1개 + 방향 1개. Denser than that and the map stops being readable — the
- *  information density borrowed from 호갱노노 / KB부동산 markers. */
-function Bubble({ cell }: { cell?: GridCell }) {
+/** 값 1개 + 방향 1개 + 진입 액션 1개. Denser than that and the map stops being
+ *  readable — the information density borrowed from 호갱노노 / KB부동산. */
+function Bubble({ cell, onOpen }: { cell?: GridCell; onOpen?: (cell: GridCell) => void }) {
   if (!cell) return null;
   return (
     <div className={s.bubble}>
       <strong>{gradeLabel(cell.grade)}</strong>
       <span>{survivalSentence(cell.observedSurvival)}</span>
+      {onOpen ? (
+        <button className={s.bubbleOpen} onClick={() => onOpen(cell)}>
+          이 자리 상세 리포트 →
+        </button>
+      ) : null}
     </div>
   );
 }

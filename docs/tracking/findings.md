@@ -44,3 +44,19 @@ requires `KAKAO_REST_API_KEY` and network.
 (Before the fix was authorised, both checks had been replicated read-only at n=60/80 with the
 same 100.0% result, which is what made the repair a known-safe two-line change rather than a
 gamble.)
+
+## F-C1. Goodwill report has no honest caller — benchmark values are not exposed over HTTP
+
+**Found** 2026-07-27 (lane C, while wiring remaining P1 screens).
+
+**Problem** — `POST /api/goodwill` requires `benchmarkMonthlyRevenue` + `benchmarkLevel`
+in the request, and lanes/B-backend.md explicitly forbids the frontend from computing or
+inventing these ("C는 이 값을 계산하거나 지어내지 않는다"). No endpoint serves the
+Level-4 benchmark (서울 전체 x 동일 업종 평균 매출), so the frontend cannot construct a
+valid request without fabricating the benchmark — which the no-mock rule forbids.
+
+**Why it cannot be solved now** — producing the benchmark is lane A/B territory: the
+value already exists server-side (economics uses the contracted Seoul trade-area
+average) but is not exposed. Blast radius: the 권리금 협상 리포트 card (P1) stays
+unbuilt; everything else ships. Fix is small: expose per-uptae benchmark revenue
+(+ level + as-of) on /meta or a dedicated endpoint, then lane C builds the card.

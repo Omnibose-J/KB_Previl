@@ -212,6 +212,15 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
               selectedId={selectedId}
               hoveredId={hoveredId}
               onSelect={(cell) => setSelectedId(cell.gridId)}
+              onOpenDetail={(cell) =>
+                // Diagnosis mode (ui-spec §2 B-모드): ANY scored cell opens its
+                // report; only ranked candidates read as "추천 n위".
+                go({
+                  name: "detail",
+                  gridId: cell.gridId,
+                  from: candidateIds.includes(cell.gridId) ? "results" : "diagnosis",
+                })
+              }
             />
           </div>
           {/* Only a live fact earns a row here — the signal rows return when
