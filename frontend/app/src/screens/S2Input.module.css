@@ -305,6 +305,13 @@
   color: var(--fg-y) !important;
 }
 
+/* funnel row that is not narrowing yet — a hint, not a number */
+.fHint {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--fg-dt4) !important;
+}
+
 .cta {
   padding: 17px 0;
   border: 0;

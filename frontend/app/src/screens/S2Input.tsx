@@ -190,15 +190,22 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
               </div>
               <div>
                 <span>고른 동네의 자리</span>
-                <strong>
-                  {!search.uptae
-                    ? "업종 선택 후"
-                    : rec.data
-                      ? `${int(rec.data.inScope)}곳`
-                      : rec.isError
-                        ? "불러오지 못함"
-                        : "…"}
-                </strong>
+                {/* 서울 전역이면 inScope === gridCount — repeating the same
+                    number twice reads as broken (owner report). A funnel row
+                    that is not narrowing shows a hint, not a number. */}
+                {search.districts.length === 0 ? (
+                  <strong className={s.fHint}>동네를 고르면 좁혀져요</strong>
+                ) : (
+                  <strong>
+                    {!search.uptae
+                      ? "업종 선택 후"
+                      : rec.data
+                        ? `${int(rec.data.inScope)}곳`
+                        : rec.isError
+                          ? "불러오지 못함"
+                          : "…"}
+                  </strong>
+                )}
               </div>
               <div>
                 <span>상위 추천 후보</span>
