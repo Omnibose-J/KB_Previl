@@ -60,11 +60,11 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <label className={s.field}>
             <span className={s.fieldLabel}>업종</span>
             <select
-              className={s.fieldValue}
+              className={search.uptae ? s.fieldValue : s.fieldEmpty}
               value={search.uptae ?? ""}
               onChange={(e) => search.set({ uptae: e.target.value || null })}
             >
-              <option value="">{meta.isError ? "목록을 불러오지 못했습니다" : "선택하세요"}</option>
+              <option value="">{meta.isError ? "목록을 불러오지 못했습니다" : "어떤 가게를 내시나요"}</option>
               {meta.data?.uptae.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -100,16 +100,19 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <i className={s.fieldDivider} />
           <label className={s.field}>
             <span className={s.fieldLabel}>월 임대료 (선택)</span>
-            <input
-              className={s.fieldValue}
-              type="number"
-              min={0}
-              placeholder="만원"
-              value={search.rentMonthly ?? ""}
-              onChange={(e) =>
-                search.set({ rentMonthly: e.target.value === "" ? null : Number(e.target.value) })
-              }
-            />
+            <span className={s.moneyRow}>
+              <input
+                className={s.fieldValue}
+                type="number"
+                min={0}
+                placeholder="예: 250"
+                value={search.rentMonthly ?? ""}
+                onChange={(e) =>
+                  search.set({ rentMonthly: e.target.value === "" ? null : Number(e.target.value) })
+                }
+              />
+              <span className={search.rentMonthly !== null ? s.unit : s.unitDim}>만원</span>
+            </span>
           </label>
           <button className={s.searchBtn} onClick={start}>
             자리 찾기
