@@ -22,7 +22,7 @@ score_meta   k/v                           (economics · goodwill)
 
 **API는 모델을 적합하지도, 호출하지도 않는다.** `model.recommend`는 학습셋을 다시 만들고 21,544격자를 채점하므로 수 분이 걸린다. 요청 경로에 들어가면 안 된다. 배치가 미리 다 계산해 테이블에 넣고, API는 **조회 + 산술**만 한다.
 
-이 경계를 지키는 실질적 장치: `service/api.py`는 `model.*`을 import하지 않는다. import가 생기는 순간 무거운 것이 요청 경로로 새고 있다는 신호다.
+이 경계를 지키는 실질적 장치: **`service/` 전체(단 `precompute.py` 제외)에 `model.*` import가 없어야 한다.** import가 생기는 순간 무거운 것이 요청 경로로 새고 있다는 신호다. (2026-07-27 확장 — 당초 검사 범위가 `api.py`뿐이어서 `economics.py`로 샌 모델 적합을 못 잡았다. 실제로 첫 `/economics`가 51초간 LightGBM을 학습했고, 수리로 곡선을 배치 산출물로 옮겼다: `lanes/B-backend.md` B-002.)
 
 ---
 
@@ -124,7 +124,7 @@ gradeArea: {
 월순이익  = 월매출 × 마진 − 임대료
 ```
 
-`S(t)`는 **등급별 실측 생존곡선**(가정한 곡선이 아니다). 사용자 입력은 임대료·초기투자·마진·(선택)매출.
+`S(t)`는 **등급별 실측 생존곡선**(가정한 곡선이 아니다). 곡선은 등급을 확정한 **동일 배치가 `score_meta.survival_curves_36m`으로 저장**하고(B-002), 요청 경로는 읽고 계보를 검증만 한다 — 없으면 합성하지 않고 503. 사용자 입력은 임대료·초기투자·마진·(선택)매출.
 
 두 가지를 반드시 지킨다:
 
@@ -186,7 +186,8 @@ gradeArea: {
 
 ## 8. 지금 상태
 
-- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `district_summary` · `economics` · `goodwill` · `report`
+- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report`
+- **삭제 대상**: `district_summary` — HTTP 라우트·소비자·테스트가 전무한 죽은 코드로 확인(2026-07-27 감사). 다음 레인 B 정리 때 `api.py`에서 제거
 - **배선 완료**(레인 A): `grid_score` 229,356행 · `score_meta` 24키 · API가 읽는 6키 정렬 확인
 - **미노출**: §2의 기간별 곡선·등급×면적 교차표 — 값은 DB에 있고 엔드포인트가 없다
 
