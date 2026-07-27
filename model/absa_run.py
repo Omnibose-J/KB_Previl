@@ -64,7 +64,7 @@ def init_db(con):
     con.commit()
 
 
-def targets(con):
+def targets(con, n_shop=N_SHOP):
     """§H-9-③ 표본 — 마포구 전면 제외."""
     g2p = dict(con.execute("SELECT grid_id, place FROM grid_place"))
     tp = {r[0] for r in con.execute("SELECT DISTINCT place FROM trend")}
@@ -105,7 +105,7 @@ def targets(con):
     for p, gu, oper in cand:
         pool = list(oper)
         rnd.shuffle(pool)
-        for nm, dong, _o, _c in pool[:N_SHOP]:
+        for nm, dong, _o, _c in pool[:n_shop]:
             if len(nm) >= 2:
                 out.append((p, dong, nm))
     print(f"지명 {len(cand)} · 수집 대상 점포 {len(out):,} (마포구 제외)")
@@ -137,11 +137,23 @@ def fetch(h, dong, name, tries=3):
     return None
 
 
-def collect(con, workers):
+def collect(con, workers, n_shop=N_SHOP, resume=False):
+    """resume=True 면 기존 absa_post 를 지우지 않고, 이미 수집한 점포를 건너뛴다.
+
+    표본 확대는 **결과를 보기 전에만** 정당하다. 결과를 보고 늘리면 원하는
+    쪽이 나올 때까지 표본을 키우는 것이 된다.
+    """
     init_db(con)
-    con.execute("DELETE FROM absa_post")
-    con.commit()
-    tg = targets(con)
+    if not resume:
+        con.execute("DELETE FROM absa_post")
+        con.commit()
+    have = {(r[0], r[1]) for r in
+            con.execute("SELECT DISTINCT place, mgtno FROM absa_post")} if resume else set()
+    tg = targets(con, n_shop)
+    if have:
+        before = len(tg)
+        tg = [t for t in tg if (t[0], t[2]) not in have]
+        print(f"  이미 수집한 점포 {len(have):,} 제외 → 신규 {len(tg):,} / {before:,}")
     h = _headers()
     t0 = time.time()
     n_ok = 0
@@ -258,10 +270,12 @@ def main():
     ap.add_argument("--stats", action="store_true")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--cap", type=int, default=JUDGE_CAP)
+    ap.add_argument("--n-shop", type=int, default=N_SHOP)
+    ap.add_argument("--resume", action="store_true")
     a = ap.parse_args()
     con = sqlite3.connect(DB_PATH)
     if a.collect:
-        collect(con, a.workers)
+        collect(con, a.workers, a.n_shop, a.resume)
     if a.judge:
         judge(con, max(a.workers, 8), a.cap)
     if a.stats or not (a.collect or a.judge):
