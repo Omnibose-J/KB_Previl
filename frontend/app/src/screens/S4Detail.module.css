@@ -793,6 +793,92 @@
   color: var(--fg-t7);
 }
 
+/* ── 권리금 다이얼로그 ─────────────────────────────── */
+.gwOpenBtn {
+  align-self: flex-start;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gwOpenBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(20 20 20 / 22%);
+}
+
+.gwOpenBtn:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.gwNone {
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--fg-gray-bg);
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--fg-t4);
+}
+
+.gwOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  background: rgb(20 18 14 / 55%);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+
+.gwOverlay[hidden] {
+  display: none;
+}
+
+.gwDialog {
+  position: relative;
+  width: min(880px, 100%);
+  padding: 26px 32px 32px;
+  background: var(--fg-card);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 30%);
+  /* display:none → flex retriggers the animation, so each open replays it */
+  animation: fadeUp 0.28s ease-out both;
+}
+
+/* GoodwillCard keeps its S4-section chrome (rule top + tall padding) — inside
+   the dialog the panel itself is the frame, so strip it. */
+.gwDialog > section {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.gwClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg-gray-bg);
+  color: var(--fg-t4);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.gwClose:hover {
+  background: var(--fg-line3);
+  color: var(--fg-ink);
+}
+
 /* ---- responsive ---- */
 @media (max-width: 1024px) {
   .body { grid-template-columns: 1fr; padding: 20px 16px 32px; }
@@ -807,6 +893,8 @@
 }
 
 @media (max-width: 680px) {
+  .gwOverlay { padding: 0; }
+  .gwDialog { min-height: 100%; border-radius: 0; padding: 24px 16px 32px; }
   .kpis { grid-template-columns: 1fr; gap: 14px; }
   .kpi + .kpi { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); padding-top: 14px; }
   .table { display: block; overflow-x: auto; }

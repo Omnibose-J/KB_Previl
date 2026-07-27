@@ -1,5 +1,5 @@
 import type { GridDetail } from "../api/types";
-import { int, meters, pct0, pct1, stationAnchor } from "../lib/format";
+import { int, meters, pct1, stationAnchor } from "../lib/format";
 import s from "./CandidateCard.module.css";
 
 // 후보 카드, figma-snapshot S3 card layout (rank box · title · pills · metric
@@ -74,7 +74,9 @@ export default function CandidateCard({
       </div>
 
       <div className={s.micro}>
-        <Micro label="같은 등급 생존율" value={pct0(cell.observedSurvival)} />
+        {/* Every recommended cell is top-graded, so the per-grade rate is the
+            same number on all 24 cards — it read as hardcoded (owner report
+            2026-07-27). Per-cell counts vary; the grade rate lives in S4. */}
         <Micro
           label="영업 중인 가게"
           value={cell.competition.shopsHere !== null ? `${int(cell.competition.shopsHere)}곳` : null}
@@ -82,6 +84,10 @@ export default function CandidateCard({
         <Micro
           label="지금까지 연 가게"
           value={cell.competition.openingsTotal !== null ? `${int(cell.competition.openingsTotal)}곳` : null}
+        />
+        <Micro
+          label="지금까지 닫은 가게"
+          value={cell.competition.closuresTotal !== null ? `${int(cell.competition.closuresTotal)}곳` : null}
         />
         <Micro
           label="역까지"

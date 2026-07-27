@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
@@ -104,6 +104,22 @@ type Tab = "evalTab" | "moneyTab" | "dataTab";
 function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae: string }) {
   const search = useSearch();
   const [tab, setTab] = useState<Tab>("evalTab");
+  // Goodwill lives in its own dialog (owner call 2026-07-27): the money tab
+  // keeps only an entry card. The dialog stays MOUNTED while closed so typed
+  // inputs (호가·잔여·자산 rows) survive close/reopen and tab switches.
+  const [gwOpen, setGwOpen] = useState(false);
+  useEffect(() => {
+    if (!gwOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setGwOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [gwOpen]);
   const report = useQuery({
     queryKey: ["report", d.gridId, uptae],
     queryFn: () => api.report(d.gridId, uptae),
@@ -328,8 +344,22 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             onBudgetChange={(patch) => search.set(patch)}
           />
 
-          {/* ── 권리금 협상 리포트 (goodwill-report-design §8-C) ──── */}
-          <GoodwillCard d={d} uptae={uptae} />
+          {/* ── 권리금 진입 카드 — 리포트 본체는 다이얼로그로 ────── */}
+          <section className={s.card}>
+            <div className={s.cardHead}>
+              <h2>부르는 권리금, 적당한가요?</h2>
+              <p>이 자리 기록으로 참고가를 계산해 드려요. 감정평가는 아니에요.</p>
+            </div>
+            {d.sales.available ? (
+              <button className={s.gwOpenBtn} onClick={() => setGwOpen(true)}>
+                권리금 계산해 보기
+              </button>
+            ) : (
+              <p className={s.gwNone}>
+                이 자리는 주변 매출 기록이 없어서 권리금 참고가를 계산할 수 없어요.
+              </p>
+            )}
+          </section>
           </div>
 
           <div className={s.panel} hidden={tab !== "dataTab"}>
@@ -478,6 +508,22 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
         </aside>
       </main>
+
+      {/* ── 권리금 리포트 다이얼로그 — mounted while closed (inputs survive) ── */}
+      <div className={s.gwOverlay} hidden={!gwOpen} onClick={() => setGwOpen(false)}>
+        <div
+          className={s.gwDialog}
+          role="dialog"
+          aria-modal="true"
+          aria-label="권리금 리포트"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className={s.gwClose} onClick={() => setGwOpen(false)} aria-label="닫기">
+            ✕
+          </button>
+          <GoodwillCard d={d} uptae={uptae} />
+        </div>
+      </div>
     </>
   );
 }
