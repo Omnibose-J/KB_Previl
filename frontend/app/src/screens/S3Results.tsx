@@ -110,8 +110,10 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         <section className={s.ranking}>
           <header className={s.rankHead}>
             <div>
+              {/* count = min(requested 24, inScope) — a page-size cap, not a
+                  computed cutoff. The title says "상위" so 24 reads as a cap. */}
               <h1 className={s.rankTitle}>
-                {q.data ? `추천 후보 ${int(q.data.count)}곳` : "추천 후보"}
+                {q.data ? `추천 상위 ${int(q.data.count)}곳` : "추천 후보"}
               </h1>
               {q.data ? (
                 <p className={s.rankSub}>
