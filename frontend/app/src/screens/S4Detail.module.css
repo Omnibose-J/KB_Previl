@@ -484,8 +484,7 @@
 }
 
 .lvHigh,
-.lvMid,
-.lvLow {
+.lvMid {
   flex: none;
   align-self: flex-start;
   padding: 4px 8px;
@@ -501,10 +500,6 @@
 
 .lvMid {
   background: var(--fg-orange);
-}
-
-.lvLow {
-  background: var(--fg-green);
 }
 
 .riskBody {
@@ -618,17 +613,6 @@
   color: var(--fg-t2);
 }
 
-.loanBtn {
-  padding: 16px 0;
-  border: 0;
-  border-radius: 12px;
-  background: var(--fg-dark);
-  color: var(--fg-y);
-  font-size: 15px;
-  font-weight: 700;
-  cursor: not-allowed;
-}
-
 .loanCap {
   font-size: 10px;
   line-height: 16px;
@@ -673,17 +657,6 @@
   font-weight: 500;
 }
 
-.coachBtn {
-  padding: 14px 0;
-  border: 1px solid var(--fg-dark-stroke2);
-  border-radius: 10px;
-  background: none;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: not-allowed;
-}
-
 /* alarm concept block — flat, rule-topped */
 .alarm {
   display: flex;
@@ -703,17 +676,6 @@
   font-size: 12px;
   line-height: 20px;
   color: var(--fg-t5);
-}
-
-.alarm button {
-  padding: 12px 0;
-  border: 0;
-  border-radius: 10px;
-  background: var(--fg-wash);
-  color: var(--fg-t2);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: not-allowed;
 }
 
 /* data & limits — flat text block */

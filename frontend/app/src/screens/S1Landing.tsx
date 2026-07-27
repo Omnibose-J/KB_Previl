@@ -39,10 +39,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <button onClick={() => scrollTo(why)}>상권 찾기</button>
           <button onClick={() => scrollTo(features)}>서비스 소개</button>
           <button onClick={() => scrollTo(differs)}>데이터·방법론</button>
-          <button onClick={() => scrollTo(differs)}>도움말</button>
-          <button className={s.login} title="데모 버전에서는 제공되지 않습니다">
-            로그인
-          </button>
         </div>
       </nav>
 

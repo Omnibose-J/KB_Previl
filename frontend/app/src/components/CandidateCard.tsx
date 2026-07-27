@@ -1,5 +1,5 @@
 import type { GridDetail, StationAnchor } from "../api/types";
-import { int, meters, pct0, pct1, signedCount } from "../lib/format";
+import { int, meters, pct0, pct1 } from "../lib/format";
 import s from "./CandidateCard.module.css";
 
 /** Station name plus distance when measured; the name alone otherwise. */
@@ -16,7 +16,6 @@ export function stationAnchor(a: StationAnchor): string {
 export default function CandidateCard({
   rank,
   cell,
-  rentMonthly,
   selected,
   onHover,
   onSelect,
@@ -24,7 +23,6 @@ export default function CandidateCard({
 }: {
   rank: number;
   cell: GridDetail;
-  rentMonthly: number | null;
   selected: boolean;
   onHover: (id: string | null) => void;
   onSelect: () => void;
@@ -51,45 +49,13 @@ export default function CandidateCard({
         </div>
         <div className={s.pills}>
           <Signal cell={cell} />
+          {cell.confidence === "partial" ? <span className={s.pillGray}>상권 밖</span> : null}
           {/* "상위 n%" is banned — decile boundaries are holdout-absolute
               (serving-design §3). The honest companion number is the observed
               survival of this grade. */}
           <span className={s.gradePill}>
             {cell.grade}등급 · 실측 {pct0(cell.observedSurvival)}
           </span>
-        </div>
-      </div>
-
-      <div className={s.metrics}>
-        <div className={s.m}>
-          <span>입지 등급</span>
-          <strong>{cell.grade}등급</strong>
-        </div>
-        <div className={s.m}>
-          <span>실측 3년 생존율</span>
-          <strong>{pct0(cell.observedSurvival)}</strong>
-          <em>같은 등급 자리 실측</em>
-        </div>
-        <div className={s.m}>
-          <span>3년 기대손익</span>
-          {rentMonthly === null ? (
-            <>
-              <strong className={s.mMuted}>미계산</strong>
-              <em>임대료 입력 시 계산</em>
-            </>
-          ) : (
-            <>
-              <strong className={s.mMuted}>상세에서 확인</strong>
-              <em>월 {int(rentMonthly)}만 기준</em>
-            </>
-          )}
-        </div>
-        <div className={s.m}>
-          <span>신뢰도</span>
-          <strong className={cell.confidence === "partial" ? s.mMuted : undefined}>
-            {cell.confidence === "partial" ? "상권 밖" : "충분"}
-          </strong>
-          {cell.confidence === "partial" ? <em>매출·유동 정보 없음</em> : null}
         </div>
       </div>
 
@@ -111,14 +77,12 @@ export default function CandidateCard({
   );
 }
 
-/** Real-data evidence chips joined like the mockup's 근거 line — every value
- *  from the payload, NULL stated as such (never 0). */
+/** Real-data evidence, every value from the payload; NULL fields are simply
+ *  omitted (never 0, never substituted). */
 function evidenceLine(cell: GridDetail): string {
   const parts: string[] = [];
   if (cell.competition.shopsHere !== null) parts.push(`영업 점포 ${int(cell.competition.shopsHere)}`);
-  if (cell.competition.openings36m !== null)
-    parts.push(`최근 3년 개업 ${signedCount(cell.competition.openings36m)}`);
-  else if (cell.competition.openingsTotal !== null)
+  if (cell.competition.openingsTotal !== null)
     parts.push(`누적 개업 ${int(cell.competition.openingsTotal)}`);
   if (cell.areaSurvival.rate !== null)
     parts.push(

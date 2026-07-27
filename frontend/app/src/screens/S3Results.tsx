@@ -77,8 +77,6 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
   }
 
   const items = q.data?.items ?? [];
-  const verified = uniqueDongs(items.filter((c) => c.signal === "verified"));
-  const overheated = uniqueDongs(items.filter((c) => c.signal === "overheated"));
   const partialCount = items.filter((c) => c.confidence === "partial").length;
 
   return (
@@ -188,7 +186,6 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                   key={cell.gridId}
                   rank={i + 1}
                   cell={cell}
-                  rentMonthly={rentMonthly}
                   selected={selectedId === cell.gridId}
                   onHover={setHoveredId}
                   onSelect={() => select(cell)}
@@ -220,28 +217,20 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
               onSelect={(cell) => setSelectedId(cell.gridId)}
             />
           </div>
-          <div className={s.insights}>
-            <div className={s.insGreen}>
-              <strong>검증된 자리</strong>
-              <span>{verified.length > 0 ? verified.join(" · ") : "신호 산출 대기 (레인 A)"}</span>
+          {/* Only a live fact earns a row here — the signal rows return when
+              lane A ships the verdict column. */}
+          {partialCount > 0 ? (
+            <div className={s.insights}>
+              <div className={s.insGray}>
+                <strong>상권 밖</strong>
+                <span>부분 데이터 {int(partialCount)}곳 — 매출·유동 정보 없음</span>
+              </div>
             </div>
-            <div className={s.insOrange}>
-              <strong>과열 신호</strong>
-              <span>{overheated.length > 0 ? overheated.join(" · ") : "감지되지 않음"}</span>
-            </div>
-            <div className={s.insGray}>
-              <strong>상권 밖</strong>
-              <span>{partialCount > 0 ? `부분 데이터 ${int(partialCount)}곳` : "후보 전원 상권 안"}</span>
-            </div>
-          </div>
+          ) : null}
         </aside>
       </main>
 
       <CaveatStrip />
     </div>
   );
-}
-
-function uniqueDongs(items: { admDong: string | null }[]): string[] {
-  return [...new Set(items.map((c) => c.admDong).filter((d): d is string => d !== null))].slice(0, 3);
 }

@@ -248,16 +248,12 @@ button.wCtl:disabled {
   background: var(--fg-mapbg);
 }
 
-/* insight rows — dot + label + value on hairlines, not three tinted boxes */
+/* insight row — appears only when it has a live fact to state */
 .insights {
-  display: flex;
-  flex-direction: column;
   padding: 6px 20px 12px;
   border-top: 1px solid var(--fg-line3);
 }
 
-.insGreen,
-.insOrange,
 .insGray {
   display: flex;
   align-items: baseline;
@@ -265,13 +261,13 @@ button.wCtl:disabled {
   padding: 9px 0;
 }
 
-.insGreen + .insOrange,
-.insOrange + .insGray {
-  border-top: 1px solid var(--fg-line3);
+.insGray strong {
+  color: var(--fg-t5);
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
 }
 
-.insGreen strong::before,
-.insOrange strong::before,
 .insGray strong::before {
   content: "";
   display: inline-block;
@@ -282,26 +278,7 @@ button.wCtl:disabled {
   background: currentcolor;
 }
 
-.insGreen strong {
-  color: var(--fg-green);
-}
-
-.insOrange strong {
-  color: var(--fg-orange);
-}
-
-.insGray strong {
-  color: var(--fg-t5);
-}
-
-.insights strong {
-  font-size: 11px;
-  font-weight: 700;
-  flex: none;
-  width: 92px;
-}
-
-.insights span {
+.insGray span {
   font-size: 13px;
   font-weight: 500;
   color: var(--fg-t2);

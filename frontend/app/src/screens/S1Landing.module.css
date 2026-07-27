@@ -57,13 +57,6 @@
   color: var(--fg-ink);
 }
 
-.login {
-  background: var(--fg-ink) !important;
-  color: #fff !important;
-  border-radius: 8px !important;
-  padding: 10px 18px !important;
-}
-
 /* ── hero ────────────────────────────────────────── */
 .hero {
   display: flex;

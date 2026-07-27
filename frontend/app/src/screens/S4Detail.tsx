@@ -6,7 +6,7 @@ import EconomicsCard from "../components/EconomicsCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
 import { stationAnchor } from "../components/CandidateCard";
-import { int, meters, pct0, pct1, signedCount } from "../lib/format";
+import { int, meters, pct0, pct1 } from "../lib/format";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
@@ -168,13 +168,11 @@ function Body({
                 )}
               </p>
               <span className={s.kpiCap}>
-                {d.competition.openings36m !== null
-                  ? `최근 3년 개업 ${signedCount(d.competition.openings36m)}`
-                  : d.competition.openingsTotal !== null
-                    ? `누적 개업 ${int(d.competition.openingsTotal)} · 폐업 ${
-                        d.competition.closuresTotal !== null ? int(d.competition.closuresTotal) : "정보 없음"
-                      }`
-                    : "개업 이력 정보 없음"}
+                {d.competition.openingsTotal !== null
+                  ? `누적 개업 ${int(d.competition.openingsTotal)} · 폐업 ${
+                      d.competition.closuresTotal !== null ? int(d.competition.closuresTotal) : "정보 없음"
+                    }`
+                  : "개업 이력 정보 없음"}
               </span>
             </div>
             <div className={s.kpi}>
@@ -275,24 +273,20 @@ function Body({
                   <em>많을수록 검증된 자리 신호</em>
                 </div>
                 <div className={s.vsOrange}>
-                  <span>{d.competition.openings36m !== null ? "최근 3년 개업" : "누적 개업"}</span>
+                  <span>누적 개업</span>
                   <strong>
-                    {d.competition.openings36m !== null
-                      ? signedCount(d.competition.openings36m)
-                      : d.competition.openingsTotal !== null
-                        ? int(d.competition.openingsTotal)
-                        : "정보 없음"}
+                    {d.competition.openingsTotal !== null ? int(d.competition.openingsTotal) : "정보 없음"}
                   </strong>
                   <em>단기 급증은 과열 신호</em>
                 </div>
               </div>
-              <div className={s.verdict}>
-                {d.signal === "verified"
-                  ? "검증된 자리 — 영업 점포가 많고 최근 급증하지 않았습니다"
-                  : d.signal === "overheated"
-                    ? "과열 신호 — 최근 개업이 급증했습니다. 진입 시점 주의"
-                    : "판정 신호 산출 대기 — 36개월 개업 추이 지표가 실리면 표시됩니다"}
-              </div>
+              {/* verified/overheated verdict strip returns when lane A ships
+                  the signal column — until then there is nothing to say. */}
+              {d.signal === "verified" ? (
+                <div className={s.verdict}>검증된 자리 — 영업 점포가 많고 최근 급증하지 않았습니다</div>
+              ) : d.signal === "overheated" ? (
+                <div className={s.verdict}>과열 신호 — 최근 개업이 급증했습니다. 진입 시점 주의</div>
+              ) : null}
             </section>
 
             <section className={s.card}>
@@ -300,23 +294,21 @@ function Body({
                 <h2>위험 요인과 신뢰도</h2>
                 <p>모델이 확신하지 못하는 부분을 함께 표기합니다</p>
               </div>
+              {/* Only actual risks earn a row. Model-limit copy lives in the
+                  data card below, sourced from meta().caveats — restating it
+                  here with a hardcoded AUC was a second source of truth. */}
               <div className={s.risks}>
                 {search.rentMonthly === null ? (
                   <RiskRow level="high" title="임대료 미입력" desc="손익 계산에 임대료가 반영되지 않았습니다. 위 경제성 카드에 입력하세요." />
-                ) : (
-                  <RiskRow level="low" title="임대료 입력됨" desc={`월 ${int(search.rentMonthly)}만 원 기준으로 손익이 계산됩니다.`} />
-                )}
+                ) : null}
                 {d.confidence === "partial" ? (
                   <RiskRow
                     level="mid"
                     title="상권 밖 격자"
                     desc={`매출·유동 정보가 없어 일부 축이 비어 있습니다${d.missingAxes.length > 0 ? `: ${d.missingAxes.join(", ")}` : "."}`}
                   />
-                ) : (
-                  <RiskRow level="low" title="상권 안 격자" desc="매출·유동 축 데이터가 존재합니다." />
-                )}
+                ) : null}
                 <RiskRow level="mid" title="행정동 단위 값" desc="수요·인구 지표는 행정동 단위라 옆 격자와 같은 값입니다." />
-                <RiskRow level="mid" title="모델 한계" desc="AUC 0.59, 무작위보다 나은 수준입니다. 등급은 입지의 확률이지 성패의 보증이 아닙니다." />
               </div>
             </section>
           </div>
@@ -371,9 +363,6 @@ function Body({
               <li>등급별 실측 3년 생존율</li>
               <li>입력한 조건의 손익 계산 결과</li>
             </ul>
-            <button className={s.loanBtn} disabled title="연계 기획 — 데모에서는 동작하지 않습니다">
-              상담 연결 (기획)
-            </button>
             <span className={s.loanCap}>한도·금리 시뮬레이션은 제공하지 않습니다.</span>
           </div>
 
@@ -386,15 +375,11 @@ function Body({
               <span>금융 상담</span>
               <span>경영 상담</span>
             </div>
-            <button className={s.coachBtn} disabled title="연계 기획 — 데모에서는 동작하지 않습니다">
-              1:1 상담 예약 (기획)
-            </button>
           </div>
 
           <div className={s.alarm}>
             <strong>이 격자 변동 알림 · 연계 기획</strong>
             <p>재계산 라운드가 돌면 변동 알림으로 이어질 기획입니다.</p>
-            <button disabled title="연계 기획 — 데모에서는 동작하지 않습니다">알림 켜기 (기획)</button>
           </div>
 
           <div className={s.datacard}>
@@ -470,9 +455,9 @@ function BarRow({
   );
 }
 
-function RiskRow({ level, title, desc }: { level: "high" | "mid" | "low"; title: string; desc: string }) {
-  const cls = level === "high" ? s.lvHigh : level === "mid" ? s.lvMid : s.lvLow;
-  const label = level === "high" ? "높음" : level === "mid" ? "중간" : "낮음";
+function RiskRow({ level, title, desc }: { level: "high" | "mid"; title: string; desc: string }) {
+  const cls = level === "high" ? s.lvHigh : s.lvMid;
+  const label = level === "high" ? "높음" : "중간";
   return (
     <div className={s.risk}>
       <span className={cls}>{label}</span>

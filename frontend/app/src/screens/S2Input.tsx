@@ -30,7 +30,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
 
   return (
     <div className={s.page}>
-      <Nav step={1} onHome={() => go({ name: "landing" })} right={<span className={s.guest}>게스트</span>} />
+      <Nav step={1} onHome={() => go({ name: "landing" })} />
       <main className={s.body}>
         {/* ── left: form ─────────────────────────────────────────────── */}
         <div className={s.form}>
@@ -140,11 +140,6 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 ))}
               </div>
             ) : null}
-            <div className={s.mapPreview}>
-              {search.uptae && rec.data
-                ? `범위 내 격자 ${int(rec.data.inScope)}개 · 다음 단계에서 100m 격자 지도로 표시됩니다`
-                : "선택한 범위는 다음 단계에서 100m 격자 지도로 표시됩니다"}
-            </div>
           </section>
           </div>
         </div>
