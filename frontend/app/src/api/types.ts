@@ -30,12 +30,40 @@ export interface ObservedGrade {
   ciHigh: number | null;
 }
 
+export interface SurvivalBand {
+  band: string; // holdout band label, render verbatim
+  survival: number | null;
+  ciLow: number | null;
+  ciHigh: number | null;
+  n: number | null;
+}
+
+/** 5y is a SEPARATE cohort (2019-2021) — never drawn as one curve with 1·3y. */
+export interface SurvivalPeriod {
+  years: 1 | 3 | 5;
+  cohort: string | null;
+  testWindow: string | null;
+  overall: number | null;
+  bench: string | null;
+  bands: SurvivalBand[] | null;
+}
+
+/** Observed, not causal: area correlates with capital (serving-design §5-6). */
+export interface GradeArea {
+  gradeBands: string[];
+  areaBands: string[];
+  survival: (number | null)[][]; // [band][areaBand], null = no observation
+  bench: string;
+}
+
 export interface Meta {
   asOf: string | null;
   uptae: string[]; // render chips with these values verbatim (ui-spec §7)
   districts: string[];
   observedByGrade: ObservedGrade[];
   overallSurvival: number | null;
+  survivalByPeriod: SurvivalPeriod[];
+  gradeArea: GradeArea | null;
   /** total scored grids — S2 funnel row 1 (never hardcode the count) */
   gridCount: number;
   gradeDirection: "1_is_best";

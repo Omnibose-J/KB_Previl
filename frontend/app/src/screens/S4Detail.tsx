@@ -351,6 +351,55 @@ function Body({
               <Loading />
             )}
           </section>
+
+          {/* ── survival by period (new /meta fields, 2026-07-27) ──── */}
+          {meta && meta.survivalByPeriod.length > 0 ? (
+            <section className={s.card}>
+              <div className={s.cardHead}>
+                <h2>기간별 실측 생존율</h2>
+                <p>같은 밴드의 자리가 1년·3년·5년 뒤 실제로 남아 있던 비율입니다.</p>
+              </div>
+              <PeriodTable meta={meta} grade={d.grade} />
+              <p className={s.tableFoot}>
+                * 5년은 별도 코호트({periodOf(meta, 5)?.cohort ?? "별도"})의 개별 적합이라 1·3년과 이어
+                읽을 수 없습니다. 2023 코호트의 5년 판정은 2028년에 나옵니다.
+              </p>
+            </section>
+          ) : null}
+
+          {/* ── grade × area (observed, not causal — §5-6) ─────────── */}
+          {meta?.gradeArea ? (
+            <section className={s.card}>
+              <div className={s.cardHead}>
+                <h2>가게 면적별 실측 생존율</h2>
+                <p>관측된 결과이지 인과가 아닙니다 — 면적은 자본력과 얽혀 있습니다. 면적은 추천 순위에 반영되지 않습니다.</p>
+              </div>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>밴드</th>
+                    {meta.gradeArea.areaBands.map((a) => (
+                      <th key={a}>{a}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {meta.gradeArea.gradeBands.map((band, bi) => (
+                    <tr key={band} className={bi === bandIndex(d.grade) ? s.rowOn : undefined}>
+                      <td>
+                        {band}
+                        {bi === bandIndex(d.grade) ? <span className={s.rowTag}>이 자리</span> : null}
+                      </td>
+                      {meta.gradeArea!.survival[bi].map((v, ai) => (
+                        <td key={ai}>{v !== null ? pct1(v) : "정보 없음"}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className={s.tableFoot}>검증 기준 {meta.gradeArea.bench}</p>
+            </section>
+          ) : null}
         </div>
 
         {/* ── sidebar ──────────────────────────────────────────────── */}
@@ -395,6 +444,68 @@ function Body({
         </aside>
       </main>
     </>
+  );
+}
+
+/** grade → holdout band row (1 = top decile band, 10 = bottom, rest middle). */
+function bandIndex(grade: number): number {
+  return grade === 1 ? 0 : grade === 10 ? 2 : 1;
+}
+
+function periodOf(meta: Meta, years: 1 | 3 | 5) {
+  return meta.survivalByPeriod.find((p) => p.years === years) ?? null;
+}
+
+/** 1·3y share the 2023 cohort; 5y is a separate fit and gets a starred column
+ *  instead of a shared axis (serving-design §5-5). */
+function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
+  const periods = ([1, 3, 5] as const).map((y) => periodOf(meta, y));
+  const bandLabels = periods.find((p) => p?.bands)?.bands?.map((b) => b.band) ?? [];
+  if (bandLabels.length === 0) return null;
+  return (
+    <table className={s.table}>
+      <thead>
+        <tr>
+          <th>밴드</th>
+          {periods.map((p, i) =>
+            p?.bands ? (
+              <th key={i}>
+                {p.years}년{p.years === 5 ? " *" : ""}
+                {p.testWindow ? <span className={s.thCap}> 검증 {p.testWindow}</span> : null}
+              </th>
+            ) : null,
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        {bandLabels.map((label, bi) => (
+          <tr key={label} className={bi === bandIndex(grade) ? s.rowOn : undefined}>
+            <td>
+              {label}
+              {bi === bandIndex(grade) ? <span className={s.rowTag}>이 자리</span> : null}
+            </td>
+            {periods.map((p, i) => {
+              if (!p?.bands) return null;
+              const b = p.bands[bi];
+              return (
+                <td key={i}>
+                  {b?.survival !== null && b?.survival !== undefined ? pct1(b.survival) : "정보 없음"}
+                  {b?.n !== null && b?.n !== undefined ? (
+                    <span className={s.tdCap}> 표본 {int(b.n)}</span>
+                  ) : null}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+        <tr className={s.overallRow}>
+          <td>전체</td>
+          {periods.map((p, i) =>
+            p?.bands ? <td key={i}>{p.overall !== null ? pct1(p.overall) : "정보 없음"}</td> : null,
+          )}
+        </tr>
+      </tbody>
+    </table>
   );
 }
 

@@ -566,6 +566,29 @@
   font-weight: 900;
 }
 
+.thCap {
+  display: block;
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--fg-t8);
+}
+
+.tdCap {
+  font-size: 10px;
+  color: var(--fg-t8);
+}
+
+.overallRow td {
+  color: var(--fg-t6);
+  font-weight: 300;
+}
+
+.tableFoot {
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--fg-t7);
+}
+
 /* ── sidebar ─────────────────────────────────────── */
 .side {
   display: flex;
