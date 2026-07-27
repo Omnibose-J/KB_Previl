@@ -74,6 +74,7 @@ python -m model.experiment_trend2 # 검색 트렌드 재검정 + 위약 대조
 |---|---|
 | `docs/data-inventory.md` | 데이터 소스별 실측 결과 · 공간해상도 판정 |
 | `docs/model-findings.md` | **§0 실험 대장(24건 전부 판정)** · 모델 선정표·피처 가중치표(§7) · negative result |
+| `docs/serving-design.md` | **모델 ↔ 백엔드 계약** — 무엇이 언제 계산되고 무엇을 하면 안 되는가 |
 | `docs/tracking/findings.md` | 발견했으나 소유 범위 밖이라 못 고친 문제 |
 | `docs/api-applications.md` | 직접 신청해야 하는 API (공정위·R-ONE·VWORLD) |
 | `docs/experiment-plan.md` | 제출 전 실험 라운드 2 설계 (사전 등록 기준·일정) |
