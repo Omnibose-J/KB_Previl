@@ -33,8 +33,8 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <nav className={s.nav}>
         <div className={s.logo}>
-          <span className={s.mark}>터</span>
-          <span className={s.wordmark}>KB 터 · TEO</span>
+          <span className={s.mark}>P</span>
+          <span className={s.wordmark}>Previl</span>
         </div>
         <div className={s.menu}>
           <button onClick={() => scrollTo(why)}>상권 찾기</button>
@@ -178,9 +178,9 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <div className={s.tHead}>
             <span>축</span>
             <span>KB bridge 상권분석</span>
-            <span className={s.tOurs}>KB 터 (본 서비스)</span>
+            <span className={s.tOurs}>Previl (본 서비스)</span>
           </div>
-          {DIFF_ROWS.map(([axis, theirs, ours]) => (
+          {DIFF_ROWS(meta.data?.uptae.length ?? null).map(([axis, theirs, ours]) => (
             <div key={axis} className={s.tRow}>
               <span className={s.tAxis}>{axis}</span>
               <span className={s.tTheirs}>{theirs}</span>
@@ -201,7 +201,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Footer (dark) ────────────────────────────────────────────── */}
       <footer className={s.footer}>
         <span>
-          KB 터(TEO) · AI 상권·입지 참모&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
+          Previl · AI 상권·입지 참모&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
         </span>
         <span className={s.footNote}>
           본 서비스의 등급은 과거 데이터 기반 참고 정보이며 최종 판단은 사용자에게 있습니다.
@@ -213,11 +213,16 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
 // Replacements per ui-spec §3-S1 차별점 표: 데이터 row = validation methodology,
 // 결과물 row drops 예상매출/생존확률, 해상도 row = what we actually resolve.
-const DIFF_ROWS: [string, string, string][] = [
+// The uptae count follows meta() so the table can't drift from the served list.
+const DIFF_ROWS = (uptaeCount: number | null): [string, string, string][] => [
   ["사용 방식", "지역을 먼저 골라야 조회 가능", "업종만 넣으면 자리를 찾아줌"],
   ["근거", "현황 통계", "실제로 버틴 가게들의 기록"],
   ["결과물", "동네 현황 설명", "자리 추천 + 등급 + 실제 생존율"],
-  ["업종 반영", "얕음", "12개 업종 각각 따로 평가"],
+  [
+    "업종 반영",
+    "얕음",
+    uptaeCount !== null ? `${uptaeCount}개 업종 각각 따로 평가` : "업종별 각각 따로 평가",
+  ],
   ["단위", "행정동", "100m 단위 (서울 전역)"],
   ["성격", "정적 정보 조회", "조건을 바꾸면 결과도 바뀜"],
 ];

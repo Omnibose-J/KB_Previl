@@ -1,4 +1,4 @@
-# KB 터 프론트엔드 (레인 C)
+# Previl 프론트엔드 (레인 C)
 
 스펙: `../design/ui-spec.md` (계약 전체) · B의 응답 스키마: `../../lanes/B-backend.md`
 
