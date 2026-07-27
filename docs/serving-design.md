@@ -187,7 +187,7 @@ gradeArea: {
 ## 8. 지금 상태
 
 - **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report`
-- **삭제 대상**: `district_summary` — HTTP 라우트·소비자·테스트가 전무한 죽은 코드로 확인(2026-07-27 감사). 다음 레인 B 정리 때 `api.py`에서 제거
+- ~~삭제 대상: `district_summary`~~ — **삭제 완료** (2026-07-27, goodwill 슬림다운 작업에 포함. 참조 0건 확인)
 - **배선 완료**(레인 A): `grid_score` 229,356행 · `score_meta` 24키 · API가 읽는 6키 정렬 확인
 - **미노출**: §2의 기간별 곡선·등급×면적 교차표 — 값은 DB에 있고 엔드포인트가 없다
 
