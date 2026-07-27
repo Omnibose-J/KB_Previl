@@ -26,10 +26,15 @@ PY = sys.executable
 GLOBAL_CAP_MIN = 420          # 전체 7시간. 넘으면 남은 단계를 시작하지 않는다
 
 
-def step(name, args, cap_min, retries=2, verdict=False, note=""):
-    """verdict=True 면 exit!=0 을 판정 결과로 보고 재시도하지 않는다."""
+def step(name, args, cap_min, retries=2, verdict=False, note="", requires=None):
+    """verdict=True 면 exit!=0 을 판정 결과로 보고 재시도하지 않는다.
+
+    requires=<앞 단계 이름 접두사> 면 그 단계가 exit 0 이었을 때만 돈다.
+    §I-9 가 기각되면 확대분 가격 판정은 만들 산출물이 없다.
+    """
     return dict(name=name, cmd=[PY, "-m"] + args, cap_min=cap_min,
-                retries=0 if verdict else retries, verdict=verdict, note=note)
+                retries=0 if verdict else retries, verdict=verdict, note=note,
+                requires=requires)
 
 
 # H-4(시간대)는 §16에서 기각으로 확정됐다. 표본을 늘려 다시 돌리지 않는다 —
@@ -50,16 +55,35 @@ STEPS = [
          cap_min=20, note="§I-11 — 범주별 0.70, 미달 범주만 비표시"),
     step("6. 불만 분포", ["model.gripe_run", "--stats"], cap_min=5, verdict=True),
 
-    # --- 3단계: 게이트 재확인
-    step("7. 누수 가드", ["model.test_leakage"], cap_min=10, verdict=True,
+    # --- 3단계: 업종 복원 (§I-13) — 정답이 있는 첫 검정
+    step("7. 업종 판정", ["model.uptae_run", "--judge", "--workers", "12",
+                        "--cap", "400"], cap_min=90, note="§I-13"),
+    step("8. I-13 검정", ["model.uptae_test"], cap_min=10, verdict=True,
+         note="§I-13 임계 — macro-F1 >= 0.40, 점포 단위 다수결"),
+
+    # --- 4단계: 산출물 조립 (API 없음)
+    step("9. r1 프로파일 집계", ["model.profile_build"], cap_min=15,
+         note="§I-10-③ 비율 vs 목록 · §I-3 최소 10건"),
+    step("10. 누수 가드", ["model.test_leakage"], cap_min=10, verdict=True,
          note="기각된 신호가 DEPLOY 에 활성화되지 않았는지"),
 
-    # --- 4단계: 커버리지 확대 — **검정이 전부 끝난 뒤에만**
+    # --- 5단계: 커버리지 확대 — **검정이 전부 끝난 뒤에만**
     # 표본이 커진 뒤 위 검정을 다시 돌리면 두 번째 열람이 된다. 확대는 제품
-    # 커버리지(§I-5, 60/247 지명)를 위한 것이고 재검정용이 아니다.
-    step("8. 수집 확대 (지명당 80점포)", ["model.absa_run", "--collect", "--resume",
-                                   "--workers", "6", "--n-shop", "80"],
+    # 커버리지(§I-5, 필터 통과 150개 중 60개만 수집)를 위한 것이다.
+    step("11. 수집 확대 (지명 150 × 점포 100)",
+         ["model.absa_run", "--collect", "--resume", "--workers", "6",
+          "--n-shop", "100", "--n-place", "150"],
          cap_min=180, note="§I-5 커버리지 — 재검정 금지"),
+
+    # --- 6단계: 확대분 판정 — 검정이 통과했을 때만 의미가 있다
+    step("12. 확대분 가격 판정", ["model.price_run", "--judge", "--workers", "12",
+                            "--cap", "400"], cap_min=120, requires="3.",
+         note="§I-9 통과 시에만 · 산출물용, 재검정 아님"),
+    step("13. 확대분 불만 판정", ["model.gripe_run", "--judge", "--workers", "12",
+                            "--cap", "400"], cap_min=120,
+         note="§I-11 은 범주별 판정이라 미달 범주만 빠진다"),
+    step("14. r1 프로파일 재집계", ["model.profile_build"], cap_min=15,
+         note="확대분 반영 · 커버리지 재측정"),
 ]
 
 
@@ -112,11 +136,19 @@ def main():
              "| 단계 | 명령 | 종료 | 소요 | 결과 |", "|---|---|---|---|---|"]
     results = []
 
+    passed = set()
     for s in STEPS:
         used = (time.time() - t_start) / 60
         if used + 1 > GLOBAL_CAP_MIN:
             lines.append(f"| {s['name']} | — | — | — | 전체 상한 초과로 미실행 |")
             results.append((s["name"], "미실행", "전체 상한"))
+            continue
+        req = s.get("requires")
+        if req and req not in passed:
+            why = f"선행 단계({req}) 미통과로 건너뜀"
+            print(f"\n{s['name']} — {why}", flush=True)
+            lines.append(f"| {s['name']} | — | — | — | {why} |")
+            results.append((s["name"], why, s["note"]))
             continue
         print(f"\n{'='*66}\n{s['name']}  (상한 {s['cap_min']}분, 경과 {used:.0f}분)"
               f"\n$ {' '.join(s['cmd'])}", flush=True)
@@ -142,6 +174,8 @@ def main():
         else:
             verdict = f"SKIP — {s['retries']+1}회 모두 exit {code}"
 
+        if code == 0:
+            passed.add(s["name"].split()[0])   # "3." 같은 접두사로 requires 를 건다
         print(f"  → {verdict} · {elapsed/60:.1f}분", flush=True)
         for t in tail[-4:]:
             print(f"    {t}", flush=True)

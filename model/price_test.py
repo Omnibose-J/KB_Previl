@@ -91,7 +91,8 @@ def main():
     else:
         print("=> §I-9 대로 키를 만들지 않는다.")
         print("   가격대는 비정형으로 메꿀 수 없다고 기록한다.")
-    return 0
+    # 0=통과 · 3=기각 · 1=표본 미달. 큐가 후속 단계를 이 코드로 가른다.
+    return 0 if ok else 3
 
 
 if __name__ == "__main__":
