@@ -7,11 +7,12 @@
 // by the pipeline itself (CLAUDE.md 현재 수치 · docs/data-inventory.md), which
 // no rescoring can change.
 
-/** Source-record scale and the time-split validation window (docs/model-findings.md §4-C). */
+/** Source-record scale (docs/data-inventory.md). Validation windows are NOT
+ *  stated here — they are lineage-dependent and come from the API
+ *  (survivalByPeriod.testWindow). */
 export const PROVENANCE = {
   recordCount: "인허가 53.5만 건",
   recordSince: "1924년부터",
-  validationWindow: "2013~2022년",
 } as const;
 
 /** Data actually used. The mockup listed 인스타·블로그·리뷰 — measured twice,

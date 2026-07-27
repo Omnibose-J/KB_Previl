@@ -1,11 +1,6 @@
-import type { GridDetail, StationAnchor } from "../api/types";
-import { int, meters, pct0, pct1 } from "../lib/format";
+import type { GridDetail } from "../api/types";
+import { int, meters, pct0, pct1, stationAnchor } from "../lib/format";
 import s from "./CandidateCard.module.css";
-
-/** Station name plus distance when measured; the name alone otherwise. */
-export function stationAnchor(a: StationAnchor): string {
-  return a.distanceM === null ? a.name : `${a.name} ${meters(a.distanceM)}`;
-}
 
 // 후보 카드, figma-snapshot S3 card layout (rank box · title · pills · metric
 // strip · evidence line). The mockup's four metrics are swapped for what we
@@ -31,9 +26,18 @@ export default function CandidateCard({
   return (
     <li
       className={selected ? s.cardOn : s.card}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
       onMouseEnter={() => onHover(cell.gridId)}
       onMouseLeave={() => onHover(null)}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <div className={s.top}>
         <div className={s.ti}>

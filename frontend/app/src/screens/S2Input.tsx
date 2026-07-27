@@ -183,13 +183,19 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
               <div>
                 <span>범위 내 격자 (업종 기준)</span>
                 <strong>
-                  {search.uptae ? (rec.data ? `${int(rec.data.inScope)}개` : "…") : "업종 선택 후"}
+                  {!search.uptae
+                    ? "업종 선택 후"
+                    : rec.data
+                      ? `${int(rec.data.inScope)}개`
+                      : rec.isError
+                        ? "불러오지 못함"
+                        : "…"}
                 </strong>
               </div>
               <div>
                 <span>상위 추천 후보</span>
                 <strong className={s.fY}>
-                  {search.uptae && rec.data ? `${int(rec.data.count)}곳` : "…"}
+                  {search.uptae && rec.data ? `${int(rec.data.count)}곳` : rec.isError ? "—" : "…"}
                 </strong>
               </div>
             </div>
@@ -253,6 +259,7 @@ function BudgetSlider({
         max={cfg.max}
         step={cfg.step}
         value={v}
+        aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
         className={s.range}
         style={{

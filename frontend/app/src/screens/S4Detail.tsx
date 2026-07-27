@@ -5,8 +5,7 @@ import type { GridDetail, Meta } from "../api/types";
 import EconomicsCard from "../components/EconomicsCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
-import { stationAnchor } from "../components/CandidateCard";
-import { int, meters, pct0, pct1 } from "../lib/format";
+import { int, meters, pct0, pct1, stationAnchor } from "../lib/format";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
@@ -87,23 +86,14 @@ export default function S4Detail({
           <ErrorState onRetry={() => detail.refetch()} detail={String(detail.error)} />
         </div>
       ) : (
-        <Body d={detail.data} meta={meta.data} uptae={uptae} search={search} />
+        <Body d={detail.data} meta={meta.data} uptae={uptae} />
       )}
     </div>
   );
 }
 
-function Body({
-  d,
-  meta,
-  uptae,
-  search,
-}: {
-  d: GridDetail;
-  meta: Meta | undefined;
-  uptae: string;
-  search: ReturnType<typeof useSearch>;
-}) {
+function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae: string }) {
+  const search = useSearch();
   const report = useQuery({
     queryKey: ["report", d.gridId, uptae],
     queryFn: () => api.report(d.gridId, uptae),
@@ -362,7 +352,7 @@ function Body({
               <PeriodTable meta={meta} grade={d.grade} />
               <p className={s.tableFoot}>
                 * 5년은 별도 코호트({periodOf(meta, 5)?.cohort ?? "별도"})의 개별 적합이라 1·3년과 이어
-                읽을 수 없습니다. 2023 코호트의 5년 판정은 2028년에 나옵니다.
+                읽을 수 없습니다.
               </p>
             </section>
           ) : null}
@@ -384,17 +374,24 @@ function Body({
                   </tr>
                 </thead>
                 <tbody>
-                  {meta.gradeArea.gradeBands.map((band, bi) => (
-                    <tr key={band} className={bi === bandIndex(d.grade) ? s.rowOn : undefined}>
-                      <td>
-                        {band}
-                        {bi === bandIndex(d.grade) ? <span className={s.rowTag}>이 자리</span> : null}
-                      </td>
-                      {meta.gradeArea!.survival[bi].map((v, ai) => (
-                        <td key={ai}>{v !== null ? pct1(v) : "정보 없음"}</td>
-                      ))}
-                    </tr>
-                  ))}
+                  {meta.gradeArea.gradeBands.map((band, bi) => {
+                    // Positional grade→band mapping is only valid for the
+                    // 3-band shape; on any other server shape, skip the
+                    // highlight rather than mark the wrong row.
+                    const isHere =
+                      meta.gradeArea!.gradeBands.length === 3 && bi === bandIndex(d.grade);
+                    return (
+                      <tr key={band} className={isHere ? s.rowOn : undefined}>
+                        <td>
+                          {band}
+                          {isHere ? <span className={s.rowTag}>이 자리</span> : null}
+                        </td>
+                        {meta.gradeArea!.survival[bi].map((v, ai) => (
+                          <td key={ai}>{v !== null ? pct1(v) : "정보 없음"}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               <p className={s.tableFoot}>검증 기준 {meta.gradeArea.bench}</p>
@@ -478,26 +475,31 @@ function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
         </tr>
       </thead>
       <tbody>
-        {bandLabels.map((label, bi) => (
-          <tr key={label} className={bi === bandIndex(grade) ? s.rowOn : undefined}>
-            <td>
-              {label}
-              {bi === bandIndex(grade) ? <span className={s.rowTag}>이 자리</span> : null}
-            </td>
-            {periods.map((p, i) => {
-              if (!p?.bands) return null;
-              const b = p.bands[bi];
-              return (
-                <td key={i}>
-                  {b?.survival !== null && b?.survival !== undefined ? pct1(b.survival) : "정보 없음"}
-                  {b?.n !== null && b?.n !== undefined ? (
-                    <span className={s.tdCap}> 표본 {int(b.n)}</span>
-                  ) : null}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
+        {bandLabels.map((label, bi) => {
+          const isHere = bandLabels.length === 3 && bi === bandIndex(grade);
+          return (
+            <tr key={label} className={isHere ? s.rowOn : undefined}>
+              <td>
+                {label}
+                {isHere ? <span className={s.rowTag}>이 자리</span> : null}
+              </td>
+              {periods.map((p, i) => {
+                if (!p?.bands) return null;
+                // Join across cohorts by band LABEL, never by position — the
+                // 5y period is a separate fit and owes us no row order.
+                const b = p.bands.find((x) => x.band === label);
+                return (
+                  <td key={i}>
+                    {b?.survival !== null && b?.survival !== undefined ? pct1(b.survival) : "정보 없음"}
+                    {b?.n !== null && b?.n !== undefined ? (
+                      <span className={s.tdCap}> 표본 {int(b.n)}</span>
+                    ) : null}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
         <tr className={s.overallRow}>
           <td>전체</td>
           {periods.map((p, i) =>

@@ -75,11 +75,20 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <i className={s.fieldDivider} />
           <label className={s.field}>
             <span className={s.fieldLabel}>희망 범위</span>
+            {/* Multi-district selections (made on S2) cannot round-trip through
+                a single select — represent them honestly instead of silently
+                showing only the first one. */}
             <select
               className={s.fieldValue}
-              value={search.districts[0] ?? ""}
-              onChange={(e) => search.set({ districts: e.target.value ? [e.target.value] : [] })}
+              value={search.districts.length > 1 ? "__multi" : (search.districts[0] ?? "")}
+              onChange={(e) => {
+                if (e.target.value === "__multi") return;
+                search.set({ districts: e.target.value ? [e.target.value] : [] });
+              }}
             >
+              {search.districts.length > 1 ? (
+                <option value="__multi">{search.districts.length}개 자치구 (조건 화면에서 선택)</option>
+              ) : null}
               <option value="">서울 전역</option>
               {meta.data?.districts.map((d) => (
                 <option key={d} value={d}>

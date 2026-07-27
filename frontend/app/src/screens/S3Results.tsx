@@ -111,7 +111,6 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                 </p>
               ) : null}
             </div>
-            <span className={s.sort}>등급순 ▾</span>
           </header>
 
           {/* What-if — every control performs the real mutation it names. */}
@@ -145,7 +144,9 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                     </option>
                   ))}
                 </select>
-                <span className={s.wSub}>12개 업태 재분석</span>
+                <span className={s.wSub}>
+                  {meta.data ? `${meta.data.uptae.length}개 업태 재분석` : "업태 재분석"}
+                </span>
               </label>
               <button
                 className={s.wCtl}

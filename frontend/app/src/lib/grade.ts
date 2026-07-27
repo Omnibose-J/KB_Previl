@@ -8,13 +8,5 @@ import type { Grade } from "../api/types";
  *  grids, so the percentile translation is simply not true. */
 export const gradeLabel = (grade: Grade) => `${grade}등급`;
 
-/** 10-step discrete ramp, grade 1 = darkest. Tokens, not literals (§4). */
-export const gradeColor = (grade: Grade) => `var(--color-heatmap-${grade})`;
-
-/** Cells with no observable value are hatched in this neutral, never coloured 0. */
-export const NULL_COLOR = "var(--color-heatmap-null)";
-
 /** Legend labels every other step — 10 labels are unreadable (ui-spec §3-S3). */
 export const LEGEND_STEPS: Grade[] = [1, 3, 5, 7, 10];
-
-export const isGrade = (n: number): n is Grade => Number.isInteger(n) && n >= 1 && n <= 10;

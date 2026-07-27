@@ -88,7 +88,7 @@ export default function EconomicsCard({
           value={margin === null ? null : Math.round(margin * 100)}
           onChange={(v) => setMargin(v === null ? null : v / 100)}
           unit="%"
-          placeholder="비워두면 25"
+          placeholder="비워두면 기본값"
         />
       </div>
 

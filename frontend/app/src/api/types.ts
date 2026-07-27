@@ -1,5 +1,8 @@
-// B->C contract, 1:1 with the schema lane B fixed in lanes/B-backend.md
-// (2026-07-27, decision B-001-camelcase-observed-contract).
+// B->C contract — mirrors the CONSUMED subset of lanes/B-backend.md
+// (2026-07-27, decision B-001-camelcase-observed-contract). Not the whole
+// backend surface: /goodwill (권리금 리포트, P1) is contracted there but has
+// no consumer here yet, so it has no types here — add them when the screen
+// lands, never speculatively.
 //
 // JSON is camelCase, coordinates are [lon, lat] WGS84, rates are 0..1, money is
 // 만원 unless stated. grade is 1..10 and 1 IS BEST. No response ever carries

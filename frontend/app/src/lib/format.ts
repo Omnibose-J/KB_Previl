@@ -1,8 +1,8 @@
 // Display formatting. Every function here takes a value that ALREADY came from
 // the API — none of them invent, default, or round away a missing value.
-// NULL never becomes 0 (ui-spec §4): callers render <Missing/> instead.
+// NULL never becomes 0 (ui-spec §4): callers state 정보 없음 instead.
 
-export const NO_DATA = "정보 없음";
+import type { StationAnchor } from "../api/types";
 
 export const int = (v: number) => v.toLocaleString("ko-KR");
 
@@ -26,5 +26,6 @@ export const meters = (v: number) => `${int(Math.round(v))}m`;
 export const survivalSentence = (survival: number) =>
   `100곳 중 ${Math.round(survival * 100)}곳이 3년을 버텼습니다`;
 
-/** 개업 추이처럼 방향이 의미를 갖는 값 */
-export const signedCount = (v: number) => `${v > 0 ? "+" : ""}${int(v)}`;
+/** Station name plus distance when measured; the name alone otherwise. */
+export const stationAnchor = (a: StationAnchor): string =>
+  a.distanceM === null ? a.name : `${a.name} ${meters(a.distanceM)}`;

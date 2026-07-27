@@ -59,6 +59,7 @@ export const api = {
     ),
   gridDetail: (gridId: string, uptae: string) =>
     request<GridDetail>(`/grid/${encodeURIComponent(gridId)}?uptae=${encodeURIComponent(uptae)}`),
+  /** No caller yet — reserved for the P1 diagnosis flow (S1 "이 자리 어때?"). */
   atPoint: (lon: number, lat: number, uptae: string) =>
     request<GridDetail>(`/at?lon=${lon}&lat=${lat}&uptae=${encodeURIComponent(uptae)}`),
   economics: (input: EconomicsInput) =>
