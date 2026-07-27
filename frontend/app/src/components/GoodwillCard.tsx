@@ -17,9 +17,9 @@ import s from "./GoodwillCard.module.css";
 const DEBOUNCE_MS = 500;
 
 const REFERENCE_LABEL = {
-  below_band: { text: "호가가 참고 밴드 아래", cls: "refGreen" },
-  within_band: { text: "호가가 참고 밴드 안", cls: "refGray" },
-  above_band: { text: "호가가 참고 밴드 위 — 협상 여지", cls: "refOrange" },
+  below_band: { text: "참고 범위보다 낮게 부르고 있어요", cls: "refGreen" },
+  within_band: { text: "참고 범위 안이에요", cls: "refGray" },
+  above_band: { text: "참고 범위보다 높아요, 깎아볼 만해요", cls: "refOrange" },
 } as const;
 
 export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: string }) {
@@ -64,8 +64,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       <section className={s.card}>
         <Head />
         <p className={s.unavailable}>
-          매출 근거 없음 — 이 격자는 상권 밖이라 무형재산을 계산할 매출 데이터가 없어 권리금
-          리포트를 제공할 수 없습니다.
+          이 자리는 주변 매출 기록이 없어서 권리금 참고가를 계산할 수 없어요.
         </p>
       </section>
     );
@@ -77,8 +76,8 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
 
       {/* 입력 행 */}
       <div className={s.inputs}>
-        <NumField label="권리금 호가" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
-        <NumField label="임대차 잔여" required value={leaseYears} onChange={setLeaseYears} unit="년" placeholder="예: 3" />
+        <NumField label="부르는 권리금" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
+        <NumField label="계약 남은 기간" required value={leaseYears} onChange={setLeaseYears} unit="년" placeholder="예: 3" />
         <button
           className={s.addAsset}
           onClick={() =>
@@ -113,7 +112,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       ) : null}
 
       {!ready ? (
-        <p className={s.prompt}>호가와 임대차 잔여기간을 넣으면 계산합니다.</p>
+        <p className={s.prompt}>부르는 권리금과 남은 계약 기간을 넣으면 계산해 드려요.</p>
       ) : q.isPending ? (
         <Loading label="추정 참고가 계산 중…" />
       ) : q.isError ? (
@@ -128,8 +127,8 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
 function Head() {
   return (
     <div className={s.head}>
-      <h2>권리금 협상 리포트</h2>
-      <p>부르는 값이 기록 기준 참고가의 어디쯤인지 봅니다. 감정평가가 아닙니다.</p>
+      <h2>부르는 권리금, 적당한가요?</h2>
+      <p>이 자리 기록으로 참고가를 계산해 드려요. 감정평가는 아니에요.</p>
     </div>
   );
 }
@@ -203,39 +202,39 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
       {/* 근거 행렬 — 전부 응답 필드, 출처 병기 */}
       <dl className={s.basis}>
         <div>
-          <dt>상권 매출 M</dt>
+          <dt>이 상권 월매출</dt>
           <dd>
-            월 {man(r.monthlyRevenue)} <em>상권 단위 — 같은 상권 안 자리는 동일</em>
+            {man(r.monthlyRevenue)} <em>같은 상권 안 자리는 같은 값이에요</em>
           </dd>
         </div>
         <div>
-          <dt>벤치마크 M̄</dt>
+          <dt>서울 평균 월매출</dt>
           <dd>
-            월 {man(r.benchmarkMonthlyRevenue)}{" "}
+            {man(r.benchmarkMonthlyRevenue)}{" "}
             <em>
-              서울 전체 × 동일 업종 (Level {r.benchmarkLevel})
-              {r.benchmarkWarning ? ` · ${r.benchmarkWarning}` : ""}
+              같은 업종 기준{r.benchmarkWarning ? ` · ${r.benchmarkWarning}` : ""}
             </em>
           </dd>
         </div>
         <div>
-          <dt>영업이익률 r</dt>
+          <dt>영업이익률</dt>
           <dd>
-            {pct1(r.operatingMargin)} <em>{r.operatingMarginSource} · 임대료 차감 후</em>
+            {pct1(r.operatingMargin)} <em>{r.operatingMarginSource}</em>
           </dd>
         </div>
         <div>
-          <dt>할인율 d</dt>
+          <dt>할인율</dt>
           <dd>
             {pct1(r.discountRate)} <em>{r.discountRateSource}</em>
           </dd>
         </div>
         <div>
-          <dt>산정 기간 N</dt>
+          <dt>계산 기간</dt>
           <dd>
             {int(r.valuationYears)}년{" "}
             <em>
-              min(기대 존속 {r.expectedSurvivalYears.toFixed(1)}년, 임대차 잔여 {int(r.leaseRemainingYears)}년)
+              버틸 것으로 보는 기간 {r.expectedSurvivalYears.toFixed(1)}년과 남은 계약{" "}
+              {int(r.leaseRemainingYears)}년 중 짧은 쪽
             </em>
           </dd>
         </div>

@@ -66,7 +66,7 @@ export default function EconomicsCard({
     <section className={s.card}>
       <header className={s.head}>
         <h2 className={s.title}>이 자리에 들어가면, 3년 뒤에</h2>
-        <p className={s.lead}>같은 조건이라도 자리가 다르면 3년 뒤 결과가 갈립니다.</p>
+        <p className={s.lead}>같은 조건이라도 자리에 따라 결과가 갈려요.</p>
       </header>
 
       <div className={s.inputs}>
@@ -95,7 +95,7 @@ export default function EconomicsCard({
       </div>
 
       {!ready ? (
-        <p className={s.prompt}>월 임대료와 초기투자를 넣으면 계산합니다.</p>
+        <p className={s.prompt}>월 임대료와 초기투자를 넣으면 계산해 드려요.</p>
       ) : q.isPending ? (
         <Loading label="계산 중…" />
       ) : q.isError ? (
@@ -104,24 +104,24 @@ export default function EconomicsCard({
         <>
           <div className={s.results}>
             <Result
-              label="단순 회수"
+              label="투자금 회수까지"
               value={q.data.simplePaybackMonths}
               render={months}
-              note="문 닫을 가능성을 빼고 계산"
+              note="장사가 계속된다고 가정하면"
             />
             <Result
-              label="위험반영 회수"
+              label="문 닫을 가능성까지 보면"
               value={q.data.riskAdjustedPaybackMonths}
               render={months}
-              note="이 등급 자리들의 실제 생존 기록을 반영"
+              note="같은 등급 자리들의 실제 기록 기준"
               emphasis
-              missingNote="3년 안에 회수되지 않습니다"
+              missingNote="3년 안에 회수가 어려워요"
             />
             <Result
-              label="3년 기대손익"
+              label="3년 뒤 손에 남는 돈"
               value={q.data.expectedProfit3y}
               render={signedMan}
-              note="생존 확률로 가중한 값"
+              note="문 닫을 가능성을 반영한 값"
               emphasis
               tone={q.data.expectedProfit3y >= 0 ? "positive" : "negative"}
             />
@@ -129,14 +129,10 @@ export default function EconomicsCard({
 
           {/* Caption lives in the component, not the screen — impossible to omit. */}
           {q.data.usedSeoulAverageRevenue ? (
-            <p className={s.caption}>
-              서울 상권 평균 매출 기준입니다 — 이 격자의 추정치가 아닙니다.
-            </p>
+            <p className={s.caption}>서울 상권 평균 매출로 계산했어요. 이 자리의 추정 매출이 아니에요.</p>
           ) : null}
           {q.data.marginSensitive ? (
-            <p className={s.sensitive}>
-              결과가 마진 가정에 민감합니다 — 마진을 조금만 바꿔도 손익 부호가 뒤집힙니다.
-            </p>
+            <p className={s.sensitive}>마진을 조금만 바꿔도 흑자와 적자가 뒤집혀요. 내 마진을 넣어보세요.</p>
           ) : null}
 
           {q.data.gradeComparison?.length ? (

@@ -7,7 +7,7 @@ import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
-import { int, meters, pct0, pct1, stationAnchor } from "../lib/format";
+import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
@@ -79,9 +79,9 @@ export default function S4Detail({
            no retry button, no error styling. */
         <div className={s.pad}>
           <div className={s.unrated} role="status">
-            <strong>이 격자는 평가하지 않았습니다</strong>
-            <p>{detail.error.detail || "주변 개업 이력이 부족해 등급을 매길 수 없습니다."}</p>
-            <p className={s.unratedNote}>평가 제외는 나쁜 등급이 아닙니다 — 판단할 기록이 없다는 뜻입니다.</p>
+            <strong>이 자리는 평가하지 않았어요</strong>
+            <p>{detail.error.detail || "주변에 가게가 문을 연 기록이 너무 적어서 등급을 매길 수 없어요."}</p>
+            <p className={s.unratedNote}>나쁜 자리라는 뜻이 아니라, 판단할 기록이 없다는 뜻이에요.</p>
           </div>
         </div>
       ) : detail.isError ? (
@@ -132,13 +132,12 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <p className={s.heroSub}>
             서울 {d.district ?? "자치구 미상"} {d.admDong ?? ""}
             {d.nearestStation ? ` · ${stationAnchor(d.nearestStation)}` : ""}
-            {" · 100m 격자"}
           </p>
         </div>
         <div className={s.heroGrade}>
           <span className={s.heroGradeLabel}>입지 등급</span>
           <strong className={s.heroGradeNum}>{d.grade}등급</strong>
-          <span className={s.heroGradeCap}>같은 등급 자리의 실제 3년 생존율 {pct1(d.observedSurvival)}</span>
+          <span className={s.heroGradeCap}>이런 자리 {survivalSentence(d.observedSurvival)}</span>
         </div>
       </header>
 
@@ -146,13 +145,13 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         <div className={s.main}>
           <nav className={s.tabBar} aria-label="리포트 구역">
             <button className={tab === "evalTab" ? s.tabOn : s.tab} onClick={() => setTab("evalTab")}>
-              입지 평가
+              자리 평가
             </button>
             <button className={tab === "moneyTab" ? s.tabOn : s.tab} onClick={() => setTab("moneyTab")}>
               손익·권리금
             </button>
             <button className={tab === "dataTab" ? s.tabOn : s.tab} onClick={() => setTab("dataTab")}>
-              실측 데이터
+              기록 자세히
             </button>
           </nav>
 
@@ -165,11 +164,11 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                 <strong className={s.kpiGreen}>{pct0(d.observedSurvival)}</strong>
               </p>
               <span className={s.kpiCap}>
-                같은 등급 자리의 기록{overall !== null ? ` · 서울 전체 ${pct0(overall)}` : ""}
+                같은 등급 자리 기준{overall !== null ? ` · 서울 전체는 ${pct0(overall)}` : ""}
               </span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>같은 업종 영업 점포</span>
+              <span className={s.kpiLabel}>주변의 같은 업종 가게</span>
               <p className={s.kpiV}>
                 {d.competition.shopsHere !== null ? (
                   <>
@@ -182,14 +181,16 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </p>
               <span className={s.kpiCap}>
                 {d.competition.openingsTotal !== null
-                  ? `누적 개업 ${int(d.competition.openingsTotal)} · 폐업 ${
-                      d.competition.closuresTotal !== null ? int(d.competition.closuresTotal) : "정보 없음"
+                  ? `지금까지 ${int(d.competition.openingsTotal)}곳 열고 ${
+                      d.competition.closuresTotal !== null
+                        ? `${int(d.competition.closuresTotal)}곳 닫았어요`
+                        : "폐업 수는 정보 없음"
                     }`
-                  : "개업 이력 정보 없음"}
+                  : "개업 기록 없음"}
               </span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>역 접근성</span>
+              <span className={s.kpiLabel}>가까운 역</span>
               <p className={s.kpiV}>
                 {d.nearestStation?.distanceM != null ? (
                   <strong>{meters(d.nearestStation.distanceM)}</strong>
@@ -199,12 +200,12 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </p>
               <span className={s.kpiCap}>
                 {d.nearestStation
-                  ? `${d.nearestStation.name} 기준${
+                  ? `${d.nearestStation.name}${
                       d.nearestStation.stations500m !== null
-                        ? ` · 반경 500m 역 ${int(d.nearestStation.stations500m)}곳`
+                        ? ` · 걸어갈 만한 역 ${int(d.nearestStation.stations500m)}곳`
                         : ""
                     }`
-                  : "인근 역 정보 없음"}
+                  : "가까운 역 없음"}
               </span>
             </div>
           </div>
@@ -213,12 +214,12 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <section className={s.card}>
             <div className={s.cardHead}>
               <h2>이 자리의 기록</h2>
-              <p>이웃·서울 전체와의 비교. 상관이며 인과가 아닙니다.</p>
+              <p>주변과 서울 전체에 비해 어떤지 봤어요.</p>
             </div>
             <div className={s.bars}>
               <BarPair
-                label="이웃 자리 3년 생존율"
-                a={{ name: "이 격자 이웃", value: d.areaSurvival.rate, render: pct1 }}
+                label="주변 가게 3년 생존율"
+                a={{ name: "이 자리 주변", value: d.areaSurvival.rate, render: pct1 }}
                 b={{ name: "서울 전체", value: overall, render: pct1 }}
                 note={
                   d.areaSurvival.sample !== null
@@ -227,14 +228,14 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                 }
               />
               <BarPair
-                label="같은 업종 영업 점포"
-                a={{ name: "이 격자", value: d.competition.shopsHere, render: (v) => `${int(v)}곳` }}
-                b={{ name: "이웃 평균", value: d.competition.shopsNeighbor, render: (v) => `${int(v)}곳` }}
+                label="같은 업종 가게 수"
+                a={{ name: "이 자리", value: d.competition.shopsHere, render: (v) => `${int(v)}곳` }}
+                b={{ name: "주변 평균", value: d.competition.shopsNeighbor, render: (v) => `${int(v)}곳` }}
               />
               <BarPair
-                label="누적 개업 vs 폐업"
-                a={{ name: "개업", value: d.competition.openingsTotal, render: int }}
-                b={{ name: "폐업", value: d.competition.closuresTotal, render: int }}
+                label="연 가게 vs 닫은 가게"
+                a={{ name: "열었다", value: d.competition.openingsTotal, render: (v) => `${int(v)}곳` }}
+                b={{ name: "닫았다", value: d.competition.closuresTotal, render: (v) => `${int(v)}곳` }}
               />
             </div>
           </section>
@@ -243,8 +244,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <section className={s.card}>
             <div className={s.cardHeadRow}>
               <div className={s.cardHead}>
-                <h2>AI 근거 리포트</h2>
-                <p>숫자는 데이터가, 문장은 LLM이 씁니다.</p>
+                <h2>AI가 정리한 이 자리</h2>
               </div>
               <span className={s.llmTag}>LLM 생성 · 근거 데이터 인용</span>
             </div>
@@ -265,22 +265,23 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <div className={s.pair}>
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>이미 많은 곳 vs 최근 급증한 곳</h2>
+                <h2>경쟁이 걱정되세요?</h2>
+                <p>같은 업종 가게가 오래 버티고 있는 곳은 그만큼 검증된 자리예요.</p>
               </div>
               <div className={s.vs}>
                 <div className={s.vsGreen}>
-                  <span>영업 점포</span>
+                  <span>영업 중인 가게</span>
                   <strong>
                     {d.competition.shopsHere !== null ? `${int(d.competition.shopsHere)}곳` : "정보 없음"}
                   </strong>
-                  <em>많을수록 검증된 자리 신호</em>
+                  <em>오래 버틴 가게가 많다는 뜻이에요</em>
                 </div>
                 <div className={s.vsOrange}>
-                  <span>누적 개업</span>
+                  <span>지금까지 연 가게</span>
                   <strong>
-                    {d.competition.openingsTotal !== null ? int(d.competition.openingsTotal) : "정보 없음"}
+                    {d.competition.openingsTotal !== null ? `${int(d.competition.openingsTotal)}곳` : "정보 없음"}
                   </strong>
-                  <em>단기 급증은 과열 신호</em>
+                  <em>갑자기 늘면 과열 신호예요</em>
                 </div>
               </div>
               {/* verified/overheated verdict strip returns when lane A ships
@@ -294,24 +295,23 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>위험 요인과 신뢰도</h2>
-                <p>모델이 확신하지 못하는 부분을 함께 표기합니다</p>
+                <h2>미리 알아두세요</h2>
               </div>
               {/* Only actual risks earn a row. Model-limit copy lives in the
                   data card below, sourced from meta().caveats — restating it
                   here with a hardcoded AUC was a second source of truth. */}
               <div className={s.risks}>
                 {search.rentMonthly === null ? (
-                  <RiskRow level="high" title="임대료 미입력" desc="손익 계산에 임대료가 반영되지 않았습니다. 위 경제성 카드에 입력하세요." />
+                  <RiskRow level="high" title="임대료를 아직 안 넣으셨어요" desc="임대료를 넣으면 손익까지 계산해 드려요. 손익·권리금 탭에서 넣을 수 있어요." />
                 ) : null}
                 {d.confidence === "partial" ? (
                   <RiskRow
                     level="mid"
-                    title="상권 밖 격자"
-                    desc={`매출·유동 정보가 없어 일부 축이 비어 있습니다${d.missingAxes.length > 0 ? `: ${d.missingAxes.join(", ")}` : "."}`}
+                    title="주변 매출 기록이 없는 자리예요"
+                    desc="매출·유동 관련 숫자는 비어 있어요. 없는 값을 채워 넣지 않았어요."
                   />
                 ) : null}
-                <RiskRow level="mid" title="행정동 단위 값" desc="수요·인구 지표는 행정동 단위라 옆 격자와 같은 값입니다." />
+                <RiskRow level="mid" title="인구 숫자는 동 단위예요" desc="바로 옆 자리와 같은 값일 수 있어요." />
               </div>
             </section>
           </div>
@@ -337,7 +337,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <section className={s.card}>
             <div className={s.cardHead}>
               <h2>등급별 실제 3년 생존율</h2>
-              <p>자리 등급만 다를 때 실제로 남은 기록입니다.</p>
+              <p>자리 등급만 달랐을 때 실제 결과예요.</p>
             </div>
             {meta ? (
               <table className={s.table}>
@@ -383,13 +383,13 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {meta && meta.survivalByPeriod.length > 0 ? (
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>1년·3년·5년 뒤의 기록</h2>
-                <p>같은 밴드의 자리가 1년·3년·5년 뒤 실제로 남아 있던 비율입니다.</p>
+                <h2>1년, 3년, 5년 뒤에는</h2>
+                <p>시간이 지날수록 얼마나 남았는지예요.</p>
               </div>
               <PeriodTable meta={meta} grade={d.grade} />
               <p className={s.tableFoot}>
-                * 5년은 별도 코호트({periodOf(meta, 5)?.cohort ?? "별도"})의 개별 적합이라 1·3년과 이어
-                읽을 수 없습니다.
+                * 5년 숫자는 다른 시기({periodOf(meta, 5)?.cohort ?? "별도"})에 연 가게들 기준이라 1·3년과
+                이어서 읽으면 안 돼요.
               </p>
             </section>
           ) : null}
@@ -398,8 +398,8 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {meta?.gradeArea ? (
             <section className={s.card}>
               <div className={s.cardHead}>
-                <h2>가게 면적별 기록</h2>
-                <p>관측된 결과이지 인과가 아닙니다 — 면적은 자본력과 얽혀 있습니다. 면적은 추천 순위에 반영되지 않습니다.</p>
+                <h2>가게 크기별 기록</h2>
+                <p>넓은 가게가 더 버텼다는 기록이지, 넓히면 잘된다는 뜻은 아니에요. 추천 순위와도 무관해요.</p>
               </div>
               <table className={s.table}>
                 <thead>
@@ -441,7 +441,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         <aside className={s.side}>
           <div className={s.loan}>
             <span className={s.loanTag}>KB 창업자금 대출 · 연계 기획</span>
-            <h3>이 자리의 분석 결과로 대출 상담을 이어갈 수 있습니다</h3>
+            <h3>이 분석 그대로 대출 상담까지</h3>
             <ul className={s.loanList}>
               <li>함께 전달되는 것 · 입지 등급</li>
               <li>등급별 실제 3년 생존율</li>

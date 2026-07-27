@@ -282,7 +282,7 @@ select.fieldEmpty {
    hairline and a yellow index — no boxes. */
 .whyCards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 48px;
 }
 

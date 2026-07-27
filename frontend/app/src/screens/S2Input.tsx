@@ -35,8 +35,8 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
         {/* ── left: form ─────────────────────────────────────────────── */}
         <div className={s.form}>
           <header className={s.head}>
-            <h1>어떤 조건으로 찾을까요?</h1>
-            <p>업종만 필수입니다. 예산은 입력하면 손익 계산까지 이어집니다.</p>
+            <h1>어떤 가게를 여시나요?</h1>
+            <p>업종만 골라도 바로 볼 수 있어요. 예산은 나중에 넣어도 돼요.</p>
           </header>
 
           <div className={s.sheet}>
@@ -48,7 +48,6 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <span className={s.stepTag}>STEP 1</span>
                 <h2>업종</h2>
               </div>
-              <p>업태마다 등급을 따로 사전계산했습니다.</p>
             </div>
             {meta.isPending ? (
               <Loading />
@@ -73,11 +72,11 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                   <span>
                     {search.uptae
                       ? rec.data
-                        ? `『${search.uptae}』 범위 내 격자 ${int(rec.data.inScope)}개 · 등급 상위 ${int(rec.data.count)}곳을 추천합니다`
+                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(rec.data.count)}곳을 추천해요`
                         : rec.isPending
-                          ? "후보 수 계산 중…"
+                          ? "후보 세는 중…"
                           : "후보 수를 불러오지 못했습니다"
-                      : "업태를 고르면 후보 수가 바로 계산됩니다"}
+                      : "업종을 고르면 후보가 바로 나와요"}
                   </span>
                 </div>
               </>
@@ -89,9 +88,9 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
                 <span className={s.stepTag}>STEP 2</span>
-                <h2>희망 범위</h2>
+                <h2>어느 동네까지 볼까요?</h2>
               </div>
-              <p>여러 곳을 함께 고를 수 있습니다.</p>
+              <p>여러 구를 같이 골라도 돼요.</p>
             </div>
             {meta.data ? (
               <div className={s.chips}>
@@ -119,9 +118,9 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
                 <span className={s.stepTag}>STEP 3 (선택)</span>
-                <h2>창업 예산</h2>
+                <h2>예산도 넣어볼까요?</h2>
               </div>
-              <p>손익 계산에만 쓰입니다. 추천 순위에는 반영되지 않습니다.</p>
+              <p>넣으면 손익까지 계산해 드려요. 추천 순위와는 무관해요.</p>
             </div>
             <BudgetSlider
               label="초기투자 총액"
@@ -178,16 +177,16 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
 
             <div className={s.funnel}>
               <div>
-                <span>서울 전체 격자</span>
-                <strong className={s.fDim}>{meta.data ? `${int(meta.data.gridCount)}개` : "…"}</strong>
+                <span>서울 전체 자리</span>
+                <strong className={s.fDim}>{meta.data ? `${int(meta.data.gridCount)}곳` : "…"}</strong>
               </div>
               <div>
-                <span>범위 내 격자 (업종 기준)</span>
+                <span>고른 동네의 자리</span>
                 <strong>
                   {!search.uptae
                     ? "업종 선택 후"
                     : rec.data
-                      ? `${int(rec.data.inScope)}개`
+                      ? `${int(rec.data.inScope)}곳`
                       : rec.isError
                         ? "불러오지 못함"
                         : "…"}
@@ -202,13 +201,13 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             </div>
 
             <button className={s.cta} disabled={!search.uptae} onClick={() => go({ name: "results" })}>
-              AI 분석 시작하기
+              추천 자리 보기
             </button>
           </div>
           <p className={s.caption}>결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.</p>
           <div className={s.help}>
             <strong>아직 업종을 못 정하셨나요?</strong>
-            <span>업종 칩을 바꿔가며 후보 수 변화를 바로 비교할 수 있습니다.</span>
+            <span>업종을 바꿔가며 비교해 보세요.</span>
           </div>
         </aside>
       </main>

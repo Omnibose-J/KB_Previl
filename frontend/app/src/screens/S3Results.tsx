@@ -116,8 +116,8 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
               {q.data ? (
                 <p className={s.rankSub}>
                   {q.data.inScope === q.data.totalGrids
-                    ? `서울 전역 ${int(q.data.totalGrids)}개 격자를 등급순으로 추렸습니다`
-                    : `서울 ${int(q.data.totalGrids)}개 격자 중 범위 안 ${int(q.data.inScope)}개를 등급순으로 추렸습니다`}
+                    ? `서울 전체 ${int(q.data.totalGrids)}곳 중에서 골랐어요`
+                    : `고른 동네의 ${int(q.data.inScope)}곳 중에서 골랐어요`}
                 </p>
               ) : null}
             </div>
@@ -154,9 +154,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                   emptyNote={meta.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
                   onSelect={(v) => search.set({ uptae: v })}
                 />
-                <span className={s.wSub}>
-                  {meta.data ? `${meta.data.uptae.length}개 업태 재분석` : "업태 재분석"}
-                </span>
+                <span className={s.wSub}>바꾸면 바로 다시 추천해요</span>
               </div>
               <button
                 className={s.wCtl}
@@ -164,7 +162,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                 onClick={() => search.set({ districts: [] })}
               >
                 <span className={s.wTitle}>범위 확대</span>
-                <span className={s.wSub}>{districts.length === 0 ? "이미 서울 전역" : "서울 전역으로"}</span>
+                <span className={s.wSub}>{districts.length === 0 ? "이미 서울 전체를 보고 있어요" : "서울 전체로 넓혀요"}</span>
               </button>
               <label className={s.wCtl}>
                 <span className={s.wTitle}>월 임대료</span>
@@ -181,7 +179,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                   />
                   <span>만</span>
                 </span>
-                <span className={s.wSub}>손익 계산에 반영</span>
+                <span className={s.wSub}>손익 계산에 반영돼요</span>
               </label>
             </div>
           </div>
@@ -209,11 +207,11 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         {/* ── map panel ──────────────────────────────────────────────── */}
         <aside className={s.mapPanel}>
           <header className={s.mapHead}>
-            <h2 className={s.mapTitle}>입지 등급 히트맵</h2>
+            <h2 className={s.mapTitle}>자리 등급 지도</h2>
             {/* Extra tabs (경쟁·지역 생존율·수요) return when /grids carries
                 their metrics — a disabled placeholder tab is dead chrome. */}
             <div className={s.tabs}>
-              <button className={s.tabOn}>입지 등급</button>
+              <button className={s.tabOn}>자리 등급</button>
             </div>
           </header>
           <div className={s.mapBox}>
@@ -241,8 +239,8 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
           {partialCount > 0 ? (
             <div className={s.insights}>
               <div className={s.insGray}>
-                <strong>상권 밖</strong>
-                <span>부분 데이터 {int(partialCount)}곳 — 매출·유동 정보 없음</span>
+                <strong>참고</strong>
+                <span>주변 매출 기록이 없는 자리가 {int(partialCount)}곳 있어요</span>
               </div>
             </div>
           ) : null}

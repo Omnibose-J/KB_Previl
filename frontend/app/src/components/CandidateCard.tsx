@@ -63,25 +63,25 @@ export default function CandidateCard({
             <>
               <strong>{pct1(cell.areaSurvival.rate)}</strong>
               <span>
-                이웃 3년 생존율
-                {cell.areaSurvival.sample !== null ? ` · 표본 ${int(cell.areaSurvival.sample)}` : ""}
+                주변 가게 3년 생존율
+                {cell.areaSurvival.sample !== null ? ` (${int(cell.areaSurvival.sample)}곳 기준)` : ""}
               </span>
             </>
           ) : (
-            <span className={s.bigStatMissing}>이웃 생존율 정보 없음</span>
+            <span className={s.bigStatMissing}>주변 생존 기록 없음</span>
           )}
         </div>
       </div>
 
       <div className={s.micro}>
-        <Micro label="같은 등급 자리 기록" value={pct0(cell.observedSurvival)} />
+        <Micro label="같은 등급 생존율" value={pct0(cell.observedSurvival)} />
         <Micro
-          label="영업 점포"
+          label="영업 중인 가게"
           value={cell.competition.shopsHere !== null ? `${int(cell.competition.shopsHere)}곳` : null}
         />
         <Micro
-          label="누적 개업"
-          value={cell.competition.openingsTotal !== null ? int(cell.competition.openingsTotal) : null}
+          label="지금까지 연 가게"
+          value={cell.competition.openingsTotal !== null ? `${int(cell.competition.openingsTotal)}곳` : null}
         />
         <Micro
           label="역까지"

@@ -48,12 +48,8 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
         <h1 className={s.h1}>
           어디에 낼지,
           <br />
-          <em>100년의 기록으로 답합니다</em>
+          <em>그 자리의 기록을 보고 정하세요</em>
         </h1>
-        <p className={s.sub}>
-          {PROVENANCE.recordSince} 쌓인 서울 요식업 개업·폐업 기록 {PROVENANCE.recordCount}.
-          <br />그 기록으로 자리마다 등급을 매기고, 같은 등급 자리들이 실제로 얼마나 버텼는지 보여드립니다.
-        </p>
 
         {/* search pill — real inputs feeding the S2 form */}
         <div className={s.searchCard}>
@@ -118,7 +114,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <i className={s.statDivider} />
           <div className={s.stat}>
             <strong>{meta.data ? int(meta.data.gridCount) : "…"}</strong>
-            <span>서울 100m 격자</span>
+            <span>분석한 서울의 자리</span>
           </div>
           <i className={s.statDivider} />
           <div className={s.stat}>
@@ -136,7 +132,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       <section className={s.why} ref={why}>
         <div className={s.secHead}>
           <h2 className={s.h2}>입지 판단은 아직도 감(勘)에 의존합니다</h2>
-          <p className={s.secSub}>자리마다 기록은 쌓여 있는데, 창업자가 그걸 볼 방법이 없습니다.</p>
+          <p className={s.secSub}>자리마다 기록은 쌓여 있는데, 볼 방법이 없었어요.</p>
         </div>
         <div className={s.whyCards}>
           <div className={s.whyCard}>
@@ -149,18 +145,13 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
             <h3>폐업 원인의 큰 축</h3>
             <p>한국 자영업 5년 생존율은 전 업종 최저 수준, 그 중심에 잘못된 입지 선택이 있다</p>
           </div>
-          <div className={s.whyCard}>
-            <span className={s.whyNum}>03</span>
-            <h3>금융사의 부실 리스크</h3>
-            <p>개인에게는 생계 리스크지만, KB에게는 소상공인 대출 부실로 직결된다</p>
-          </div>
         </div>
       </section>
 
       {/* ── WHAT IT DOES ─────────────────────────────────────────────── */}
       <section className={s.what} ref={features}>
         <div className={s.secHead}>
-          <h2 className={s.h2}>먼저 장사한 가게들의 기록이 등급이 됩니다</h2>
+          <h2 className={s.h2}>이 자리에서 몇 집이 버텼는지, 전부 세어봤어요</h2>
         </div>
         <div className={s.featGrid}>
           {FEATURES_3.map((f, i) => (
@@ -170,7 +161,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
               <p>{f.body}</p>
               {i === 0 && top && bottom ? (
                 <p className={s.featProof}>
-                  1등급 자리 {pct0(top.survival)} · 10등급 {pct0(bottom.survival)} 생존 (뒷 기간 검증)
+                  1등급 자리는 {pct0(top.survival)}, 10등급 자리는 {pct0(bottom.survival)} 버텼어요
                 </p>
               ) : null}
             </div>
@@ -181,7 +172,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── HOW IT DIFFERS (dark) ────────────────────────────────────── */}
       <section className={s.differs} ref={differs}>
         <div className={s.secHead}>
-          <h2 className={s.h2Dark}>"이 동네는 이렇습니다"가 아니라, "여기로 가세요"</h2>
+          <h2 className={s.h2Dark}>동네 설명이 아니라, 자리 추천이에요</h2>
         </div>
         <div className={s.table}>
           <div className={s.tHead}>
@@ -223,10 +214,10 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 // Replacements per ui-spec §3-S1 차별점 표: 데이터 row = validation methodology,
 // 결과물 row drops 예상매출/생존확률, 해상도 row = what we actually resolve.
 const DIFF_ROWS: [string, string, string][] = [
-  ["사용 방식", "지역을 먼저 골라야 조회 가능", "업종만 넣으면 역으로 자리를 찾아줌"],
-  ["데이터", "정형·공공 데이터 중심", "홀드아웃 백테스트로 검증된 예측"],
-  ["결과물", '"이 동네는 이렇습니다" (현황)', '"여기 들어가라 + 등급·실제 생존율" (예측)'],
-  ["업종 반영", "얕음", "12개 업태 각각 사전계산된 등급"],
-  ["해상도", "행정동 단위", "100m 격자 (서울 전역)"],
-  ["성격", "정적 정보 조회", "조건이 바뀌면 결과가 다시 계산되는 동적 엔진"],
+  ["사용 방식", "지역을 먼저 골라야 조회 가능", "업종만 넣으면 자리를 찾아줌"],
+  ["근거", "현황 통계", "실제로 버틴 가게들의 기록"],
+  ["결과물", "동네 현황 설명", "자리 추천 + 등급 + 실제 생존율"],
+  ["업종 반영", "얕음", "12개 업종 각각 따로 평가"],
+  ["단위", "행정동", "100m 단위 (서울 전역)"],
+  ["성격", "정적 정보 조회", "조건을 바꾸면 결과도 바뀜"],
 ];
