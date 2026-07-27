@@ -17,9 +17,9 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-from pipeline.config import DB_PATH, ENV_PATH
+from model.llm import MODEL, DailyLimit, client, complete, new_fails, report
+from pipeline.config import DB_PATH
 
-MODEL = "gpt-4o-mini"
 CAP = 400              # 지명당 판정 상한
 LO, HI = 1000, 300000  # 1인당 지출로 받아들이는 범위(원)
 
@@ -85,15 +85,7 @@ def parse(d):
 
 
 def judge(con, workers, cap):
-    from openai import OpenAI
-    env = {}
-    for line in ENV_PATH.open(encoding="utf-8-sig"):
-        s = line.strip()
-        if s and not s.startswith("#") and "=" in s:
-            k, v = s.split("=", 1)
-            env[k.strip()] = v.strip()
-    cli = OpenAI(api_key=env["OPENAI_API_KEY"])
-
+    cli = client()
     done = {r[0] for r in con.execute("SELECT rowid_post FROM price_label")}
     per = defaultdict(int)
     todo = []
@@ -105,39 +97,52 @@ def judge(con, workers, cap):
         todo.append((rid, place, txt))
     print(f"판정 대상 {len(todo):,}건 (지명당 상한 {cap}) · model={MODEL}")
     if not todo:
-        return
+        return 0
+
+    fails = new_fails()
 
     def one(item):
         rid, place, txt = item
+        raw = complete(cli, PROMPT + txt[:700], 400, fails)
+        if raw is None:
+            return None                                  # 호출 실패
         try:
-            r = cli.chat.completions.create(
-                model=MODEL, temperature=0, max_tokens=140,
-                response_format={"type": "json_object"},
-                messages=[{"role": "user", "content": PROMPT + txt[:700]}])
-            got = parse(json.loads(r.choices[0].message.content))
-            if not got:
-                return (rid, place, None, None, None)   # 판정했으나 금액 없음
-            return (rid, place, *got)
-        except Exception:
-            return None                                  # 호출 실패 — 재시도 대상
+            got = parse(json.loads(raw))
+        except json.JSONDecodeError:
+            fails["JSONDecodeError"] += 1
+            return None
+        if not got:
+            return (rid, place, None, None, None)        # 판정했으나 금액 없음
+        return (rid, place, *got)
 
     t0 = time.time()
     buf = []
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        for i, res in enumerate(ex.map(one, todo), 1):
-            if res:
-                buf.append(res)
-            if len(buf) >= 300:
-                con.executemany(
-                    "INSERT OR REPLACE INTO price_label VALUES(?,?,?,?,?)", buf)
-                con.commit()
-                buf = []
-                print(f"  {i:,}/{len(todo):,} · {time.time()-t0:.0f}초", flush=True)
+    saved = 0
+    stopped = ""
+    sql = "INSERT OR REPLACE INTO price_label VALUES(?,?,?,?,?)"
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for i, res in enumerate(ex.map(one, todo), 1):
+                if res:
+                    buf.append(res)
+                if len(buf) >= 300:
+                    con.executemany(sql, buf)
+                    con.commit()
+                    saved += len(buf)
+                    buf = []
+                    print(f"  {i:,}/{len(todo):,} · {time.time()-t0:.0f}초", flush=True)
+    except DailyLimit as e:
+        stopped = f"일일 한도 소진 — {e}"
     if buf:
-        con.executemany("INSERT OR REPLACE INTO price_label VALUES(?,?,?,?,?)", buf)
+        con.executemany(sql, buf)
+        saved += len(buf)
     con.commit()
     n, = con.execute("SELECT count(*) FROM price_label").fetchone()
-    print(f"판정 완료 {n:,}건 · {time.time()-t0:.0f}초")
+    print(f"판정 {n:,}건 누적 (이번에 {saved:,}건) · {time.time()-t0:.0f}초")
+    if stopped:
+        print(f"  {stopped}")
+    report(fails, saved, len(todo))
+    return saved
 
 
 def stats(con):
@@ -175,12 +180,14 @@ def main():
     a = ap.parse_args()
     con = sqlite3.connect(DB_PATH)
     init_db(con)
+    rc = 0
     if a.judge:
-        judge(con, a.workers, a.cap)
+        # 한 건도 저장 못 했으면 exit!=0 — 큐가 "완료"로 넘기면 안 된다
+        rc = 0 if judge(con, a.workers, a.cap) else 2
     if a.stats or not a.judge:
         stats(con)
     con.close()
-    return 0
+    return rc
 
 
 if __name__ == "__main__":

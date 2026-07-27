@@ -71,7 +71,11 @@ def judge(con, workers, cap, model=MODEL, prompt=PROMPT, table="demand_label"):
         todo.append((rid, place, txt))
     print(f"판정 대상 {len(todo):,}건 (지명당 상한 {cap}) · model={model}")
     if not todo:
-        return
+        return 0
+
+    # 실패를 삼키면 "한 건도 저장 못 한 채 exit 0" 이 된다. RPD 한도에 걸렸을 때
+    # 실제로 그렇게 끝났다 (§16). 종류별로 세서 마지막에 드러낸다.
+    fails = defaultdict(int)
 
     def one(item):
         rid, place, txt = item
@@ -85,7 +89,8 @@ def judge(con, workers, cap, model=MODEL, prompt=PROMPT, table="demand_label"):
             # 인용이 없으면 time 은 무효 (§H-9-① 규칙 승계)
             tm = d.get("time") if q else None
             return (rid, place, tm, d.get("party"), d.get("purpose"))
-        except Exception:
+        except Exception as e:
+            fails[type(e).__name__] += 1
             return None
 
     t0 = time.time()
@@ -104,7 +109,12 @@ def judge(con, workers, cap, model=MODEL, prompt=PROMPT, table="demand_label"):
         con.executemany(f"INSERT OR REPLACE INTO {table} VALUES(?,?,?,?,?)", buf)
     con.commit()
     n, = con.execute(f"SELECT count(*) FROM {table}").fetchone()
-    print(f"판정 완료 {n:,}건 · {time.time()-t0:.0f}초")
+    saved = n - len(done)
+    print(f"판정 완료 {n:,}건 (이번에 {saved:,}건) · {time.time()-t0:.0f}초")
+    if fails:
+        print("  실패 " + " · ".join(f"{k} {v:,}" for k, v in
+                                    sorted(fails.items(), key=lambda kv: -kv[1])))
+    return saved
 
 
 def stats(con):
