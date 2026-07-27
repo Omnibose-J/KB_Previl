@@ -66,9 +66,7 @@ export default function EconomicsCard({
     <section className={s.card}>
       <header className={s.head}>
         <h2 className={s.title}>이 자리에 들어가면, 3년 뒤에</h2>
-        <p className={s.lead}>
-          같은 매출·같은 임대료여도 자리가 다르면 결과가 갈립니다. 그 차이는 생존 확률에서 옵니다.
-        </p>
+        <p className={s.lead}>같은 조건이라도 자리가 다르면 3년 뒤 결과가 갈립니다.</p>
       </header>
 
       <div className={s.inputs}>

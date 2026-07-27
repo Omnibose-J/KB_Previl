@@ -54,10 +54,9 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <em>숫자와 근거로 답합니다</em>
         </h1>
         <p className={s.sub}>
-          업종만 입력하면 서울 전역 100m 격자에서 들어갈 자리를 찾아,
+          업종만 고르면 서울 전역 100m 격자에서 자리를 찾아,
           <br />
-          {PROVENANCE.recordCount}({PROVENANCE.recordSince})을 시간분리 검증({PROVENANCE.validationWindow})한
-          입지 등급과 실측 3년 생존율, 그 근거까지 제시합니다.
+          {PROVENANCE.recordCount}({PROVENANCE.recordSince})으로 검증한 등급과 실측 3년 생존율로 답합니다.
         </p>
 
         {/* search pill — real inputs feeding the S2 form */}
@@ -120,8 +119,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
         <div className={s.secHead}>
           <h2 className={s.h2}>입지 판단은 아직도 감(勘)에 의존합니다</h2>
           <p className={s.secSub}>
-            유동인구·매출·임대료·상권 데이터가 각기 다른 곳에 흩어져 있어, 개인이 이를 종합할 수단이
-            없습니다. 전형적인 정보 비대칭 문제입니다.
+            유동인구·매출·임대료 데이터가 흩어져 있어 개인이 종합할 수단이 없습니다.
           </p>
         </div>
         <div className={s.whyCards}>
@@ -168,10 +166,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       <section className={s.differs} ref={differs}>
         <div className={s.secHead}>
           <h2 className={s.h2Dark}>조회 도구가 아니라, 결정 엔진입니다</h2>
-          <p className={s.secSubDark}>
-            KB bridge는 "고른 지역을 설명해주는" 조회 도구. 본 서비스는 "조건에 맞는 자리를 찾아
-            검증된 등급으로 답하는" 결정 도구입니다.
-          </p>
         </div>
         <div className={s.table}>
           <div className={s.tHead}>
@@ -192,7 +186,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── CTA (yellow) ─────────────────────────────────────────────── */}
       <section className={s.cta}>
         <h2 className={s.ctaH}>업종 하나만 준비하세요</h2>
-        <p className={s.ctaSub}>등급은 전부 사전계산되어 있어 결과가 바로 나옵니다.</p>
         <button className={s.ctaBtn} onClick={start}>
           무료로 자리 찾기 →
         </button>

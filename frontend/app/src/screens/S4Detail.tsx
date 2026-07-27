@@ -202,7 +202,7 @@ function Body({
           <section className={s.card}>
             <div className={s.cardHead}>
               <h2>왜 이 자리인가 · 실측 신호</h2>
-              <p>이 격자의 실측값을 이웃·서울 전체와 비교한 것입니다. 상관관계이며 인과가 아닙니다.</p>
+              <p>이웃·서울 전체와의 비교. 상관이며 인과가 아닙니다.</p>
             </div>
             <div className={s.bars}>
               <BarPair
@@ -233,7 +233,7 @@ function Body({
             <div className={s.cardHeadRow}>
               <div className={s.cardHead}>
                 <h2>AI 근거 리포트</h2>
-                <p>실측치 구조체를 인용해 생성된 설명입니다. 숫자는 데이터가, 문장은 LLM이 담당합니다.</p>
+                <p>숫자는 데이터가, 문장은 LLM이 씁니다.</p>
               </div>
               <span className={s.llmTag}>LLM 생성 · 근거 데이터 인용</span>
             </div>
@@ -255,7 +255,6 @@ function Body({
             <section className={s.card}>
               <div className={s.cardHead}>
                 <h2>이미 많은 곳 vs 최근 급증한 곳</h2>
-                <p>오래 버틴 점포가 많은 곳은 검증된 자리, 단기 급증은 과열 신호입니다.</p>
               </div>
               <div className={s.vs}>
                 <div className={s.vsGreen}>
@@ -316,7 +315,7 @@ function Body({
           <section className={s.card}>
             <div className={s.cardHead}>
               <h2>등급별 실측 3년 생존율</h2>
-              <p>같은 조건에서 자리 등급만 다를 때, 과거 자리들이 실제로 남긴 기록입니다.</p>
+              <p>자리 등급만 다를 때의 실측 기록입니다.</p>
             </div>
             {meta ? (
               <table className={s.table}>
@@ -365,7 +364,7 @@ function Body({
             <button className={s.loanBtn} disabled title="연계 기획 — 데모에서는 동작하지 않습니다">
               상담 연결 (기획)
             </button>
-            <span className={s.loanCap}>한도·금리 시뮬레이션은 제공하지 않습니다. 산식이 없는 수치는 그리지 않습니다.</span>
+            <span className={s.loanCap}>한도·금리 시뮬레이션은 제공하지 않습니다.</span>
           </div>
 
           <div className={s.coach}>
@@ -384,7 +383,7 @@ function Body({
 
           <div className={s.alarm}>
             <strong>이 격자 변동 알림 · 연계 기획</strong>
-            <p>등급은 정적 사전계산이라 지금은 변동을 감지하지 않습니다. 재계산 라운드가 돌면 알림으로 이어질 기획입니다.</p>
+            <p>재계산 라운드가 돌면 변동 알림으로 이어질 기획입니다.</p>
             <button disabled title="연계 기획 — 데모에서는 동작하지 않습니다">알림 켜기 (기획)</button>
           </div>
 

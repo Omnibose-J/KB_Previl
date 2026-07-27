@@ -47,7 +47,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <span className={s.stepTag}>STEP 1 (선택)</span>
                 <h2>창업 예산</h2>
               </div>
-              <p>초기투자와 월 임대료를 입력하면 상세 화면의 손익분기 계산에 반영됩니다. 추천 순위에는 쓰이지 않습니다.</p>
+              <p>손익 계산에만 쓰입니다. 추천 순위에는 반영되지 않습니다.</p>
             </div>
             <BudgetSlider
               label="초기투자 총액"
@@ -60,7 +60,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             />
             <BudgetSlider
               label="월 임대료"
-              hint="임대료는 매물마다 달라 데이터로 채우지 않습니다"
+              hint=""
               cfg={RENT}
               value={search.rentMonthly}
               onChange={(v) => search.set({ rentMonthly: v })}
@@ -76,7 +76,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <span className={s.stepTag}>STEP 2</span>
                 <h2>업종</h2>
               </div>
-              <p>업종에 따라 좋은 입지의 기준이 달라집니다. 12개 업태 각각 별도 등급을 사전계산했습니다.</p>
+              <p>업태마다 등급을 따로 사전계산했습니다.</p>
             </div>
             {meta.isPending ? (
               <Loading />
@@ -105,7 +105,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                         : rec.isPending
                           ? "후보 수 계산 중…"
                           : "후보 수를 불러오지 못했습니다"
-                      : "업태를 고르면 같은 격자라도 그 업태 기준 등급으로 다시 평가합니다"}
+                      : "업태를 고르면 후보 수가 바로 계산됩니다"}
                   </span>
                 </div>
               </>
@@ -119,7 +119,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <span className={s.stepTag}>STEP 3</span>
                 <h2>희망 범위</h2>
               </div>
-              <p>서울 자치구 25곳 전부를 다룹니다. 여러 곳을 함께 고를 수 있습니다.</p>
+              <p>여러 곳을 함께 고를 수 있습니다.</p>
             </div>
             {meta.data ? (
               <div className={s.chips}>
@@ -203,13 +203,10 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
               AI 분석 시작하기
             </button>
           </div>
-          <p className={s.caption}>
-            등급은 사전계산되어 있어 결과가 바로 표시됩니다. 결과는 참고 정보이며 최종 판단은
-            사용자에게 있습니다.
-          </p>
+          <p className={s.caption}>결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.</p>
           <div className={s.help}>
             <strong>아직 업종을 못 정하셨나요?</strong>
-            <span>업종 칩을 바꿔가며 후보 수 변화를 바로 비교할 수 있습니다. 12개 업태 모두 사전계산되어 있습니다.</span>
+            <span>업종 칩을 바꿔가며 후보 수 변화를 바로 비교할 수 있습니다.</span>
           </div>
         </aside>
       </main>
@@ -244,7 +241,7 @@ function BudgetSlider({
       <div className={s.sliderTop}>
         <span className={s.sliderLabel}>
           {label}
-          <em>{hint}</em>
+          {hint ? <em>{hint}</em> : null}
         </span>
         <span className={s.sliderValue}>
           {value === null ? "미입력" : format(value)}

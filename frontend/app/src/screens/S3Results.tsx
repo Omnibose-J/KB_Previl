@@ -120,7 +120,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
           {/* What-if — every control performs the real mutation it names. */}
           <div className={s.whatif}>
             <div className={s.whatifHead}>
-              <strong>What-if · 조건을 바꾸면 결과가 바로 바뀝니다</strong>
+              <strong>What-if</strong>
               <button
                 className={s.reset}
                 onClick={() => {
