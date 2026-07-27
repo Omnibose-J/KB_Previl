@@ -1,6 +1,8 @@
 import type {
   EconomicsInput,
   EconomicsResponse,
+  GoodwillInput,
+  GoodwillResponse,
   GridDetail,
   GridsResponse,
   Meta,
@@ -64,6 +66,8 @@ export const api = {
     request<GridDetail>(`/at?lon=${lon}&lat=${lat}&uptae=${encodeURIComponent(uptae)}`),
   economics: (input: EconomicsInput) =>
     request<EconomicsResponse>("/economics", { method: "POST", body: JSON.stringify(input) }),
+  goodwill: (input: GoodwillInput) =>
+    request<GoodwillResponse>("/goodwill", { method: "POST", body: JSON.stringify(input) }),
   report: (gridId: string, uptae: string) =>
     request<ReportResponse>("/report", {
       method: "POST",

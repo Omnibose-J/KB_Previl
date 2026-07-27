@@ -1,0 +1,383 @@
+/* 권리금 협상 리포트 — S4 report-sheet section (flat, rule-topped),
+   증권사 리서치 편성: 헤드라인 → 괴리 → 분해 → 근거 → 민감도 → 고지. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.head h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.head p {
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+.unavailable {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-gray-bg);
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--fg-t4);
+}
+
+/* inputs */
+.inputs {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+  min-width: 180px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.req {
+  font-style: normal;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.fieldInput {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fieldInput input {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+  padding: 0;
+}
+
+.fieldInput input::placeholder {
+  color: var(--fg-t8);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.unit {
+  font-size: 11px;
+  color: var(--fg-t7);
+  flex: none;
+}
+
+.addAsset {
+  align-self: center;
+  padding: 10px 16px;
+  border: 1px dashed var(--fg-chipline);
+  border-radius: 10px;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t5);
+}
+
+.addAsset:hover {
+  border-color: var(--fg-t8);
+  color: var(--fg-ink);
+}
+
+/* asset rows */
+.assets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assetRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.assetName {
+  flex: 1;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+}
+
+.assetName::placeholder {
+  color: var(--fg-t8);
+  font-weight: 400;
+}
+
+.assetNum {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.assetNum input {
+  width: 64px;
+  border: 0;
+  border-bottom: 1px solid var(--fg-line2);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+  text-align: right;
+}
+
+.assetNum em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+.assetDel {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--fg-t7);
+  text-decoration: underline;
+}
+
+.prompt {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* headline */
+.headline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.refGreen,
+.refGray,
+.refOrange {
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.refGreen {
+  background: var(--fg-green-bg);
+  color: var(--fg-green);
+}
+
+.refGray {
+  background: var(--fg-gray-bg);
+  color: var(--fg-t4);
+}
+
+.refOrange {
+  background: var(--fg-orange-bg);
+  color: var(--fg-orange);
+}
+
+.estimate {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--fg-t4);
+}
+
+.estimate strong {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--fg-ink);
+}
+
+.estimate em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--fg-t7);
+}
+
+/* gap row — open stats with hairline splits (report-sheet idiom) */
+.gapRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--fg-line3);
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.gapRow > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gapRow > div + div {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 20px;
+}
+
+.gapRow span {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+.gapRow strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.valuation {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.valuation em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--fg-t7);
+}
+
+/* shared table idiom */
+.assetTable,
+.sensTable {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--fg-line2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.assetTable th,
+.sensTable th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t7);
+  background: var(--fg-card-warm);
+}
+
+.assetTable td,
+.sensTable td {
+  padding: 9px 14px;
+  border-top: 1px solid var(--fg-line3);
+  font-size: 13px;
+  color: var(--fg-t2);
+}
+
+/* basis matrix */
+.basis {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.basis > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.basis > div:last-child {
+  border-bottom: 0;
+}
+
+.basis dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-t5);
+}
+
+.basis dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+.basis dd em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--fg-t7);
+  margin-left: 6px;
+}
+
+.sens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sensTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+}
+
+.notice {
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--fg-t6);
+}

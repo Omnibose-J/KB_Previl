@@ -1,8 +1,5 @@
-// B->C contract — mirrors the CONSUMED subset of lanes/B-backend.md
-// (2026-07-27, decision B-001-camelcase-observed-contract). Not the whole
-// backend surface: /goodwill (권리금 리포트, P1) is contracted there but has
-// no consumer here yet, so it has no types here — add them when the screen
-// lands, never speculatively.
+// B->C contract — mirrors lanes/B-backend.md (2026-07-27, decisions B-001 +
+// goodwill-report-design §8-A slim input).
 //
 // JSON is camelCase, coordinates are [lon, lat] WGS84, rates are 0..1, money is
 // 만원 unless stated. grade is 1..10 and 1 IS BEST. No response ever carries
@@ -203,4 +200,70 @@ export interface ReportResponse {
   uptae: string;
   /** 3~5 sentences; the closing limitation line is inserted server-side */
   sentences: string[];
+}
+
+// --- 권리금 리포트 (goodwill-report-design §8) -------------------------------
+// Slim input: the user supplies only what the user actually knows. Benchmark,
+// margins, and discount rate are SERVER-owned — the client never computes or
+// forwards them (that pass-through was findings.md F-C1).
+
+export interface GoodwillAssetInput {
+  name: string;
+  acquisitionCost: number; // 만원
+  ageYears: number;
+  usefulLifeYears: number;
+}
+
+export interface GoodwillInput {
+  gridId: string;
+  uptae: string;
+  askingGoodwill: number; // 만원 — 호가
+  leaseRemainingYears: number;
+  assets?: GoodwillAssetInput[];
+}
+
+export interface GoodwillResponse {
+  gridId: string;
+  uptae: string;
+  grade: Grade;
+  askingGoodwill: number;
+  monthlyRevenue: number; // 상권 단위 — caption is mandatory
+  benchmarkMonthlyRevenue: number;
+  benchmarkLevel: 1 | 2 | 3 | 4;
+  benchmarkWarning: string | null;
+  operatingMargin: number;
+  operatingMarginBasis: "after_rent";
+  operatingMarginSource: string;
+  loanRate: number;
+  riskPremium: number;
+  discountRate: number;
+  discountRateSource: string;
+  expectedSurvivalYears: number;
+  valuationYears: number; // floor(min(기대 존속, 임대차 잔여))
+  leaseRemainingYears: number;
+  intangibleValue: number;
+  tangibleValue: number;
+  tangibleAssets: Array<{
+    name: string;
+    acquisitionCost: number;
+    ageYears: number;
+    usefulLifeYears: number;
+    residualRate: number;
+    value: number;
+  }>;
+  adjustmentFactor: number;
+  adjustmentReasons: string[];
+  estimatedGoodwill: number;
+  bandLow: number;
+  bandHigh: number;
+  askingGap: number;
+  askingGapRate: number | null;
+  negotiationReference: "below_band" | "within_band" | "above_band";
+  sensitivity: Array<{
+    operatingMargin: number;
+    years: number;
+    discountRate: number;
+    estimatedGoodwill: number;
+  }>;
+  notice: string;
 }

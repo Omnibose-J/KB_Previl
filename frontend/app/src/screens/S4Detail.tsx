@@ -3,6 +3,7 @@ import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import EconomicsCard from "../components/EconomicsCard";
+import GoodwillCard from "../components/GoodwillCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
 import { int, meters, pct0, pct1, stationAnchor } from "../lib/format";
@@ -196,6 +197,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}
           />
+
+          {/* ── 권리금 협상 리포트 (goodwill-report-design §8-C) ──── */}
+          <GoodwillCard d={d} uptae={uptae} />
 
           {/* ── why this grid: honest comparisons ────────────────── */}
           <section className={s.card}>
