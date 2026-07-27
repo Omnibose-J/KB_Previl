@@ -75,16 +75,6 @@
   text-align: center;
 }
 
-.badge {
-  padding: 7px 14px;
-  border-radius: 100px;
-  background: var(--fg-badge-bg);
-  border: 1px solid var(--fg-badge-line);
-  color: var(--fg-y);
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .h1 {
   font-size: 52px;
   font-weight: 900;
@@ -183,18 +173,6 @@
   flex-direction: column;
   gap: 12px;
   max-width: 780px;
-}
-
-.eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--fg-y-deep);
-}
-
-.eyebrowY {
-  composes: eyebrow;
-  color: var(--fg-y);
 }
 
 .h2 {

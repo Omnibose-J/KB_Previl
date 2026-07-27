@@ -48,7 +48,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
       {/* ── Hero (dark) ──────────────────────────────────────────────── */}
       <header className={s.hero}>
-        <span className={s.badge}>제8회 Future Finance AI Challenge</span>
         <h1 className={s.h1}>
           어디에 낼지,
           <br />
@@ -119,7 +118,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── WHY NOW ──────────────────────────────────────────────────── */}
       <section className={s.why} ref={why}>
         <div className={s.secHead}>
-          <span className={s.eyebrow}>WHY NOW</span>
           <h2 className={s.h2}>입지 판단은 아직도 감(勘)에 의존합니다</h2>
           <p className={s.secSub}>
             유동인구·매출·임대료·상권 데이터가 각기 다른 곳에 흩어져 있어, 개인이 이를 종합할 수단이
@@ -148,7 +146,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── WHAT IT DOES ─────────────────────────────────────────────── */}
       <section className={s.what} ref={features}>
         <div className={s.secHead}>
-          <span className={s.eyebrow}>WHAT IT DOES</span>
           <h2 className={s.h2}>뜬 상권이 아니라, 검증된 자리를 잡습니다</h2>
         </div>
         <div className={s.featGrid}>
@@ -170,7 +167,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── HOW IT DIFFERS (dark) ────────────────────────────────────── */}
       <section className={s.differs} ref={differs}>
         <div className={s.secHead}>
-          <span className={s.eyebrowY}>HOW IT DIFFERS</span>
           <h2 className={s.h2Dark}>조회 도구가 아니라, 결정 엔진입니다</h2>
           <p className={s.secSubDark}>
             KB bridge는 "고른 지역을 설명해주는" 조회 도구. 본 서비스는 "조건에 맞는 자리를 찾아
