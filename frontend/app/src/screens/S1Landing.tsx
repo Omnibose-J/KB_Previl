@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Screen } from "../App";
+import Dropdown from "../components/Dropdown";
 import { useSearch } from "../state/search";
 import { FEATURES_6, PROVENANCE, SOURCES, TEAM } from "../copy";
 import { pct0 } from "../lib/format";
@@ -57,46 +58,35 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
         {/* search pill — real inputs feeding the S2 form */}
         <div className={s.searchCard}>
-          <label className={s.field}>
+          <div className={s.field}>
             <span className={s.fieldLabel}>업종</span>
-            <select
-              className={search.uptae ? s.fieldValue : s.fieldEmpty}
-              value={search.uptae ?? ""}
-              onChange={(e) => search.set({ uptae: e.target.value || null })}
-            >
-              <option value="">{meta.isError ? "목록을 불러오지 못했습니다" : "어떤 가게를 내시나요"}</option>
-              {meta.data?.uptae.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-          </label>
+            <Dropdown
+              options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: u }))}
+              value={search.uptae}
+              placeholder="어떤 가게를 내시나요"
+              emptyNote={meta.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
+              onSelect={(v) => search.set({ uptae: v })}
+            />
+          </div>
           <i className={s.fieldDivider} />
-          <label className={s.field}>
+          <div className={s.field}>
             <span className={s.fieldLabel}>희망 범위</span>
             {/* Multi-district selections (made on S2) cannot round-trip through
-                a single select — represent them honestly instead of silently
-                showing only the first one. */}
-            <select
-              className={s.fieldValue}
-              value={search.districts.length > 1 ? "__multi" : (search.districts[0] ?? "")}
-              onChange={(e) => {
-                if (e.target.value === "__multi") return;
-                search.set({ districts: e.target.value ? [e.target.value] : [] });
-              }}
-            >
-              {search.districts.length > 1 ? (
-                <option value="__multi">{search.districts.length}개 자치구 (조건 화면에서 선택)</option>
-              ) : null}
-              <option value="">서울 전역</option>
-              {meta.data?.districts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </label>
+                a single-value control — say so instead of silently showing
+                only the first one. */}
+            <Dropdown
+              options={[
+                { value: "", label: "서울 전역" },
+                ...(meta.data?.districts ?? []).map((d) => ({ value: d, label: d })),
+              ]}
+              value={search.districts.length === 1 ? search.districts[0] : ""}
+              display={
+                search.districts.length > 1 ? `${search.districts.length}개 자치구` : undefined
+              }
+              placeholder="서울 전역"
+              onSelect={(v) => search.set({ districts: v ? [v] : [] })}
+            />
+          </div>
           <i className={s.fieldDivider} />
           <label className={s.field}>
             <span className={s.fieldLabel}>월 임대료 (선택)</span>

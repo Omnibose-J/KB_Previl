@@ -3,6 +3,7 @@
 .page {
   background: var(--fg-paper);
   min-height: 100vh;
+  animation: fadeUp 0.3s ease-out both;
 }
 
 .body {
@@ -312,6 +313,16 @@
   color: var(--fg-ink);
   font-size: 16px;
   font-weight: 700;
+}
+
+.cta:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(255 188 0 / 30%);
+}
+
+.cta:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .cta:disabled {

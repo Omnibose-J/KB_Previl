@@ -3,6 +3,7 @@
 .page {
   background: var(--fg-paper);
   min-height: 100vh;
+  animation: fadeUp 0.3s ease-out both;
 }
 
 .condPill {
@@ -138,23 +139,6 @@ button.wCtl:disabled {
   color: var(--fg-dt3);
 }
 
-.wSelect {
-  border: 0;
-  color: var(--fg-y);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 0 18px 0 0;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M1 1.5 5 5.5 9 1.5' fill='none' stroke='%238A837A' stroke-width='1.6' stroke-linecap='round'/></svg>")
-    no-repeat right 2px center;
-  cursor: pointer;
-}
-
-.wSelect option {
-  color: var(--fg-ink);
-}
 
 .wInputRow {
   display: flex;
@@ -186,6 +170,20 @@ button.wCtl:disabled {
   flex-direction: column;
   gap: 14px;
 }
+
+/* Staggered entrance for the first screenful of candidates. `backwards`, not
+   `both`: a `both` fill keeps applying the final transform forever and would
+   block the hover lift on these same elements. */
+.list > li {
+  animation: fadeUp 0.3s ease-out backwards;
+}
+
+.list > li:nth-child(1) { animation-delay: 0.03s; }
+.list > li:nth-child(2) { animation-delay: 0.07s; }
+.list > li:nth-child(3) { animation-delay: 0.11s; }
+.list > li:nth-child(4) { animation-delay: 0.15s; }
+.list > li:nth-child(5) { animation-delay: 0.19s; }
+.list > li:nth-child(n + 6) { animation-delay: 0.22s; }
 
 /* ── map panel ───────────────────────────────────── */
 .mapPanel {

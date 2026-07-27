@@ -17,8 +17,18 @@
   padding: 19px 21px; /* keep inner size stable against the 2px border */
 }
 
+.card,
+.cardOn {
+  transition:
+    border-color 0.15s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
 .card:hover {
   border-color: var(--fg-chipline);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgb(20 20 20 / 6%);
 }
 
 .top {

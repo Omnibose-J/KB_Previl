@@ -2,6 +2,7 @@
 
 .page {
   background: var(--fg-card);
+  animation: fadeUp 0.35s ease-out both;
 }
 
 /* ── nav ─────────────────────────────────────────── */
@@ -195,6 +196,13 @@ select.fieldEmpty {
 
 .searchBtn:hover {
   filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(255 188 0 / 35%);
+}
+
+.searchBtn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .sources {
@@ -417,6 +425,13 @@ select.fieldEmpty {
 
 .ctaBtn:hover {
   background: var(--fg-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgb(20 20 20 / 25%);
+}
+
+.ctaBtn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* ── footer ──────────────────────────────────────── */

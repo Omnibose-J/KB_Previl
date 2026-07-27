@@ -47,6 +47,10 @@
   white-space: nowrap;
 }
 
+.bubble {
+  animation: fadeUp 0.18s ease-out both;
+}
+
 .bubble strong {
   font-size: 15px;
   font-weight: 700;

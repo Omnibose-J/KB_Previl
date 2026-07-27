@@ -1,0 +1,137 @@
+.wrap {
+  position: relative;
+  min-width: 0;
+}
+
+/* ── trigger ─────────────────────────────────────── */
+.trig,
+.trigEmpty,
+.trigDark {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+}
+
+.trig {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.trigEmpty {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg-t8);
+}
+
+.trigDark {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-y);
+}
+
+.trigLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chev,
+.chevOpen {
+  flex: none;
+  color: var(--fg-t8);
+  transition: transform 0.15s ease;
+}
+
+.trigDark .chev,
+.trigDark .chevOpen {
+  color: var(--fg-dt3);
+}
+
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+/* ── menu ────────────────────────────────────────── */
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: -12px;
+  z-index: 30;
+  min-width: calc(100% + 24px);
+  max-height: 288px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+  box-shadow: 0 12px 32px rgb(20 20 20 / 14%);
+  animation: drop 0.12s ease-out;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}
+
+.opt,
+.optHi,
+.optOn {
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.optHi {
+  background: var(--fg-wash);
+  color: var(--fg-ink);
+}
+
+.optOn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+/* selected marker: the one brand-yellow accent inside the menu */
+.optOn::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-y);
+  flex: none;
+}
+
+.optNote {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--fg-t6);
+}

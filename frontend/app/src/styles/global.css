@@ -122,6 +122,13 @@ figure {
 button {
   font-family: inherit;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 input,
@@ -153,6 +160,32 @@ ul {
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
+}
+
+/* ── motion ──────────────────────────────────────────
+   One seed family: fadeUp (opacity + 8px lift), ease-out, 0.12~0.35s.
+   Screens enter with it, card lists stagger it, popovers reuse it. */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Screen-reader-only text for tooltip targets and badge explanations. */

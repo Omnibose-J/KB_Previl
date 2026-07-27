@@ -4,6 +4,7 @@ import type { Screen } from "../App";
 import { api } from "../api/client";
 import CandidateCard from "../components/CandidateCard";
 import CaveatStrip from "../components/CaveatStrip";
+import Dropdown from "../components/Dropdown";
 import GridMap, { type MapPin } from "../components/GridMap";
 import Nav from "../components/Nav";
 import { Empty, ErrorState, Loading } from "../components/states";
@@ -131,23 +132,19 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
               </button>
             </div>
             <div className={s.whatifRow}>
-              <label className={s.wCtl}>
+              <div className={s.wCtl}>
                 <span className={s.wTitle}>업종 변경</span>
-                <select
-                  className={s.wSelect}
+                <Dropdown
+                  dark
+                  options={(meta.data?.uptae ?? [uptae]).map((u) => ({ value: u, label: u }))}
                   value={uptae}
-                  onChange={(e) => search.set({ uptae: e.target.value })}
-                >
-                  {(meta.data?.uptae ?? [uptae]).map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="업태"
+                  onSelect={(v) => search.set({ uptae: v })}
+                />
                 <span className={s.wSub}>
                   {meta.data ? `${meta.data.uptae.length}개 업태 재분석` : "업태 재분석"}
                 </span>
-              </label>
+              </div>
               <button
                 className={s.wCtl}
                 disabled={districts.length === 0}

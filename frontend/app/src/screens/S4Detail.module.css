@@ -3,6 +3,7 @@
 .page {
   background: var(--fg-paper);
   min-height: 100vh;
+  animation: fadeUp 0.3s ease-out both;
 }
 
 .pad {
