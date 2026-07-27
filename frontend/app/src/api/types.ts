@@ -159,6 +159,27 @@ export interface GridsResponse {
   resolutions: Resolutions;
 }
 
+/** Resolution ladder v1 (goodwill-report-design §5): building-level FACTS from
+ *  licence records — never a building-level prediction or ranking. */
+export interface BuildingFacts {
+  jibun: string;
+  buildingName: string | null;
+  activeShops: number;
+  openingsTotal: number;
+  closuresTotal: number;
+  /** top 3 by active count */
+  uptaeMix: { uptae: string; active: number }[];
+}
+
+export interface BuildingsResponse {
+  gridId: string;
+  source: string;
+  /** factual sort (activeShops desc), server-capped at 50 */
+  buildings: BuildingFacts[];
+  /** rows whose address could not be parsed — excluded, never guessed */
+  unparsedCount: number;
+}
+
 export interface EconomicsInput {
   gridId: string;
   uptae: string;

@@ -793,6 +793,94 @@
   color: var(--fg-t7);
 }
 
+/* ── 건물 기록 (해상도 사다리 v1) ──────────────────── */
+.bldgList {
+  display: flex;
+  flex-direction: column;
+}
+
+.bldgRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(170px, 1fr) 1.4fr;
+  gap: 16px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.bldgRow:last-child {
+  border-bottom: 0;
+}
+
+.bldgId {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bldgId strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.bldgId span {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+.bldgStats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bldgStats em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-green);
+}
+
+.bldgStats span {
+  font-size: 11px;
+  color: var(--fg-t6);
+}
+
+.bldgMix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.bldgChip,
+.bldgChipOn {
+  padding: 3px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--fg-chipline);
+  background: var(--fg-card);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t4);
+}
+
+.bldgChipOn {
+  border-color: var(--fg-y);
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-weight: 700;
+}
+
+.bldgEmpty {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-gray-bg);
+  font-size: 13px;
+  color: var(--fg-t4);
+}
+
 /* ── 권리금 다이얼로그 ─────────────────────────────── */
 .gwOpenBtn {
   align-self: flex-start;
@@ -893,6 +981,8 @@
 }
 
 @media (max-width: 680px) {
+  .bldgRow { grid-template-columns: 1fr; gap: 8px; }
+  .bldgMix { justify-content: flex-start; }
   .gwOverlay { padding: 0; }
   .gwDialog { min-height: 100%; border-radius: 0; padding: 24px 16px 32px; }
   .kpis { grid-template-columns: 1fr; gap: 14px; }

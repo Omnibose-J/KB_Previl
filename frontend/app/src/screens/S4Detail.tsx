@@ -369,6 +369,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.panel} hidden={tab !== "dataTab"}>
+          {/* ── buildings in this cell (resolution ladder v1 — FACTS) ── */}
+          <BuildingsSection gridId={d.gridId} uptae={uptae} />
+
           {/* ── observed by grade (figma 매물 slot → real table) ──── */}
           <section className={s.card}>
             <div className={s.cardHead}>
@@ -532,6 +535,69 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
       </div>
     </>
   );
+}
+
+/** Building records inside this 100m cell (goodwill-report-design §5 ladder).
+ *  FACTS from licence rows grouped by parcel — the sort is "most active shops",
+ *  a factual order, and the mandatory label says this is not a validated
+ *  prediction. Never rank or score buildings here. */
+function BuildingsSection({ gridId, uptae }: { gridId: string; uptae: string }) {
+  const q = useQuery({
+    queryKey: ["buildings", gridId],
+    queryFn: () => api.buildings(gridId),
+    staleTime: Infinity,
+  });
+
+  return (
+    <section className={s.card}>
+      <div className={s.cardHead}>
+        <h2>이 자리의 건물 기록</h2>
+        <p>이 자리 안 건물들에서 실제로 있었던 일이에요 · 영업 중인 가게가 많은 순</p>
+      </div>
+      {q.isPending ? (
+        <Loading label="건물 기록을 세는 중…" />
+      ) : q.isError ? (
+        <ErrorState onRetry={() => q.refetch()} detail={String(q.error)} />
+      ) : q.data.buildings.length === 0 ? (
+        <p className={s.bldgEmpty}>이 자리 안에서 가게를 연 기록이 아직 없어요.</p>
+      ) : (
+        <div className={s.bldgList}>
+          {q.data.buildings.map((b) => (
+            <div key={b.jibun} className={s.bldgRow}>
+              <div className={s.bldgId}>
+                <strong>{b.buildingName ?? shortJibun(b.jibun)}</strong>
+                {b.buildingName ? <span>{shortJibun(b.jibun)}</span> : null}
+              </div>
+              <div className={s.bldgStats}>
+                <em>영업 중 {int(b.activeShops)}곳</em>
+                <span>
+                  지금까지 연 {int(b.openingsTotal)}곳 · 닫은 {int(b.closuresTotal)}곳
+                </span>
+              </div>
+              <div className={s.bldgMix}>
+                {b.uptaeMix.map((m) => (
+                  <span key={m.uptae} className={m.uptae === uptae ? s.bldgChipOn : s.bldgChip}>
+                    {m.uptae} {int(m.active)}곳
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {q.data && q.data.unparsedCount > 0 ? (
+        <p className={s.tableFoot}>주소를 확인할 수 없는 기록 {int(q.data.unparsedCount)}건은 세지 않았어요.</p>
+      ) : null}
+      <p className={s.tableFoot}>
+        * 건물 정보는 인허가 기록을 그대로 센 사실이고, 등급 같은 검증된 예측이 아니에요.
+      </p>
+    </section>
+  );
+}
+
+/** "서울특별시 영등포구 여의도동 27-2" → "영등포구 여의도동 27-2" */
+function shortJibun(jibun: string): string {
+  return jibun.replace(/^서울특별시\s*/, "");
 }
 
 /** grade → holdout band row (1 = top decile band, 10 = bottom, rest middle). */
