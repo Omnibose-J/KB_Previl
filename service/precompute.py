@@ -72,13 +72,14 @@ def calibration(con, rank_cols, model="gbm"):
     yte = test[1]
     order = np.argsort(-p)
     n = len(p)
-    edges, observed, ci = [], [], []
+    edges, observed, ci, seg_n = [], [], [], []
     for i in range(10):
         seg = order[int(n * i / 10):int(n * (i + 1) / 10)]
         edges.append(float(p[seg].min()))
         observed.append(float(yte[seg].mean()))
         ci.append(wilson(int(yte[seg].sum()), len(seg)))
-    return train, test, edges, observed, ci
+        seg_n.append(len(seg))
+    return train, test, edges, observed, ci, seg_n
 
 
 def uptae_terms(ao, gid, t, uptae):
@@ -116,7 +117,7 @@ def main():
     rank_cols = list(DEPLOY)
     print(f"모델 {a.model} · 순위 피처 {len(rank_cols)}개")
     print("보정 기준 계산 (홀드아웃)...")
-    train, test, edges, observed, ci = calibration(con, rank_cols, a.model)
+    train, test, edges, observed, ci, seg_n = calibration(con, rank_cols, a.model)
     print(f"  등급별 실측 생존율: 1등급 {observed[0]*100:.1f}% "
           f"({ci[0][0]*100:.1f}-{ci[0][1]*100:.1f}) ... 10등급 {observed[-1]*100:.1f}% "
           f"({ci[-1][0]*100:.1f}-{ci[-1][1]*100:.1f})")
@@ -184,7 +185,11 @@ def main():
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
         ("as_of", f"{t//12}-{t%12 or 12:02d}"),
         ("observed_by_grade", ",".join(f"{o:.4f}" for o in observed)),
-        ("observed_ci_by_grade", ",".join(f"{lo:.4f}:{hi:.4f}" for lo, hi in ci)),
+        # 아래 세 키의 이름은 service/api.py meta() 가 읽는 이름이다. 같은 값을
+        # 다른 모양으로 한 번 더 쓰지 않는다 — 두 표현이 생기면 조용히 갈라진다.
+        ("observed_by_grade_n", ",".join(str(v) for v in seg_n)),
+        ("observed_by_grade_ci_low", ",".join(f"{lo:.4f}" for lo, _ in ci)),
+        ("observed_by_grade_ci_high", ",".join(f"{hi:.4f}" for _, hi in ci)),
         ("overall_survival", f"{float(test[1].mean()):.4f}"),
         ("rank_features", ",".join(rank_cols)),
         ("rank_model", a.model),
