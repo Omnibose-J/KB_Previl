@@ -45,7 +45,7 @@ requires `KAKAO_REST_API_KEY` and network.
 same 100.0% result, which is what made the repair a known-safe two-line change rather than a
 gamble.)
 
-## F-C1. Goodwill report has no honest caller ??benchmark values are not exposed over HTTP
+## F-C1. ~~Goodwill report has no honest caller~~ — RESOLVED 2026-07-27 (goodwill-report-design §8-A slim input; lane B moved benchmark/r/d server-side, card shipped)
 
 **Found** 2026-07-27 (lane C, while wiring remaining P1 screens).
 
@@ -60,4 +60,32 @@ value already exists server-side (economics uses the contracted Seoul trade-area
 average) but is not exposed. Blast radius: the 沅뚮━湲??묒긽 由ы룷??card (P1) stays
 unbuilt; everything else ships. Fix is small: expose per-uptae benchmark revenue
 (+ level + as-of) on /meta or a dedicated endpoint, then lane C builds the card.
+
+## F-C2. /goodwill: two uptae have no benchmark mapping and fail as 503 "retry"
+
+**Found** 2026-07-27 (lane C, design-vs-implementation audit of goodwill).
+
+**Problem** — `service/goodwill.py` UPTAE_INDUTY maps 10 of the 12 served uptae;
+"기타" and "외국음식전문점(인도,태국등)" have no Seoul commercial-taxonomy
+counterpart, so `/goodwill` raises GoodwillUnavailableError → **503**. Two issues:
+(a) 503 semantics say "temporarily unavailable" and the frontend renders a retry
+button, but this failure is permanent — retry can never succeed; (b) no field on
+GridDetail/meta lets the frontend pre-detect it, so the user types inputs first
+and then hits the error (unlike 상권 밖, which is pre-screened via sales.available).
+
+**Why not solved here** — the mapping and the status-code choice are lane B's
+contract. Smallest fix: expose supported-uptae (or per-uptae goodwillAvailable)
+so lane C can render the same "제공 불가" pre-state it uses for 상권 밖; optionally
+422 instead of 503 for the permanent case. Blast radius: 2/12 uptae see a dead-end
+retry inside the goodwill dialog; valuation itself is unaffected.
+
+**Minor deviations noted in the same audit (design-conformant enough to ship, lane B aware):**
+- operating margin is a single 음식점업-wide 0.15 labelled "v1 고정"; design §6 said
+  per-uptae values from 소상공인실태조사. Honest label, weaker claim.
+- benchmark M̄ averages per-trade-area per-store sales with equal weight per trade
+  area (AVG of ratios), not store-weighted (Σsales/Σstores). Design wording is
+  ambiguous; small trade areas are overweighted.
+- expected survival comes from the 36-month curves, so valuation N is capped at 3
+  years regardless of lease — a consequence of design §2 reusing the economics
+  curves, stated nowhere in doc or UI.
 
