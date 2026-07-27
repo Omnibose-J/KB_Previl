@@ -22,7 +22,7 @@ from pipeline.db import init
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS, baseline_prior_surv
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
+from .train import LEGACY_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 
 # 1y can look further forward than 3y (more cohorts have elapsed); 5y must stop
 # earlier. Both follow from the observable denominator, not from tuning.
@@ -39,7 +39,7 @@ def grades(p, k=10):
 
 
 def run(con, h, cols, model):
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, WINDOWS[h], h)
+    train, test = cached_split(con, LEGACY_TRAIN_YEARS, WINDOWS[h], h)
     y = test[1]
     p, _ = fit_predict(model, train, test, num=cols)
     auc = roc_auc_score(y, p)

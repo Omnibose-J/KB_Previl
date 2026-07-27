@@ -24,7 +24,7 @@ from pipeline.db import init
 from .ablation import paired_bootstrap_ci
 from .cache import cached_split
 from .evaluate import TEST_YEARS, baseline_prior_surv
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, Encoder, fit_predict
+from .train import LEGACY_TRAIN_YEARS, DEPLOY, Encoder, fit_predict
 
 # --- selection criteria -------------------------------------------------------
 # "auc" is round 2's pre-registration (docs/experiment-plan.md E-M) and is kept so
@@ -43,8 +43,8 @@ from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, Encoder, fit_predict
 MIN_GAIN = 0.003             # criterion "auc": winner - incumbent, holdout AUC
 DECILE_MIN_GAIN = 0.005      # criterion "decile": winner - incumbent, holdout top decile
 INCUMBENT = "gbm"
-INNER_TEST = CONFIRMED_TRAIN_YEARS[-2:]
-INNER_TRAIN = CONFIRMED_TRAIN_YEARS[:-2]
+INNER_TEST = LEGACY_TRAIN_YEARS[-2:]
+INNER_TRAIN = LEGACY_TRAIN_YEARS[:-2]
 
 # Ordered simplest-first; used only to break an exact AUC+Brier tie.
 SIMPLICITY = ["logit", "gbm", "hgb", "et", "rf", "mlp"]
@@ -179,7 +179,7 @@ def seed_spread(train, test, kind, cols, params, enc, seeds=(0, 1, 2, 3, 4)):
 
 def confirm(con, cols, winner, criterion="auc"):
     """The holdout look: winner vs incumbent."""
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
     enc = Encoder(cols).fit(train[0])
     yte = test[1]
     print(f"\n홀드아웃 확인 {TEST_YEARS[0]}-{TEST_YEARS[-1]} (n={len(yte):,}) — 2회만 본다")

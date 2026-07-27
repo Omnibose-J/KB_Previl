@@ -29,12 +29,12 @@ from pipeline.db import init
 from .ablation import deciles, paired_bootstrap_ci, seed_avg_predict
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, TIER1, TIER2, TIER3, WINNER
+from .train import LEGACY_TRAIN_YEARS, DEPLOY, TIER1, TIER2, TIER3, WINNER
 
 BUNDLE_MIN_GAIN = 0.002        # pre-registered, holdout, bundle only
 TOP_DECILE_FLOOR = -0.005      # top-decile observed survival may not fall 0.5%p
-INNER_TEST = CONFIRMED_TRAIN_YEARS[-2:]
-INNER_TRAIN = CONFIRMED_TRAIN_YEARS[:-2]
+INNER_TEST = LEGACY_TRAIN_YEARS[-2:]
+INNER_TRAIN = LEGACY_TRAIN_YEARS[:-2]
 SUB_TRAIN = [2017, 2018]
 SCREEN_SEEDS = (0, 1, 2)
 
@@ -106,7 +106,7 @@ def main():
 
     # ---------------------------------------------------------------- bundle
     print(f"\n[확인] 홀드아웃 {TEST_YEARS[0]}-{TEST_YEARS[-1]} — 번들 1회만")
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
     y = test[1]
     p_base = seed_avg_predict(a.model, train, test, base)
     p_bund = seed_avg_predict(a.model, train, test, base + picked)

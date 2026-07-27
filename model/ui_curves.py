@@ -30,7 +30,15 @@ from pipeline.db import init
 from .cache import cached_split
 from .evaluate import TEST_YEARS
 from .horizon import WINDOWS
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, Encoder, fit_predict
+from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LEGACY_TRAIN_YEARS,
+                    WINNER, Encoder, fit_predict)
+
+# horizon별 (학습창, 검증창). 5년만 구 벤치인 이유: 배포 학습창이 2022까지 가므로 5년
+# 판정이 가능한 개업(<=2021-07)이 전부 학습에 들어간다 — 같은 벤치에서 5년을 재면
+# in-sample이 된다. 그래서 5년만 구 벤치의 별도 적합이고, 표에 그렇게 표기한다.
+BENCH = {1: (CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS),
+         3: (CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS),
+         5: (LEGACY_TRAIN_YEARS, [2019, 2020, 2021])}
 
 BANDS = [(0, 25), (25, 37), (37, 56), (56, 90), (90, 10 ** 6)]
 BAND_LABEL = ["~25㎡", "25~37㎡", "37~56㎡", "56~90㎡", "90㎡~"]
@@ -62,7 +70,7 @@ def main():
     cols = list(DEPLOY)
 
     # 3년 홀드아웃에서 등급 경계를 잡는다 — precompute와 같은 계산이다
-    tr3, te3 = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    tr3, te3 = cached_split(con, *BENCH[3], 3)
     enc = Encoder(cols).fit(tr3[0])
     p3, (m3, _) = fit_predict(WINNER, tr3, te3, num=cols, enc=enc)
     order = np.argsort(-p3)
@@ -81,36 +89,68 @@ def main():
     for h in (1, 3, 5):
         if h == 3:
             y, g = te3[1], g3
-        else:
-            _, teh = cached_split(con, CONFIRMED_TRAIN_YEARS, WINDOWS[h], h)
+        elif h == 1:
+            _, teh = cached_split(con, *BENCH[1], 1)
             ph = m3.predict_proba(enc.transform(teh[0], scale=WINNER in ("logit", "mlp")))[:, 1]
             y, g = teh[1], grade_of(ph, edges)
+        else:
+            # 5년은 구 벤치의 독립 적합 — 배포 모델로는 in-sample이 된다
+            ltr, lte = cached_split(con, *BENCH[5], 5)
+            lenc = Encoder(cols).fit(ltr[0])
+            pl, (lm, _) = fit_predict(WINNER, ltr, lte, num=cols, enc=lenc)
+            lo_ = np.argsort(-pl)
+            ln = len(pl)
+            ledges = [float(pl[lo_[int(ln * i / 10):int(ln * (i + 1) / 10)]].min())
+                      for i in range(10)]
+            y, g = lte[1], grade_of(pl, ledges)
         row = []
         for label, sel in GRADE_BANDS:
             mask = np.array([sel(x) for x in g])
             k, tot = int(y[mask].sum()), int(mask.sum())
             lo, hi = wilson(k, tot)
             row.append((label, k / tot, lo, hi, tot))
-        curves[h] = {"rows": row, "overall": float(y.mean()), "n": len(y),
-                     "window": WINDOWS[h]}
-        print(f"\n  horizon {h}년  (test {WINDOWS[h][0]}-{WINDOWS[h][-1]}, n={len(y):,}, "
-              f"전체 {y.mean()*100:.1f}%)")
+        trw, tew = BENCH[h]
+        curves[h] = {"rows": row, "overall": float(y.mean()), "n": len(y), "window": tew,
+                     "train": [trw[0], trw[-1]],
+                     "bench": "legacy" if h == 5 else "deploy"}
+        print(f"\n  horizon {h}년  (train {trw[0]}-{trw[-1]} / test {tew[0]}-{tew[-1]}, "
+              f"n={len(y):,}, 전체 {y.mean()*100:.1f}%"
+              f"{'  ← 구 벤치·별도 적합' if h == 5 else ''})")
         for label, v, lo, hi, tot in row:
             print(f"    {label:<14} {v*100:>5.1f}%  [{lo*100:.1f}, {hi*100:.1f}]  n={tot:,}")
 
-    print(f"\n  같은 등급의 자리가 시간이 갈수록 어떻게 되는가 (상위10% / 중간 / 하위10%)")
+    print(f"\n  곡선 — 1년·3년만 같은 코호트(2023)라 이어 읽을 수 있다")
     for label, _ in GRADE_BANDS:
-        vals = [next(v for l, v, *_ in curves[h]["rows"] if l == label) for h in (1, 3, 5)]
-        print(f"    {label:<14} 1년 {vals[0]*100:.1f}% → 3년 {vals[1]*100:.1f}% "
-              f"→ 5년 {vals[2]*100:.1f}%")
-    print(f"\n  주의: 1년·5년은 test 창이 다르다(1년 2019–2024 / 5년 2019–2021). "
-          f"관측 가능 분모 원칙 때문이며,")
-    print(f"  같은 창으로 강제하면 5년 판정이 안 난 점포를 생존으로 세게 된다.")
+        v1, v3, v5 = (next(v for l, v, *_ in curves[h]["rows"] if l == label) for h in (1, 3, 5))
+        print(f"    {label:<14} 1년 {v1*100:.1f}% → 3년 {v3*100:.1f}%"
+              f"      (참고·구 벤치 5년 {v5*100:.1f}%)")
+
+    print(f"\n  ** 5년을 곡선에 잇지 말 것 **")
+    print(f"  배포 학습창이 2022까지 가므로 5년 판정이 가능한 개업(<=2021-07)이 전부 학습에")
+    print(f"  들어간다 — 같은 벤치에서 5년을 재면 in-sample이다. 그래서 5년만 구 벤치")
+    print(f"  (train 2005-2018 / test 2019-2021)의 독립 적합이고, 그 코호트는 코로나기다.")
+    print(f"  실제로 하위10%가 3년 {curves[3]['rows'][2][1]*100:.1f}% → 5년 "
+          f"{curves[5]['rows'][2][1]*100:.1f}%로 역전되는데, 이건 시간이 지나 생존율이")
+    print(f"  올라간 게 아니라 두 값이 다른 코호트·다른 시기라서다.")
+    print(f"  2023 코호트의 5년 판정은 2028년에야 나온다. 그때까지 5년은 참고값이다.")
 
     # ---------------------------------------------------------------- ④
     print("\n" + "=" * 78)
     print("④ 등급 × 점포 면적 — 자리를 고른 뒤의 질문에 실측으로 답한다")
     print("=" * 78)
+    # 이 표만 구 벤치(n=48,889)를 쓴다. 3x5=15칸을 나누려면 배포 벤치의 7,915행으로는
+    # 60%가 n<100이 되어 표가 구멍난다. 성능 주장이 아니라 조건부 기술표이므로 표본이
+    # 큰 쪽이 옳다 — 대신 코로나기 코호트라는 것을 표에 명기한다.
+    ltr3, lte3 = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
+    lenc3 = Encoder(cols).fit(ltr3[0])
+    pl3, _ = fit_predict(WINNER, ltr3, lte3, num=cols, enc=lenc3)
+    lo3 = np.argsort(-pl3)
+    n3 = len(pl3)
+    ledges3 = [float(pl3[lo3[int(n3 * i / 10):int(n3 * (i + 1) / 10)]].min()) for i in range(10)]
+    g3 = grade_of(pl3, ledges3)
+    te3 = lte3
+    print(f"\n  벤치: train {LEGACY_TRAIN_YEARS[0]}-{LEGACY_TRAIN_YEARS[-1]} / "
+          f"test {TEST_YEARS[0]}-{TEST_YEARS[-1]} (n={n3:,}) — 칸을 채우기 위해 구 벤치 사용")
     areas = np.array([f["site_area"] or 0 for f in te3[0]], dtype=float)
     y = te3[1]
     print(f"\n  {'등급':<14} " + " ".join(f"{b:>12}" for b in BAND_LABEL))
@@ -154,8 +194,10 @@ def main():
                          ",".join(f"{v:.4f}:{lo:.4f}:{hi:.4f}:{t}" for _, v, lo, hi, t in c["rows"])))
             rows.append((f"overall_survival_{h}y", f"{c['overall']:.4f}"))
             rows.append((f"test_window_{h}y", f"{c['window'][0]}-{c['window'][-1]}"))
+            rows.append((f"bench_{h}y", c["bench"]))
         rows.append(("gradeband_labels", ",".join(l for l, _ in GRADE_BANDS)))
         rows.append(("area_bands", ",".join(BAND_LABEL)))
+        rows.append(("grade_area_bench", f"legacy train {LEGACY_TRAIN_YEARS[0]}-{LEGACY_TRAIN_YEARS[-1]} / test {TEST_YEARS[0]}-{TEST_YEARS[-1]}"))
         rows.append(("observed_by_grade_area",
                      ";".join("|".join("" if c is None else f"{c['v']:.4f}:{c['lo']:.4f}:{c['hi']:.4f}:{c['n']}"
                                        for c in g["cells"]) for g in grid)))

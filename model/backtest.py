@@ -21,7 +21,7 @@ from pipeline.db import init
 from .cache import cached_split
 from .evaluate import TEST_YEARS
 from .robustness import FEATURE_SETS
-from .train import CONFIRMED_TRAIN_YEARS, fit_predict
+from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
 
 def deciles(y, p, k=10):
@@ -56,7 +56,7 @@ def main():
 
     cols = FEATURE_SETS.get(a.features) or [c for c in a.features.split(",") if c]
     con = init()
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     Xte, yte, mte = test
     p, _ = fit_predict(a.model, train, test, num=cols)
 

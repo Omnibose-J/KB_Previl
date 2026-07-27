@@ -29,7 +29,7 @@ from pipeline.db import init
 from .asof import ym
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
+from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 
 # Margin BEFORE rent, not operating margin. The published 음식점업 operating
 # margin (~10-15%) already has rent deducted; subtracting rent again on top of
@@ -49,7 +49,7 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
     "top 10%" reflects shops that a model trained on earlier years would have
     ranked top 10% - not hindsight.
     """
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     Xte, yte, mte = test
     p, _ = fit_predict(WINNER, train, test, num=list(DEPLOY))
 

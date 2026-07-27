@@ -2,7 +2,7 @@
 
 Three benches, because one bench cannot honestly hold all of them:
 
-  rank    the confirmed deploy set (train.DEPLOY on CONFIRMED_TRAIN_YEARS) with
+  rank    the confirmed deploy set (train.DEPLOY on LEGACY_TRAIN_YEARS) with
           the E-M winner. Every delta here is on the same footing as the headline.
   measure rank + G6 (site_area). Shop attributes are measured and never ranked
           on - the number exists to justify the exclusion, not to reverse it.
@@ -32,7 +32,7 @@ from .ablation import (GROUPS, deciles, leave_one_group_out, only_one_group_in,
                        paired_bootstrap_ci, permutation_importance_auc, seed_avg_predict)
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import (CONFIRMED_TRAIN_YEARS, DEPLOY, LOC3, TIER1, TIER2, TIER3, TREND,
+from .train import (LEGACY_TRAIN_YEARS, DEPLOY, LOC3, TIER1, TIER2, TIER3, TREND,
                     WINNER, Encoder, weights)
 
 TREND_TRAIN = [2017, 2018]
@@ -81,7 +81,7 @@ def main():
     print("=" * 96)
 
     print("\n스플릿 적재...", flush=True)
-    rank = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    rank = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
     loc3 = cached_split(con, LOC3_TRAIN, TEST_YEARS, 3)
     trend = cached_split(con, TREND_TRAIN, TEST_YEARS, 3, with_trend=True)
     sub = cached_split(con, TREND_TRAIN, TEST_YEARS, 3)
@@ -91,8 +91,8 @@ def main():
           f"G4 부표 n_tr={len(loc3[0][1]):,} · G7 부표 n_tr={len(trend[0][1]):,}")
 
     rows = []
-    print(f"\n[순위 벤치] DEPLOY({len(rank_cols)}) · train {CONFIRMED_TRAIN_YEARS[0]}-"
-          f"{CONFIRMED_TRAIN_YEARS[-1]} · 이 벤치의 ΔAUC가 헤드라인과 같은 기준", flush=True)
+    print(f"\n[순위 벤치] DEPLOY({len(rank_cols)}) · train {LEGACY_TRAIN_YEARS[0]}-"
+          f"{LEGACY_TRAIN_YEARS[-1]} · 이 벤치의 ΔAUC가 헤드라인과 같은 기준", flush=True)
     p_rank = seed_avg_predict(a.model, rank[0], rank[1], rank_cols)
     for g in ("G1_competition", "G2_dynamics", "G3_prior_survival", "G5_grid_physical"):
         r = measure(g, rank, rank_cols, g, a.model, p_full=p_rank)

@@ -21,7 +21,7 @@ from model.asof import (AccessIndex, AsOf, ExtraIndex, RestIndex, RideIndex, gro
 from model.cache import cached_split
 from model.evaluate import TEST_YEARS
 from model.recommend import MIN_RING_HISTORY, current_month
-from model.train import CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
+from model.train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 from pipeline.db import init
 from pipeline.grid import neighbors
 
@@ -67,7 +67,7 @@ def calibration(con, rank_cols, model="gbm"):
     point estimate, so the UI can never show a rate and an interval that were
     derived from different splits (A1).
     """
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     p, _ = fit_predict(model, train, test, num=rank_cols)
     yte = test[1]
     order = np.argsort(-p)

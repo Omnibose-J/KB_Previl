@@ -15,7 +15,7 @@ from pipeline.db import init
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import CONFIRMED_TRAIN_YEARS, fit_predict
+from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
 LEAK_AUC = 0.90
 
@@ -41,7 +41,7 @@ def poison(split, y):
 
 def main():
     con = init()
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
 
     print("1) RED — 미래 정보를 주입하면 탐지되어야 한다")
     ptr = poison(train, train[1])

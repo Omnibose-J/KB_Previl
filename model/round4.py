@@ -41,7 +41,7 @@ from .ablation import paired_bootstrap_ci, seed_avg_predict
 from .cache import cached_split
 from .evaluate import TEST_YEARS, baseline_prior_surv
 from .experiment_trend2 import paired_bootstrap_decile, shuffled, top_decile
-from .train import (CONFIRMED_TRAIN_YEARS, DEPLOY, FRESH_TEST_YEARS, FRESH_TRAIN_YEARS,
+from .train import (LEGACY_TRAIN_YEARS, DEPLOY, FRESH_TEST_YEARS, FRESH_TRAIN_YEARS,
                     G2X, WINNER, fit_predict)
 
 MIN_DECILE_GAIN = 0.005
@@ -72,7 +72,7 @@ def deciles(y, p, k=10):
 def baseline_report(con, cols, model):
     """① 신선 홀드아웃 기준선 + 검정력."""
     out = {}
-    for tag, tr_y, te_y in (("구 홀드아웃 2019–2022", CONFIRMED_TRAIN_YEARS, TEST_YEARS),
+    for tag, tr_y, te_y in (("구 홀드아웃 2019–2022", LEGACY_TRAIN_YEARS, TEST_YEARS),
                             ("신선 홀드아웃 2023", FRESH_TRAIN_YEARS, FRESH_TEST_YEARS)):
         tr, te = cached_split(con, tr_y, te_y, 3)
         y = te[1]
@@ -121,7 +121,7 @@ def main():
         print("=" * 92)
         b = baseline_report(con, base, WINNER)
         print(f"\n  검정력 (같은 벤치에서 G2X 유무를 비교했을 때의 최소검출효과)")
-        for tag, tr_y, te_y in (("구 홀드아웃", CONFIRMED_TRAIN_YEARS, TEST_YEARS),
+        for tag, tr_y, te_y in (("구 홀드아웃", LEGACY_TRAIN_YEARS, TEST_YEARS),
                                 ("신선 홀드아웃", FRESH_TRAIN_YEARS, FRESH_TEST_YEARS)):
             tr, te = cached_split(con, tr_y, te_y, 3)
             pb = seed_avg_predict(WINNER, tr, te, base)
@@ -154,7 +154,7 @@ def main():
         sel = base + picked
 
         res = {}
-        for tag, tr_y, te_y in (("A", CONFIRMED_TRAIN_YEARS, TEST_YEARS),
+        for tag, tr_y, te_y in (("A", LEGACY_TRAIN_YEARS, TEST_YEARS),
                                 ("B", FRESH_TRAIN_YEARS, FRESH_TEST_YEARS)):
             trn, te = cached_split(con, tr_y, te_y, 3)
             y = te[1]
@@ -174,7 +174,7 @@ def main():
         # 위약 대조 — 확인 A에서만 (검정력이 있는 벤치)
         print(f"\n[위약 대조] 확인 A · 선택된 {len(picked)}컬럼을 같은 순열로 섞어 "
               f"{a.placebo}회")
-        trn, te = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+        trn, te = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
         y = te[1]
         pb = res["A"][WINNER]["pb"]
         rng = np.random.default_rng(0)

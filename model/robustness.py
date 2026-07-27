@@ -27,7 +27,7 @@ from pipeline.db import init
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import (CONFIRMED_TRAIN_YEARS, DEPLOY, LOC2, LOC3, NUM, NUM2, NUM3,
+from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LOC2, LOC3, NUM, NUM2, NUM3,
                     fit_predict)
 
 FEATURE_SETS = {"NUM": NUM, "NUM2": NUM2, "NUM3": NUM3,
@@ -90,7 +90,7 @@ def main():
 
     cols = FEATURE_SETS.get(a.features) or [c for c in a.features.split(",") if c]
     con = init()
-    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, TEST_YEARS, 3)
+    train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     Xte, yte, mte = test
     p, _ = fit_predict(a.model, train, test, num=cols)
     overall = yte.mean()

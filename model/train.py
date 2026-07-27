@@ -57,7 +57,9 @@ G2X = ["openings_6m", "openings_12m", "openings_24m", "closures_6m", "closures_1
 #   opening dates, so a 2005 shop would see stations built after it opened.
 # E2 rejected: succession-excluded labels drop the model's edge over prior_surv
 #   to 0.0267, below the pre-registered 0.0350. Labels stay as they are.
-CONFIRMED_TRAIN_YEARS = list(range(2005, 2019))
+# 라운드 4에서 배포 벤치를 옮겼다 (아래 FRESH 주석 참조). 구 벤치는 계보 비교용으로
+# 이름을 남긴다 — §4-C의 계보 ①·② 및 5년 horizon이 이 벤치에서만 측정 가능하다.
+LEGACY_TRAIN_YEARS = list(range(2005, 2019))
 CONFIRMED_EXCLUDE_SUCCESSION = False
 
 # --- Round 4: a holdout nobody has looked at ----------------------------------
@@ -72,6 +74,16 @@ CONFIRMED_EXCLUDE_SUCCESSION = False
 # top decile is n=791, so its standard error is ~1.5%p instead of ~0.6%p.
 FRESH_TRAIN_YEARS = list(range(2005, 2023))
 FRESH_TEST_YEARS = [2023]
+
+# 2026-07-27 채택: 배포·헤드라인 벤치를 신선 홀드아웃으로 옮긴다. 근거는 §9-A의 2x2
+# 분해 — 학습창 확대만으로 AUC +0.0141 · 십분위 격차 +5.3%p이고, 검증창은 노출된 적이
+# 없다. 대가도 명시한다: 보정 표본이 48,889 -> 7,915라 등급별 실측의 CI가 약 2.5배
+# 넓어지고, 2023은 1~7월 7개월치 한 해뿐이라 계절 편중이 있다.
+#
+# 구조적 제약: 학습이 2022까지 가므로 5년 판정이 가능한 개업(<=2021-07)이 전부 학습에
+# 들어간다. **5년 horizon은 이 벤치에서 측정할 수 없고** LEGACY 벤치에서만 나온다.
+CONFIRMED_TRAIN_YEARS = FRESH_TRAIN_YEARS
+CONFIRMED_TEST_YEARS = FRESH_TEST_YEARS
 
 # --- Stage 2 outcome, re-decided under the decile criterion (2026-07-27) ------
 # Round 2 selected on AUC and adopted RandomForest (+0.0043, CI [+0.0022,
