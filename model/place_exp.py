@@ -63,12 +63,13 @@ def complete(panel, keys):
     return [dict(r) for r in panel if all(r.get(k) is not None for k in keys)]
 
 
-def cluster_boot(rows, cols, target, idx_of_interest, nboot=NBOOT, seed=SEED):
-    """지명째로 재표집해 관심 계수의 분포를 낸다."""
+def cluster_boot(rows, cols, target, idx_of_interest, nboot=NBOOT, seed=SEED,
+                 key="place"):
+    """클러스터(지명/법정동)째로 재표집해 관심 계수의 분포를 낸다."""
     rng = np.random.default_rng(seed)
     by_place = defaultdict(list)
     for i, r in enumerate(rows):
-        by_place[r["place"]].append(i)
+        by_place[r[key]].append(i)
     places = list(by_place)
     y = np.array([r[target] for r in rows], dtype=float)
     X, _ = design(rows, cols)
