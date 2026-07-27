@@ -138,8 +138,9 @@ export default function GridMap({
         id: "grid-fill",
         type: "fill",
         source: "grids",
-        // The ramp colors carry their own alpha (figma yellow heatmap steps).
-        paint: { "fill-color": ["get", "color"], "fill-opacity": 1 },
+        // Ramp colors carry their own alpha; the extra fill-opacity keeps
+        // roads/labels legible under dense grade-1 areas (UX critique).
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.85 },
       });
       m.addLayer({
         id: "grid-line",
@@ -200,7 +201,8 @@ export default function GridMap({
     const m = map.current;
     if (!m?.getLayer("grid-active")) return;
     m.setFilter("grid-active", ["==", ["get", "gridId"], hoveredId ?? selectedId ?? ""]);
-  }, [hoveredId, selectedId]);
+    // `ready` matters: cached selection can land before the style loads.
+  }, [hoveredId, selectedId, ready]);
 
   useEffect(() => {
     const m = map.current;
@@ -294,6 +296,17 @@ function Legend() {
 const emptyFc = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
 
 function toFc(cells: GridCell[]): FeatureCollection {
+  // One style lookup per update, not one per cell.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const ramp = new Map<number, string>();
+  const colorOf = (g: number) => {
+    let c = ramp.get(g);
+    if (!c) {
+      c = rootStyle.getPropertyValue(`--color-heatmap-${g}`).trim();
+      ramp.set(g, c);
+    }
+    return c;
+  };
   return {
     type: "FeatureCollection",
     features: cells.map((c) => ({
@@ -303,9 +316,7 @@ function toFc(cells: GridCell[]): FeatureCollection {
         gridId: c.gridId,
         grade: c.grade,
         // Read straight off the token ramp so map and badges never drift.
-        color: getComputedStyle(document.documentElement)
-          .getPropertyValue(`--color-heatmap-${c.grade}`)
-          .trim(),
+        color: colorOf(c.grade),
         cell: JSON.stringify(c),
       },
     })),

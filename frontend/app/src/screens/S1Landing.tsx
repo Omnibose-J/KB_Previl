@@ -4,8 +4,8 @@ import { api } from "../api/client";
 import type { Screen } from "../App";
 import Dropdown from "../components/Dropdown";
 import { useSearch } from "../state/search";
-import { FEATURES_6, PROVENANCE, SOURCES, TEAM } from "../copy";
-import { pct0 } from "../lib/format";
+import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
+import { int, pct0 } from "../lib/format";
 import s from "./S1Landing.module.css";
 
 // S1 landing, rebuilt 1:1 against figma-snapshot S1 (2026-07-27 direction:
@@ -109,6 +109,27 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           </button>
         </div>
 
+        {/* proof stats — the killer numbers, promoted out of body small-print
+            (UX critique #3). All live: provenance consts + meta(). */}
+        <div className={s.stats}>
+          <div className={s.stat}>
+            <strong>53.5만 건</strong>
+            <span>인허가 이력 ({PROVENANCE.recordSince})</span>
+          </div>
+          <i className={s.statDivider} />
+          <div className={s.stat}>
+            <strong>{meta.data ? int(meta.data.gridCount) : "…"}</strong>
+            <span>서울 100m 격자</span>
+          </div>
+          <i className={s.statDivider} />
+          <div className={s.stat}>
+            <strong>
+              {top && bottom ? `${pct0(top.survival)} vs ${pct0(bottom.survival)}` : "…"}
+            </strong>
+            <span>1등급·10등급 실측 3년 생존율</span>
+          </div>
+        </div>
+
         <p className={s.sources}>{SOURCES.join("  ·  ")}</p>
       </header>
 
@@ -145,9 +166,9 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <h2 className={s.h2}>뜬 상권이 아니라, 검증된 자리를 잡습니다</h2>
         </div>
         <div className={s.featGrid}>
-          {FEATURES_6.map((f, i) => (
+          {FEATURES_3.map((f, i) => (
             <div key={f.title} className={s.featCard}>
-              <span className={s.featNum}>{["①", "②", "③", "④", "⑤", "⑥"][i]}</span>
+              <span className={s.featNum}>{["①", "②", "③"][i]}</span>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
               {i === 0 && top && bottom ? (

@@ -356,3 +356,16 @@
   line-height: 20px;
   color: var(--fg-t5);
 }
+
+/* ---- responsive ---- */
+@media (max-width: 1024px) {
+  .body { grid-template-columns: 1fr; padding: 24px 20px 40px; gap: 20px; }
+  .side { position: static; }
+  .sheet { padding: 2px 20px; }
+}
+
+@media (max-width: 680px) {
+  .head h1 { font-size: 24px; line-height: 34px; }
+  .sliderValue { font-size: 16px; }
+  .sliderLabel em { display: none; }
+}

@@ -35,12 +35,17 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       setDebounced(null);
       return;
     }
+    // A half-typed asset row must never reach the valuation: an empty name /
+    // zero cost / zero life is not data, and the server 422s on gt=0 fields.
+    const complete = assets.filter(
+      (a) => a.name.trim() !== "" && a.acquisitionCost > 0 && a.usefulLifeYears > 0,
+    );
     const input: GoodwillInput = {
       gridId: d.gridId,
       uptae,
       askingGoodwill: asking!,
       leaseRemainingYears: leaseYears!,
-      ...(assets.length > 0 ? { assets } : {}),
+      ...(complete.length > 0 ? { assets: complete } : {}),
     };
     const t = setTimeout(() => setDebounced(input), DEBOUNCE_MS);
     return () => clearTimeout(t);
@@ -50,6 +55,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
     queryKey: ["goodwill", debounced],
     queryFn: () => api.goodwill(debounced!),
     enabled: debounced !== null,
+    placeholderData: (prev) => prev, // keep last real report during retyping
     retry: 0,
   });
 
@@ -73,7 +79,14 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       <div className={s.inputs}>
         <NumField label="권리금 호가" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
         <NumField label="임대차 잔여" required value={leaseYears} onChange={setLeaseYears} unit="년" placeholder="예: 3" />
-        <button className={s.addAsset} onClick={() => setAssets((a) => [...a, { name: "", acquisitionCost: 0, ageYears: 0, usefulLifeYears: 5 }])}>
+        <button
+          className={s.addAsset}
+          onClick={() =>
+            // Zeroed row on purpose: incomplete rows are excluded from the
+            // payload, so nothing invented ever reaches the server.
+            setAssets((a) => [...a, { name: "", acquisitionCost: 0, ageYears: 0, usefulLifeYears: 0 }])
+          }
+        >
           + 유형자산 추가
         </button>
       </div>
@@ -175,8 +188,8 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
             </tr>
           </thead>
           <tbody>
-            {r.tangibleAssets.map((a) => (
-              <tr key={a.name}>
+            {r.tangibleAssets.map((a, i) => (
+              <tr key={i}>
                 <td>{a.name || "이름 없음"}</td>
                 <td>{man(a.acquisitionCost)}</td>
                 <td>{pct1(a.residualRate)}</td>
@@ -228,33 +241,69 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
         </div>
       </dl>
 
-      {/* 민감도 표 */}
-      <div className={s.sens}>
-        <p className={s.sensTitle}>가정을 바꾸면</p>
-        <table className={s.sensTable}>
-          <thead>
-            <tr>
-              <th>영업이익률</th>
-              <th>산정 기간</th>
-              <th>할인율</th>
-              <th>추정 참고가</th>
-            </tr>
-          </thead>
-          <tbody>
-            {r.sensitivity.map((row, i) => (
-              <tr key={i}>
-                <td>{pct1(row.operatingMargin)}</td>
-                <td>{int(row.years)}년</td>
-                <td>{pct1(row.discountRate)}</td>
-                <td>{man(row.estimatedGoodwill)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SensitivityPivot r={r} />
 
       <p className={s.notice}>{r.notice}</p>
     </>
+  );
+}
+
+/** 27 combinations pivoted to a 3×3 matrix (margin × discount) with a year
+ *  toggle — every value stays reachable, nothing is dropped, but the table
+ *  reads in one glance instead of 27 rows. The served combination is marked. */
+function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse }) {
+  const margins = [...new Set(r.sensitivity.map((x) => x.operatingMargin))].sort((a, b) => a - b);
+  const rates = [...new Set(r.sensitivity.map((x) => x.discountRate))].sort((a, b) => a - b);
+  const years = [...new Set(r.sensitivity.map((x) => x.years))].sort((a, b) => a - b);
+  const [yr, setYr] = useState<number | null>(null);
+  const y = yr !== null && years.includes(yr) ? yr : years.includes(r.valuationYears) ? r.valuationYears : years[Math.floor(years.length / 2)];
+
+  if (r.sensitivity.length === 0) return null;
+
+  const cell = (m: number, dr: number) =>
+    r.sensitivity.find((x) => x.operatingMargin === m && x.discountRate === dr && x.years === y) ?? null;
+
+  return (
+    <div className={s.sens}>
+      <div className={s.sensHead}>
+        <p className={s.sensTitle}>가정을 바꾸면</p>
+        <div className={s.yearChips}>
+          {years.map((v) => (
+            <button key={v} className={v === y ? s.yearOn : s.year} onClick={() => setYr(v)}>
+              {int(v)}년
+            </button>
+          ))}
+        </div>
+      </div>
+      <table className={s.sensTable}>
+        <thead>
+          <tr>
+            <th>영업이익률 ↓ / 할인율 →</th>
+            {rates.map((dr) => (
+              <th key={dr}>{pct1(dr)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {margins.map((m) => (
+            <tr key={m}>
+              <td>{pct1(m)}</td>
+              {rates.map((dr) => {
+                const c = cell(m, dr);
+                const served =
+                  m === r.operatingMargin && dr === r.discountRate && y === r.valuationYears;
+                return (
+                  <td key={dr} className={served ? s.sensOn : undefined}>
+                    {c ? man(c.estimatedGoodwill) : "—"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className={s.sensCap}>산정 기간 {int(y)}년 기준 · 굵은 칸이 이 리포트의 가정</p>
+    </div>
   );
 }
 

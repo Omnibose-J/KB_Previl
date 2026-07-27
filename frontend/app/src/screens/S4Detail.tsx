@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
@@ -94,8 +95,15 @@ export default function S4Detail({
   );
 }
 
+// One question per view (ui-spec §0 원칙 1): the report is split into three
+// tabs — 평가(what is this spot) / 손익·권리금(what does it cost me) /
+// 실측 데이터(the evidence tables). Panels stay MOUNTED (hidden attr) so tab
+// switches never wipe user inputs or refetch queries.
+type Tab = "evalTab" | "moneyTab" | "dataTab";
+
 function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae: string }) {
   const search = useSearch();
+  const [tab, setTab] = useState<Tab>("evalTab");
   const report = useQuery({
     queryKey: ["report", d.gridId, uptae],
     queryFn: () => api.report(d.gridId, uptae),
@@ -136,6 +144,19 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
       <main className={s.body}>
         <div className={s.main}>
+          <nav className={s.tabBar} aria-label="리포트 구역">
+            <button className={tab === "evalTab" ? s.tabOn : s.tab} onClick={() => setTab("evalTab")}>
+              입지 평가
+            </button>
+            <button className={tab === "moneyTab" ? s.tabOn : s.tab} onClick={() => setTab("moneyTab")}>
+              손익·권리금
+            </button>
+            <button className={tab === "dataTab" ? s.tabOn : s.tab} onClick={() => setTab("dataTab")}>
+              실측 데이터
+            </button>
+          </nav>
+
+          <div className={s.panel} hidden={tab !== "evalTab"}>
           {/* ── KPI row ──────────────────────────────────────────── */}
           <div className={s.kpis}>
             <div className={s.kpi}>
@@ -187,19 +208,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </span>
             </div>
           </div>
-
-          {/* ── economics (centrepiece) ──────────────────────────── */}
-          <EconomicsCard
-            gridId={d.gridId}
-            uptae={uptae}
-            grade={d.grade}
-            rentMonthly={search.rentMonthly}
-            upfront={search.upfront}
-            onBudgetChange={(patch) => search.set(patch)}
-          />
-
-          {/* ── 권리금 협상 리포트 (goodwill-report-design §8-C) ──── */}
-          <GoodwillCard d={d} uptae={uptae} />
 
           {/* ── why this grid: honest comparisons ────────────────── */}
           <section className={s.card}>
@@ -307,7 +315,24 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </div>
             </section>
           </div>
+          </div>
 
+          <div className={s.panel} hidden={tab !== "moneyTab"}>
+          {/* ── economics (centrepiece) ──────────────────────────── */}
+          <EconomicsCard
+            gridId={d.gridId}
+            uptae={uptae}
+            grade={d.grade}
+            rentMonthly={search.rentMonthly}
+            upfront={search.upfront}
+            onBudgetChange={(patch) => search.set(patch)}
+          />
+
+          {/* ── 권리금 협상 리포트 (goodwill-report-design §8-C) ──── */}
+          <GoodwillCard d={d} uptae={uptae} />
+          </div>
+
+          <div className={s.panel} hidden={tab !== "dataTab"}>
           {/* ── observed by grade (figma 매물 slot → real table) ──── */}
           <section className={s.card}>
             <div className={s.cardHead}>
@@ -331,7 +356,14 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                         {g.grade}등급
                         {g.grade === d.grade ? <span className={s.rowTag}>이 자리</span> : null}
                       </td>
-                      <td>{pct1(g.survival)}</td>
+                      <td>
+                        {/* inline bar: the 75%→29% cliff should be visible,
+                            not just legible (UX critique) */}
+                        <span className={s.pctBar}>
+                          <i style={{ width: `${Math.round(g.survival * 130)}px` }} />
+                          <em>{pct1(g.survival)}</em>
+                        </span>
+                      </td>
                       <td>{g.n !== null ? int(g.n) : "산출 대기"}</td>
                       <td>
                         {g.ciLow !== null && g.ciHigh !== null
@@ -402,6 +434,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               <p className={s.tableFoot}>검증 기준 {meta.gradeArea.bench}</p>
             </section>
           ) : null}
+          </div>
         </div>
 
         {/* ── sidebar ──────────────────────────────────────────────── */}

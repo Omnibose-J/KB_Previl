@@ -99,3 +99,11 @@
   background: var(--fg-chipline);
   margin-left: 10px;
 }
+
+/* ---- responsive ---- */
+@media (max-width: 680px) {
+  .nav { padding: 12px 16px; }
+  .stepLabel { display: none; }
+  .stepTick { width: 12px; margin-left: 4px; }
+  .right { min-width: 0; }
+}

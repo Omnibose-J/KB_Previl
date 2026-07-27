@@ -287,3 +287,17 @@ button.wCtl:disabled {
   font-size: 14px;
   font-weight: 700;
 }
+
+/* ---- responsive ---- */
+@media (max-width: 1024px) {
+  .body { grid-template-columns: 1fr; padding: 16px 16px 28px; }
+  .mapPanel { position: static; order: -1; }
+  .mapBox { height: 380px; }
+  .condPill { display: none; }
+}
+
+@media (max-width: 680px) {
+  .whatifRow { grid-template-columns: 1fr; }
+  .rankTitle { font-size: 19px; }
+  .mapHead { flex-wrap: wrap; }
+}

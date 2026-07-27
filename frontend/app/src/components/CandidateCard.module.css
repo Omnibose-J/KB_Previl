@@ -33,9 +33,61 @@
 
 .top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* the one big number per card */
+.bigStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+
+.bigStat strong {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--fg-ink);
+}
+
+.bigStat span {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+.bigStatMissing {
+  font-size: 12px;
+  color: var(--fg-t7);
+}
+
+/* labelled micro stats replace the dot-joined evidence line */
+.micro {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--fg-line3);
+}
+
+.mi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mi span {
+  font-size: 10px;
+  color: var(--fg-t7);
+}
+
+.mi strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
 }
 
 .ti {
@@ -85,8 +137,8 @@
 .pills {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: none;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .pillGreen,
@@ -123,25 +175,6 @@
   color: var(--fg-t5);
   font-size: 11px;
   font-weight: 700;
-}
-
-/* evidence line */
-.evidence {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 20px;
-  color: var(--fg-t4);
-  flex-wrap: wrap;
-  padding-top: 12px;
-  border-top: 1px solid var(--fg-line3);
-}
-
-.evidence > strong {
-  font-weight: 700;
-  color: var(--fg-t6);
-  flex: none;
 }
 
 .open {

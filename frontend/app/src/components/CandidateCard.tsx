@@ -47,26 +47,46 @@ export default function CandidateCard({
             <p className={s.anchor}>
               {cell.district ?? "자치구 미상"}
               {cell.nearestStation ? ` · ${stationAnchor(cell.nearestStation)}` : ""}
-              {" · 100m 격자"}
             </p>
+            <div className={s.pills}>
+              <Signal cell={cell} />
+              {cell.confidence === "partial" ? <span className={s.pillGray}>상권 밖</span> : null}
+              <span className={s.gradePill}>{cell.grade}등급</span>
+            </div>
           </div>
         </div>
-        <div className={s.pills}>
-          <Signal cell={cell} />
-          {cell.confidence === "partial" ? <span className={s.pillGray}>상권 밖</span> : null}
-          {/* "상위 n%" is banned — decile boundaries are holdout-absolute
-              (serving-design §3). The honest companion number is the observed
-              survival of this grade. */}
-          <span className={s.gradePill}>
-            {cell.grade}등급 · 실측 {pct0(cell.observedSurvival)}
-          </span>
+        {/* The card's ONE big number: this grid's own neighbourhood record —
+            it varies card to card, unlike the grade observed rate (UX critique:
+            two competing percents; the grade rate moved to the micro stats). */}
+        <div className={s.bigStat}>
+          {cell.areaSurvival.rate !== null ? (
+            <>
+              <strong>{pct1(cell.areaSurvival.rate)}</strong>
+              <span>
+                이웃 3년 생존율
+                {cell.areaSurvival.sample !== null ? ` · 표본 ${int(cell.areaSurvival.sample)}` : ""}
+              </span>
+            </>
+          ) : (
+            <span className={s.bigStatMissing}>이웃 생존율 정보 없음</span>
+          )}
         </div>
       </div>
 
-      <p className={s.evidence}>
-        <strong>근거</strong>
-        {"  "}
-        {evidenceLine(cell)}
+      <div className={s.micro}>
+        <Micro label="등급 실측 생존율" value={pct0(cell.observedSurvival)} />
+        <Micro
+          label="영업 점포"
+          value={cell.competition.shopsHere !== null ? `${int(cell.competition.shopsHere)}곳` : null}
+        />
+        <Micro
+          label="누적 개업"
+          value={cell.competition.openingsTotal !== null ? int(cell.competition.openingsTotal) : null}
+        />
+        <Micro
+          label="역까지"
+          value={cell.nearestStation?.distanceM != null ? meters(cell.nearestStation.distanceM) : null}
+        />
         <button
           className={s.open}
           onClick={(e) => {
@@ -76,26 +96,18 @@ export default function CandidateCard({
         >
           상세 리포트 →
         </button>
-      </p>
+      </div>
     </li>
   );
 }
 
-/** Real-data evidence, every value from the payload; NULL fields are simply
- *  omitted (never 0, never substituted). */
-function evidenceLine(cell: GridDetail): string {
-  const parts: string[] = [];
-  if (cell.competition.shopsHere !== null) parts.push(`영업 점포 ${int(cell.competition.shopsHere)}`);
-  if (cell.competition.openingsTotal !== null)
-    parts.push(`누적 개업 ${int(cell.competition.openingsTotal)}`);
-  if (cell.areaSurvival.rate !== null)
-    parts.push(
-      `이웃 생존율 ${pct1(cell.areaSurvival.rate)}${
-        cell.areaSurvival.sample !== null ? ` (표본 ${int(cell.areaSurvival.sample)})` : ""
-      }`,
-    );
-  if (cell.nearestStation?.distanceM != null) parts.push(`역까지 ${meters(cell.nearestStation.distanceM)}`);
-  return parts.length > 0 ? parts.join(" · ") : "표시할 실측 근거 없음";
+function Micro({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className={s.mi}>
+      <span>{label}</span>
+      <strong>{value ?? "정보 없음"}</strong>
+    </div>
+  );
 }
 
 /**

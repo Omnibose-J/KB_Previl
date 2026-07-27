@@ -74,18 +74,19 @@
   --fg-font: "KBFG Text", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --fg-font-kb: "KBFG Text", "Noto Sans KR", sans-serif;
 
-  /* grade ramp override: figma heatmap = brand yellow, alpha-stepped, discrete.
-     grade 1 = best = strongest. GridMap + badges read these vars. */
-  --color-heatmap-1: rgba(255, 188, 0, 0.95);
-  --color-heatmap-2: rgba(255, 188, 0, 0.85);
-  --color-heatmap-3: rgba(255, 188, 0, 0.74);
-  --color-heatmap-4: rgba(255, 188, 0, 0.63);
-  --color-heatmap-5: rgba(255, 188, 0, 0.53);
-  --color-heatmap-6: rgba(255, 188, 0, 0.43);
-  --color-heatmap-7: rgba(255, 188, 0, 0.34);
-  --color-heatmap-8: rgba(255, 188, 0, 0.26);
-  --color-heatmap-9: rgba(255, 188, 0, 0.18);
-  --color-heatmap-10: rgba(255, 188, 0, 0.12);
+  /* grade ramp: amber sequential, hue + alpha stepped so adjacent grades are
+     actually distinguishable on the map (single-alpha yellow read as one tone
+     in grade-1-dense districts). grade 1 = best = deepest. */
+  --color-heatmap-1: rgba(202, 108, 0, 0.9);
+  --color-heatmap-2: rgba(226, 132, 0, 0.82);
+  --color-heatmap-3: rgba(245, 158, 0, 0.74);
+  --color-heatmap-4: rgba(255, 180, 0, 0.64);
+  --color-heatmap-5: rgba(255, 196, 26, 0.55);
+  --color-heatmap-6: rgba(255, 208, 70, 0.46);
+  --color-heatmap-7: rgba(255, 219, 112, 0.38);
+  --color-heatmap-8: rgba(255, 229, 150, 0.3);
+  --color-heatmap-9: rgba(255, 238, 186, 0.24);
+  --color-heatmap-10: rgba(255, 245, 214, 0.18);
   --color-heatmap-null: #c9c6c0;
 }
 
@@ -100,9 +101,9 @@ body {
   font-weight: 300;
   color: var(--fg-ink);
   background: var(--fg-paper);
-  /* 1440-design demo, but the scrollbar eats ~15px of the viewport: the frame
-     tolerates that shrink instead of clipping the right column. */
-  min-width: 1280px;
+  /* Responsive since 2026-07-27 (owner call, supersedes ui-spec §5 1440-fixed):
+     1440 design frame, fluid down to phones via per-screen media queries. */
+  min-width: 320px;
   -webkit-font-smoothing: antialiased;
   /* KBFG ships Light+Medium only — block synthetic bold on the brand face.
      Noto provides real 700/900 so headings keep their weight. */

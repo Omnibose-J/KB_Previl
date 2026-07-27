@@ -40,12 +40,21 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const candidateIds = useMemo(() => q.data?.items.map((c) => c.gridId) ?? [], [q.data]);
   const top = q.data?.items[0];
+  const topId = top?.gridId;
   useEffect(() => {
     if (top) {
       setFocus(top.center);
       setSelectedId((cur) => cur ?? top.gridId);
     }
-  }, [top]);
+    // Key on the id, not the object: a refetch returning the same top grid
+    // must not re-fly and yank the user's viewport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topId]);
+
+  // What-if 업종 변경: the old selection belongs to another ranking.
+  useEffect(() => {
+    setSelectedId(null);
+  }, [uptae]);
 
   const pins: MapPin[] = useMemo(
     () =>
@@ -134,11 +143,15 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
             <div className={s.whatifRow}>
               <div className={s.wCtl}>
                 <span className={s.wTitle}>업종 변경</span>
+                {/* No [uptae] fallback: a meta failure must look failed, not
+                    like a working 1-option control (fail-loud rule). */}
                 <Dropdown
                   dark
-                  options={(meta.data?.uptae ?? [uptae]).map((u) => ({ value: u, label: u }))}
+                  options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: u }))}
                   value={uptae}
+                  display={uptae}
                   placeholder="업태"
+                  emptyNote={meta.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
                   onSelect={(v) => search.set({ uptae: v })}
                 />
                 <span className={s.wSub}>

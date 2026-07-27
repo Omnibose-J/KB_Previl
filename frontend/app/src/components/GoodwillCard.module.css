@@ -370,14 +370,70 @@
   gap: 8px;
 }
 
+.sensHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .sensTitle {
   font-size: 13px;
   font-weight: 700;
   color: var(--fg-t2);
 }
 
+.yearChips {
+  display: flex;
+  gap: 6px;
+}
+
+.year,
+.yearOn {
+  padding: 5px 12px;
+  border: 1px solid var(--fg-chipline);
+  border-radius: 100px;
+  background: var(--fg-card);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t3);
+}
+
+.yearOn {
+  background: var(--fg-dark);
+  border-color: var(--fg-dark);
+  color: var(--fg-y);
+  font-weight: 700;
+}
+
+.sensOn {
+  font-weight: 700 !important;
+  color: var(--fg-ink) !important;
+  background: var(--fg-y-bg);
+}
+
+.sensCap {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
 .notice {
   font-size: 11px;
   line-height: 18px;
   color: var(--fg-t6);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1024px) {
+  .inputs { flex-wrap: wrap; }
+  .field { flex: 1 1 160px; min-width: 0; }
+}
+
+@media (max-width: 680px) {
+  .gapRow { grid-template-columns: 1fr; gap: 12px; }
+  .gapRow > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); padding-top: 12px; }
+  .assetRow { flex-wrap: wrap; }
+  .basis > div { grid-template-columns: 1fr; gap: 3px; }
+  .sensHead { flex-wrap: wrap; }
+  .sensTable, .assetTable { display: block; overflow-x: auto; }
 }

@@ -189,6 +189,46 @@
   padding: 6px 32px;
 }
 
+/* report tabs — one question per view */
+.tabBar {
+  display: flex;
+  gap: 6px;
+  padding: 18px 0 14px;
+  border-bottom: 1px solid var(--fg-line);
+}
+
+.tab,
+.tabOn {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--fg-wash);
+  color: #6a6a6a;
+}
+
+.tabOn {
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-weight: 700;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+/* first section inside a panel needs no divider — the tab bar already is one */
+.panel > .card:first-child,
+.panel > section:first-child {
+  border-top: 0;
+}
+
 /* KPI row — open stats split by vertical hairlines */
 .kpis {
   display: grid;
@@ -590,6 +630,25 @@
   color: var(--fg-t7);
 }
 
+/* inline percentage bar inside the grade table */
+.pctBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pctBar i {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--fg-y);
+  flex: none;
+}
+
+.pctBar em {
+  font-style: normal;
+}
+
 /* ── sidebar ─────────────────────────────────────── */
 .side {
   display: flex;
@@ -732,4 +791,32 @@
 .dataFoot {
   font-size: 10px;
   color: var(--fg-t7);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1024px) {
+  .body { grid-template-columns: 1fr; padding: 20px 16px 32px; }
+  .side { position: static; }
+  .main { padding: 4px 20px; }
+  .hero { flex-wrap: wrap; padding: 24px 20px; gap: 16px; }
+  .heroTitle { font-size: 28px; line-height: 38px; }
+  .heroGrade { align-items: flex-start; }
+  .pair { grid-template-columns: 1fr; gap: 0; }
+  .pair > .card:nth-child(2) { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); }
+  .crumb { padding: 12px 16px; }
+}
+
+@media (max-width: 680px) {
+  .kpis { grid-template-columns: 1fr; gap: 14px; }
+  .kpi + .kpi { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); padding-top: 14px; }
+  .table { display: block; overflow-x: auto; }
+  .tabBar { overflow-x: auto; }
+  .heroPills { flex-wrap: wrap; }
+  .crumbPath { white-space: normal; }
+}
+
+@media (max-width: 680px) {
+  .barRow { grid-template-columns: 64px 1fr 84px; gap: 8px; }
+  .barValue { font-size: 12px; }
+  .barName { font-size: 11px; }
 }

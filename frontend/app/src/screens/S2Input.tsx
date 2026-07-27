@@ -40,40 +40,12 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
           </header>
 
           <div className={s.sheet}>
-          {/* STEP 1 · 예산 */}
+          {/* STEP 1 · 업종 — the only required input comes first (UX critique:
+              the old budget-first order contradicted "업종만 필수" copy) */}
           <section className={s.step}>
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
-                <span className={s.stepTag}>STEP 1 (선택)</span>
-                <h2>창업 예산</h2>
-              </div>
-              <p>손익 계산에만 쓰입니다. 추천 순위에는 반영되지 않습니다.</p>
-            </div>
-            <BudgetSlider
-              label="초기투자 총액"
-              hint="보증금 + 권리금 + 인테리어 합산"
-              cfg={UPFRONT}
-              value={search.upfront}
-              onChange={(v) => search.set({ upfront: v })}
-              format={(v) => `${int(v)}만 원`}
-              rangeLabel={["0", "2억"]}
-            />
-            <BudgetSlider
-              label="월 임대료"
-              hint=""
-              cfg={RENT}
-              value={search.rentMonthly}
-              onChange={(v) => search.set({ rentMonthly: v })}
-              format={(v) => `${int(v)}만 원`}
-              rangeLabel={["0", "600만"]}
-            />
-          </section>
-
-          {/* STEP 2 · 업종 */}
-          <section className={s.step}>
-            <div className={s.boxHead}>
-              <div className={s.boxTitleRow}>
-                <span className={s.stepTag}>STEP 2</span>
+                <span className={s.stepTag}>STEP 1</span>
                 <h2>업종</h2>
               </div>
               <p>업태마다 등급을 따로 사전계산했습니다.</p>
@@ -112,11 +84,11 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             )}
           </section>
 
-          {/* STEP 3 · 범위 */}
+          {/* STEP 2 · 범위 */}
           <section className={s.step}>
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
-                <span className={s.stepTag}>STEP 3</span>
+                <span className={s.stepTag}>STEP 2</span>
                 <h2>희망 범위</h2>
               </div>
               <p>여러 곳을 함께 고를 수 있습니다.</p>
@@ -140,6 +112,35 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 ))}
               </div>
             ) : null}
+          </section>
+
+          {/* STEP 3 · 예산 (선택) — optional inputs go last */}
+          <section className={s.step}>
+            <div className={s.boxHead}>
+              <div className={s.boxTitleRow}>
+                <span className={s.stepTag}>STEP 3 (선택)</span>
+                <h2>창업 예산</h2>
+              </div>
+              <p>손익 계산에만 쓰입니다. 추천 순위에는 반영되지 않습니다.</p>
+            </div>
+            <BudgetSlider
+              label="초기투자 총액"
+              hint="보증금 + 권리금 + 인테리어 합산"
+              cfg={UPFRONT}
+              value={search.upfront}
+              onChange={(v) => search.set({ upfront: v })}
+              format={(v) => `${int(v)}만 원`}
+              rangeLabel={["0", "2억"]}
+            />
+            <BudgetSlider
+              label="월 임대료"
+              hint=""
+              cfg={RENT}
+              value={search.rentMonthly}
+              onChange={(v) => search.set({ rentMonthly: v })}
+              format={(v) => `${int(v)}만 원`}
+              rangeLabel={["0", "600만"]}
+            />
           </section>
           </div>
         </div>

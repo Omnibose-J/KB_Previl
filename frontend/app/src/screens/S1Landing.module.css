@@ -205,6 +205,39 @@ select.fieldEmpty {
   box-shadow: none;
 }
 
+/* proof stats row */
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 10px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.stat strong {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 32px;
+}
+
+.stat span {
+  font-size: 12px;
+  color: var(--fg-dt3);
+}
+
+.statDivider {
+  width: 1px;
+  height: 34px;
+  background: var(--fg-dark-line);
+}
+
 .sources {
   font-size: 12px;
   color: var(--fg-dt4);
@@ -288,11 +321,11 @@ select.fieldEmpty {
   padding: 88px 64px;
 }
 
-/* two-column editorial list, hairline-separated — not six identical boxes. */
+/* three distinct claims, hairline-topped editorial columns. */
 .featGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0 72px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 48px;
 }
 
 .featCard {
@@ -447,4 +480,37 @@ select.fieldEmpty {
 
 .footNote {
   color: var(--fg-dt5);
+}
+
+/* ---- responsive (owner call 2026-07-27; supersedes 1440-fixed) ---- */
+@media (max-width: 1024px) {
+  .nav { padding: 16px 24px; }
+  .menu { gap: 18px; }
+  .hero { padding: 56px 24px 48px; }
+  .h1 { font-size: 38px; line-height: 50px; }
+  .searchCard { width: 100%; }
+  .why, .what, .differs, .cta { padding: 48px 24px; }
+  .whyCards { grid-template-columns: 1fr; gap: 24px; }
+  .featGrid { grid-template-columns: 1fr; gap: 0; }
+  .footer { padding: 24px; }
+}
+
+@media (max-width: 680px) {
+  .menu { display: none; }
+  .h1 { font-size: 28px; line-height: 38px; }
+  .sub { font-size: 14px; line-height: 24px; }
+  .searchCard { flex-direction: column; align-items: stretch; padding: 10px; }
+  .fieldDivider { display: none; }
+  .field { padding: 10px 12px; border-bottom: 1px solid var(--fg-divider); }
+  .searchBtn { width: 100%; padding: 15px 0; }
+  .stats { flex-wrap: wrap; justify-content: center; gap: 14px 20px; }
+  .stat strong { font-size: 19px; line-height: 24px; }
+  .statDivider { display: none; }
+  .sources { padding: 0 8px; text-align: center; }
+  .h2 { font-size: 23px; line-height: 32px; }
+  .tHead { display: none; }
+  .tHead, .tRow { padding: 14px 16px; }
+  .tRow { grid-template-columns: 1fr; gap: 4px; }
+  .ctaH { font-size: 24px; line-height: 34px; }
+  .footer { flex-direction: column; gap: 8px; text-align: center; }
 }
