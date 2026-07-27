@@ -34,7 +34,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       <nav className={s.nav}>
         <div className={s.logo}>
           <span className={s.mark}>P</span>
-          <span className={s.wordmark}>Previl</span>
+          <span className={s.wordmark}>KB Previl</span>
         </div>
         <div className={s.menu}>
           <button onClick={() => scrollTo(why)}>상권 찾기</button>
@@ -178,7 +178,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <div className={s.tHead}>
             <span>축</span>
             <span>KB bridge 상권분석</span>
-            <span className={s.tOurs}>Previl (본 서비스)</span>
+            <span className={s.tOurs}>KB Previl (본 서비스)</span>
           </div>
           {DIFF_ROWS(meta.data?.uptae.length ?? null).map(([axis, theirs, ours]) => (
             <div key={axis} className={s.tRow}>
@@ -201,7 +201,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Footer (dark) ────────────────────────────────────────────── */}
       <footer className={s.footer}>
         <span>
-          Previl · AI 상권·입지 참모&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
+          KB Previl · AI 상권·입지 참모&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
         </span>
         <span className={s.footNote}>
           본 서비스의 등급은 과거 데이터 기반 참고 정보이며 최종 판단은 사용자에게 있습니다.

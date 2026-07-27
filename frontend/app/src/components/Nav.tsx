@@ -22,7 +22,7 @@ export default function Nav({
     <nav className={s.nav}>
       <button className={s.logo} onClick={onHome} aria-label="처음으로">
         <span className={s.mark}>P</span>
-        <span className={s.wordmark}>Previl</span>
+        <span className={s.wordmark}>KB Previl</span>
       </button>
       {/* center wins over step: a screen that supplies its own center content
           (S3's condition pill) must not have it silently swallowed. */}
