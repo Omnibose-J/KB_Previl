@@ -140,12 +140,16 @@ button.wCtl:disabled {
 
 .wSelect {
   border: 0;
-  background: none;
   color: var(--fg-y);
   font-size: 12px;
   font-weight: 700;
-  padding: 0;
+  padding: 0 18px 0 0;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M1 1.5 5 5.5 9 1.5' fill='none' stroke='%238A837A' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat right 2px center;
+  cursor: pointer;
 }
 
 .wSelect option {

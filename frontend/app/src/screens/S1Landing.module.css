@@ -175,18 +175,6 @@ select.fieldEmpty {
   color: var(--fg-t8);
 }
 
-/* strip number-input spinners — they scream "raw form control" */
-.moneyRow input::-webkit-outer-spin-button,
-.moneyRow input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.moneyRow input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
 .fieldDivider {
   width: 1px;
   height: 36px;

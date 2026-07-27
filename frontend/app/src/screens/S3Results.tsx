@@ -163,7 +163,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                     className={s.wInput}
                     type="number"
                     min={0}
-                    placeholder="미입력"
+                    placeholder="예: 250"
                     value={rentMonthly ?? ""}
                     onChange={(e) =>
                       search.set({ rentMonthly: e.target.value === "" ? null : Number(e.target.value) })

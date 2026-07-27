@@ -129,6 +129,19 @@ select {
   font-family: inherit;
 }
 
+/* Native number spinners read as raw form controls — stripped app-wide.
+   Selects keep their behavior; each styled select draws its own chevron. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 ul {
   margin: 0;
   padding: 0;

@@ -74,12 +74,14 @@ export default function EconomicsCard({
           label="월 임대료"
           value={rentMonthly}
           onChange={(v) => onBudgetChange({ rentMonthly: v })}
+          placeholder="예: 250"
           required
         />
         <Field
           label="초기투자 총액"
           value={upfront}
           onChange={(v) => onBudgetChange({ upfront: v })}
+          placeholder="예: 8,000"
           required
         />
         <Field label="월 예상매출" value={revenue} onChange={setRevenue} placeholder="비워두면 서울 평균" />
