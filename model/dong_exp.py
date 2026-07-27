@@ -15,7 +15,7 @@ import sys
 
 import numpy as np
 
-from model.dong import K, build
+from model.dong import FOOD_USE, K, build
 from model.place_exp import (FDR_Q, NBOOT, NPLACEBO, cluster_boot, design,
                              fmt_ci, loyo_r2, ols, placebo_p, zscore)
 from pipeline.config import DB_PATH
@@ -26,9 +26,17 @@ BASE = ["past_price_growth", "size", "past_inflow"]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--top", type=int, default=12)
+    ap.add_argument("--food-use", action="store_true",
+                    help="근린생활시설 거래만 (사후 추가 — 탐색용)")
     a = ap.parse_args()
 
-    panel, miss = build()
+    if a.food_use:
+        print("=" * 60)
+        print("[탐색] 건물 용도를 근린생활시설로 제한한 버전.")
+        print("§F-5-4 는 '전체 용도'로 등록했고 이 필터는 결과를 본 뒤 추가됐다.")
+        print("사전 등록된 D2 의 판정(기각)은 이것으로 바뀌지 않는다.")
+        print("=" * 60)
+    panel, miss = build(uses=FOOD_USE if a.food_use else None)
     print(f"패널 {len(panel):,}행 · 법정동 {len({r['dong'] for r in panel})} "
           f"· 주소 파싱 실패 {miss:,}")
     if len(panel) < 100:
@@ -120,6 +128,13 @@ def main():
         print("  없음 — 보정 후 살아남는 컨셉이 없다.")
 
     print("\n" + "=" * 60)
+    if a.food_use:
+        print(f"[탐색] 근린생활 한정: FDR 통과 {len(passed)}개"
+              f"{' · 위약 PASS' if ok else ''}")
+        print("사전 등록이 아니므로 근거가 아니라 가설이다. 그리고 이 실행은")
+        print("사전 등록된 D2 의 판정을 바꾸지 않는다 — 확인하려면 별도 등록이")
+        print("필요하다(§B-2 에서 2019 코호트를 다룬 방식과 같다).")
+        return 0
     print(f"D2 판정: {'채택' if ok else '기각'}"
           f"   (FDR 통과 {len(passed)}개"
           f"{' · 위약 PASS' if ok else ''})")

@@ -39,7 +39,13 @@ def _ym(y, m):
     return y * 12 + (m or 6)
 
 
-def build(con=None):
+# 요식업이 들어가는 건물 용도. §F-5-4 는 "전체 용도를 쓰고 잔여 교란은 한계로
+# 기록"으로 등록했으므로 기본값은 필터 없음(None)이다. 이 필터를 켠 결과는
+# **사후 추가**이며 탐색으로만 표기한다 — 사전 등록된 D2 의 판정은 바뀌지 않는다.
+FOOD_USE = ("제1종근린생활", "제2종근린생활")
+
+
+def build(con=None, uses=None):
     own = con is None
     if own:
         con = sqlite3.connect(DB_PATH)
@@ -63,9 +69,11 @@ def build(con=None):
 
     # --- 실거래: ㎡당 단가
     deals = defaultdict(list)          # (구,동) -> [(deal_ym, 만원/㎡)]
-    for sgg_cd, umd, dym, amt, area in con.execute(
-            "SELECT sgg_cd, umd_nm, deal_ym, amount, area FROM realprice "
-            "WHERE amount IS NOT NULL AND area IS NOT NULL AND area > 0"):
+    q = ("SELECT sgg_cd, umd_nm, deal_ym, amount, area, bldg_use FROM realprice "
+         "WHERE amount IS NOT NULL AND area IS NOT NULL AND area > 0")
+    for sgg_cd, umd, dym, amt, area, use in con.execute(q):
+        if uses and (use or "").strip() not in uses:
+            continue
         gu = SGG.get(sgg_cd)
         if not gu or not umd:
             continue
@@ -147,4 +155,8 @@ def summary(panel, miss):
 
 
 if __name__ == "__main__":
-    summary(*build())
+    import sys
+    uses = FOOD_USE if "--food-use" in sys.argv else None
+    if uses:
+        print(f"[사후 필터] 건물 용도 {uses} 만 사용 — 탐색용이다")
+    summary(*build(uses=uses))
