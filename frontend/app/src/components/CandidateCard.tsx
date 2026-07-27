@@ -51,8 +51,11 @@ export default function CandidateCard({
         </div>
         <div className={s.pills}>
           <Signal cell={cell} />
+          {/* "상위 n%" is banned — decile boundaries are holdout-absolute
+              (serving-design §3). The honest companion number is the observed
+              survival of this grade. */}
           <span className={s.gradePill}>
-            {cell.grade}등급 · 상위 {cell.grade * 10}%
+            {cell.grade}등급 · 실측 {pct0(cell.observedSurvival)}
           </span>
         </div>
       </div>

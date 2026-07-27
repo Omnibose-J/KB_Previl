@@ -17,6 +17,35 @@
   padding: 120px 0;
 }
 
+/* 404 "평가 대상 밖" — a calm answer, deliberately not error-styled */
+.unrated {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+  padding: 28px 32px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+}
+
+.unrated strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.unrated p {
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--fg-t4);
+}
+
+.unratedNote {
+  color: var(--fg-t6) !important;
+  font-size: 12px !important;
+}
+
 /* ── breadcrumb bar ──────────────────────────────── */
 .crumb {
   display: flex;

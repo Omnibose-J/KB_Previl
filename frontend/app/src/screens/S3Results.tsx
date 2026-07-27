@@ -203,17 +203,10 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         <aside className={s.mapPanel}>
           <header className={s.mapHead}>
             <h2 className={s.mapTitle}>입지 등급 히트맵</h2>
+            {/* Extra tabs (경쟁·지역 생존율·수요) return when /grids carries
+                their metrics — a disabled placeholder tab is dead chrome. */}
             <div className={s.tabs}>
               <button className={s.tabOn}>입지 등급</button>
-              <button className={s.tab} disabled title="P1 준비 중 — 격자 응답에 경쟁 지표가 실리면 열립니다">
-                경쟁 밀도
-              </button>
-              <button className={s.tab} disabled title="P1 준비 중">
-                지역 생존율
-              </button>
-              <button className={s.tab} disabled title="P1 준비 중 (행정동 단위)">
-                수요
-              </button>
             </div>
           </header>
           <div className={s.mapBox}>

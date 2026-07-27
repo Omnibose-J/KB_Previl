@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import EconomicsCard from "../components/EconomicsCard";
 import { ErrorState, Loading } from "../components/states";
@@ -72,6 +72,16 @@ export default function S4Detail({
         <div className={s.pad}>
           <Loading label="격자 정보를 불러오는 중…" />
         </div>
+      ) : detail.error instanceof ApiError && detail.error.status === 404 ? (
+        /* "평가 불가" is an ANSWER, not a failure (serving-design §5-7/§7):
+           no retry button, no error styling. */
+        <div className={s.pad}>
+          <div className={s.unrated} role="status">
+            <strong>이 격자는 평가하지 않았습니다</strong>
+            <p>{detail.error.detail || "주변 개업 이력이 부족해 등급을 매길 수 없습니다."}</p>
+            <p className={s.unratedNote}>평가 제외는 나쁜 등급이 아닙니다 — 판단할 기록이 없다는 뜻입니다.</p>
+          </div>
+        </div>
       ) : detail.isError ? (
         <div className={s.pad}>
           <ErrorState onRetry={() => detail.refetch()} detail={String(detail.error)} />
@@ -112,7 +122,7 @@ function Body({
             {d.signal === "verified" ? <span className={s.pillGreenDark}>검증된 자리</span> : null}
             {d.signal === "overheated" ? <span className={s.pillOrangeDark}>과열 신호</span> : null}
             <span className={s.pillYellowDark}>
-              {uptae} {d.grade}등급 · 상위 {d.grade * 10}%
+              {uptae} {d.grade}등급
             </span>
             {d.confidence === "partial" ? (
               <span className={s.pillGrayDark}>상권 밖 · 부분 데이터</span>
@@ -331,7 +341,7 @@ function Body({
                   {meta.observedByGrade.map((g) => (
                     <tr key={g.grade} className={g.grade === d.grade ? s.rowOn : undefined}>
                       <td>
-                        {g.grade}등급 (상위 {g.grade * 10}%)
+                        {g.grade}등급
                         {g.grade === d.grade ? <span className={s.rowTag}>이 자리</span> : null}
                       </td>
                       <td>{pct1(g.survival)}</td>

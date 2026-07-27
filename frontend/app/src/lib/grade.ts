@@ -3,8 +3,10 @@ import type { Grade } from "../api/types";
 // Grade presentation. The decile is the only unit we validated (ui-spec §4):
 // no letter grades, no 0-100 scores, no continuous alpha ramp.
 
-/** Fixed badge format — "1등급 (상위 10%)". */
-export const gradeLabel = (grade: Grade) => `${grade}등급 (상위 ${grade * 10}%)`;
+/** Fixed badge format — "1등급". "상위 n%" is BANNED (serving-design §3):
+ *  grade boundaries are absolute holdout deciles, not a slice of the current
+ *  grids, so the percentile translation is simply not true. */
+export const gradeLabel = (grade: Grade) => `${grade}등급`;
 
 /** 10-step discrete ramp, grade 1 = darkest. Tokens, not literals (§4). */
 export const gradeColor = (grade: Grade) => `var(--color-heatmap-${grade})`;
