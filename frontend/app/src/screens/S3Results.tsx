@@ -65,7 +65,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
   if (!uptae) {
     return (
       <div className={s.page}>
-        <Nav step={2} onHome={() => go({ name: "landing" })} />
+        <Nav onHome={() => go({ name: "landing" })} />
         <main className={s.guard}>
           <p>업종을 먼저 골라주세요.</p>
           <button className={s.guardBtn} onClick={() => go({ name: "input" })}>
@@ -82,7 +82,6 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
   return (
     <div className={s.page}>
       <Nav
-        step={3}
         onHome={() => go({ name: "landing" })}
         center={
           <div className={s.condPill}>

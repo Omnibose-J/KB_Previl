@@ -54,8 +54,16 @@ const BASE_STYLE: StyleSpecification = {
 
 type Bbox = [number, number, number, number];
 
-/** Quantise the viewport so a 2px pan does not refetch (the API caps cells). */
-const quantise = (b: Bbox): Bbox => b.map((v) => Math.round(v * 500) / 500) as Bbox;
+/** Quantise the viewport so a 2px pan does not refetch (the API caps cells).
+ *  Outward only — floor west/south, ceil east/north. Symmetric rounding could
+ *  SHRINK the bbox by up to ~0.001° per edge (~one 100m cell), silently
+ *  dropping cells at the viewport border. */
+const quantise = ([w, s, e, n]: Bbox): Bbox => [
+  Math.floor(w * 500) / 500,
+  Math.floor(s * 500) / 500,
+  Math.ceil(e * 500) / 500,
+  Math.ceil(n * 500) / 500,
+];
 
 /** Cells only exist above the server's viewport cap, so the map must ARRIVE
  *  zoomed in on a real candidate. Opening on all of Seoul renders an empty map
@@ -159,7 +167,10 @@ export default function GridMap({
       });
       m.on("mouseenter", "grid-fill", () => (m.getCanvas().style.cursor = "pointer"));
       m.on("mouseleave", "grid-fill", () => (m.getCanvas().style.cursor = ""));
-      syncBbox();
+      // No syncBbox() here: the map opens on all of Seoul (zoom 12), where a
+      // fetch is a guaranteed 413 — a wasted request plus a false "too many
+      // cells" flash. The first fetch fires on moveend, i.e. after the flyTo
+      // to the top candidate (or the user's own first pan).
       setReady(true);
     });
     m.on("moveend", syncBbox);

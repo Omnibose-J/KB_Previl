@@ -24,7 +24,9 @@ export default function Nav({
         <span className={s.mark}>터</span>
         <span className={s.wordmark}>KB 터 · TEO</span>
       </button>
-      <div className={s.center}>{step ? <Steps current={step} /> : center}</div>
+      {/* center wins over step: a screen that supplies its own center content
+          (S3's condition pill) must not have it silently swallowed. */}
+      <div className={s.center}>{center ?? (step ? <Steps current={step} /> : null)}</div>
       <div className={s.right}>{right}</div>
     </nav>
   );
