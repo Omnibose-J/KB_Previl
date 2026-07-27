@@ -148,27 +148,34 @@
   align-items: start;
 }
 
+/* One continuous report sheet — sections divided by hairlines, not a wall of
+   equal white cards. */
 .main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+  border-radius: 16px;
+  padding: 6px 32px;
 }
 
-/* KPI row */
+/* KPI row — open stats split by vertical hairlines */
 .kpis {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 24px;
+  padding: 26px 0;
 }
 
 .kpi {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 22px 24px;
-  border-radius: 16px;
-  background: var(--fg-card);
-  border: 1px solid var(--fg-line);
+}
+
+.kpi + .kpi {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 24px;
 }
 
 .kpiLabel {
@@ -211,15 +218,13 @@
   color: var(--fg-t7);
 }
 
-/* generic card */
+/* report section — flat, hairline-topped */
 .card {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px 28px 26px;
-  border-radius: 16px;
-  background: var(--fg-card);
-  border: 1px solid var(--fg-line);
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
 }
 
 .cardHead {
@@ -348,12 +353,22 @@
   color: var(--fg-t2);
 }
 
-/* 경쟁/위험 pair */
+/* 경쟁/위험 pair — one section, two columns split by a vertical rule */
 .pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 36px;
   align-items: start;
+  border-top: 1px solid var(--fg-line);
+}
+
+.pair > .card {
+  border-top: 0;
+}
+
+.pair > .card:nth-child(2) {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 36px;
 }
 
 .vs {
@@ -640,15 +655,13 @@
   cursor: not-allowed;
 }
 
-/* alarm concept card */
+/* alarm concept block — flat, rule-topped */
 .alarm {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: var(--fg-card);
-  border: 1px solid var(--fg-line);
+  padding: 18px 4px 0;
+  border-top: 1px solid var(--fg-chipline);
 }
 
 .alarm strong {
@@ -674,14 +687,13 @@
   cursor: not-allowed;
 }
 
-/* data & limits card */
+/* data & limits — flat text block */
 .datacard {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: var(--fg-wash);
+  padding: 18px 4px 0;
+  border-top: 1px solid var(--fg-chipline);
 }
 
 .datacard strong {

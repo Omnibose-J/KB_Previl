@@ -39,8 +39,9 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             <p>업종만 필수입니다. 예산은 입력하면 손익 계산까지 이어집니다.</p>
           </header>
 
+          <div className={s.sheet}>
           {/* STEP 1 · 예산 */}
-          <section className={s.box}>
+          <section className={s.step}>
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
                 <span className={s.stepTag}>STEP 1 (선택)</span>
@@ -69,7 +70,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
           </section>
 
           {/* STEP 2 · 업종 */}
-          <section className={s.box}>
+          <section className={s.step}>
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
                 <span className={s.stepTag}>STEP 2</span>
@@ -112,7 +113,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
           </section>
 
           {/* STEP 3 · 범위 */}
-          <section className={s.box}>
+          <section className={s.step}>
             <div className={s.boxHead}>
               <div className={s.boxTitleRow}>
                 <span className={s.stepTag}>STEP 3</span>
@@ -145,6 +146,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 : "선택한 범위는 다음 단계에서 100m 격자 지도로 표시됩니다"}
             </div>
           </section>
+          </div>
         </div>
 
         {/* ── right: dark summary panel ──────────────────────────────── */}

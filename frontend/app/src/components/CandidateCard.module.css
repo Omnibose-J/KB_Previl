@@ -106,14 +106,14 @@
   font-weight: 700;
 }
 
-/* metric strip */
+/* metric row — flat columns split by hairlines, no inner grey box */
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  background: var(--fg-card-warm);
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--fg-line3);
+  border-bottom: 1px solid var(--fg-line3);
 }
 
 .m {
@@ -121,6 +121,11 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+}
+
+.m + .m {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 16px;
 }
 
 .m > span {

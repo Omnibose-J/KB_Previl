@@ -67,9 +67,11 @@
   --fg-orange-bg: #fdf0e4;
   --fg-red: #e0522a;
 
-  /* fonts — Noto carries the figma weights (400/500/700/900); KBFG stays for
-     the brand mark, where Light/Medium is enough. */
-  --fg-font: "Noto Sans KR", "KBFG Text", "Malgun Gothic", sans-serif;
+  /* fonts — KBFG Text is the brand face (user call 2026-07-27). It ships
+     Light(300)/Medium(500) only: every 700/900 declaration clamps to 500 and
+     hierarchy comes from size/colour, synthetic bold stays blocked. Noto is
+     the glyph-coverage fallback. */
+  --fg-font: "KBFG Text", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --fg-font-kb: "KBFG Text", "Noto Sans KR", sans-serif;
 
   /* grade ramp override: figma heatmap = brand yellow, alpha-stepped, discrete.
@@ -94,7 +96,8 @@
 body {
   margin: 0;
   font-family: var(--fg-font);
-  font-weight: 400;
+  /* KBFG body = Light; 400 would snap up to Medium and flatten hierarchy. */
+  font-weight: 300;
   color: var(--fg-ink);
   background: var(--fg-paper);
   /* 1440-design demo, but the scrollbar eats ~15px of the viewport: the frame

@@ -248,35 +248,38 @@ button.wCtl:disabled {
   background: var(--fg-mapbg);
 }
 
-/* insights strip */
+/* insight rows — dot + label + value on hairlines, not three tinted boxes */
 .insights {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 16px 20px 18px;
-  background: var(--fg-card-warm);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 20px 12px;
+  border-top: 1px solid var(--fg-line3);
 }
 
 .insGreen,
 .insOrange,
 .insGray {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
 }
 
-.insGreen {
-  background: var(--fg-green-bg);
+.insGreen + .insOrange,
+.insOrange + .insGray {
+  border-top: 1px solid var(--fg-line3);
 }
 
-.insOrange {
-  background: var(--fg-orange-bg);
-}
-
-.insGray {
-  background: var(--fg-gray-bg);
+.insGreen strong::before,
+.insOrange strong::before,
+.insGray strong::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  background: currentcolor;
 }
 
 .insGreen strong {
@@ -294,6 +297,8 @@ button.wCtl:disabled {
 .insights strong {
   font-size: 11px;
   font-weight: 700;
+  flex: none;
+  width: 92px;
 }
 
 .insights span {

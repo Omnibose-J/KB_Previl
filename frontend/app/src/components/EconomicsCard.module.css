@@ -1,14 +1,13 @@
 /* Economics card — S4 centrepiece, styled in the figma card language
    (white r16 card, 결과 3열 with big 900-weight numbers). */
 
+/* Lives inside the S4 report sheet — flat section, no card chrome. */
 .card {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 24px 28px 26px;
-  border-radius: 16px;
-  background: var(--fg-card);
-  border: 1px solid var(--fg-line);
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
 }
 
 .head {
@@ -104,11 +103,12 @@
   text-align: center;
 }
 
-/* results */
+/* results — open stat columns split by hairlines */
 .results {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 20px;
+  padding: 6px 0 2px;
 }
 
 .result,
@@ -116,15 +116,13 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: var(--fg-card-warm);
-  border: 1px solid var(--fg-line2);
 }
 
-.resultStrong {
-  background: var(--fg-card);
-  border-color: var(--fg-chipline);
+.result + .result,
+.result + .resultStrong,
+.resultStrong + .resultStrong {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 20px;
 }
 
 .resultLabel {

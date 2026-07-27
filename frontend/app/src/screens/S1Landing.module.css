@@ -207,26 +207,26 @@
   padding: 80px 64px;
 }
 
+/* editorial rule-columns instead of a card wall: each item opens with a dark
+   hairline and a yellow index — no boxes. */
 .whyCards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 48px;
 }
 
 .whyCard {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 28px;
-  border-radius: 16px;
-  background: var(--fg-card);
-  border: 1px solid var(--fg-line);
+  padding-top: 22px;
+  border-top: 2px solid var(--fg-ink);
 }
 
 .whyNum {
   font-size: 13px;
   font-weight: 900;
-  color: var(--fg-y);
+  color: var(--fg-y-deep);
 }
 
 .whyCard h3 {
@@ -250,26 +250,25 @@
   padding: 88px 64px;
 }
 
+/* two-column editorial list, hairline-separated — not six identical boxes. */
 .featGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 0 72px;
 }
 
 .featCard {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 30px;
-  border-radius: 16px;
-  background: var(--fg-card-warm);
-  border: 1px solid var(--fg-line2);
+  padding: 28px 0 30px;
+  border-top: 1px solid var(--fg-line);
 }
 
 .featNum {
   font-size: 22px;
   font-weight: 700;
-  color: var(--fg-y);
+  color: var(--fg-y-deep);
 }
 
 .featCard h3 {
