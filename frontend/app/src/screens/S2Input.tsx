@@ -5,6 +5,7 @@ import CaveatStrip from "../components/CaveatStrip";
 import Nav from "../components/Nav";
 import { ErrorState, Loading } from "../components/states";
 import { int } from "../lib/format";
+import { isRecommendable } from "../lib/grade";
 import { useSearch } from "../state/search";
 import s from "./S2Input.module.css";
 
@@ -27,6 +28,9 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
     queryFn: () => api.recommend(search.uptae!, search.districts),
     enabled: search.uptae !== null,
   });
+  // Same threshold S3 applies — the funnel must promise the count S3 shows.
+  const passing = rec.data ? rec.data.items.filter(isRecommendable).length : null;
+  const firstPass = rec.data?.items.find(isRecommendable);
 
   return (
     <div className={s.page}>
@@ -73,9 +77,9 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                     {/* The counts are scope-wide and barely move between 업종
                         — the top-1 dong is what visibly reacts to the chips. */}
                     {search.uptae
-                      ? rec.data
-                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(rec.data.count)}곳을 추천해요${
-                            rec.data.items[0]?.admDong ? ` · 지금 1순위는 ${rec.data.items[0].admDong}` : ""
+                      ? rec.data && passing !== null
+                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(passing)}곳을 추천해요${
+                            firstPass?.admDong ? ` · 지금 1순위는 ${firstPass.admDong}` : ""
                           }`
                         : rec.isPending
                           ? "후보 세는 중…"
@@ -199,7 +203,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
               <div>
                 <span>상위 추천 후보</span>
                 <strong className={s.fY}>
-                  {search.uptae && rec.data ? `${int(rec.data.count)}곳` : rec.isError ? "—" : "…"}
+                  {search.uptae && passing !== null ? `${int(passing)}곳` : rec.isError ? "—" : "…"}
                 </strong>
               </div>
             </div>

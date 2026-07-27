@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { api } from "../api/client";
+import { isRecommendable } from "../lib/grade";
 import CandidateCard from "../components/CandidateCard";
 import CaveatStrip from "../components/CaveatStrip";
 import Dropdown from "../components/Dropdown";
@@ -38,8 +39,11 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
 
-  const candidateIds = useMemo(() => q.data?.items.map((c) => c.gridId) ?? [], [q.data]);
-  const top = q.data?.items[0];
+  // Threshold cut (lib/grade.ts isRecommendable): grade-1 cells only, so a
+  // small scope shows its 3 real candidates instead of 20 padded ones.
+  const items = useMemo(() => (q.data?.items ?? []).filter(isRecommendable), [q.data]);
+  const candidateIds = useMemo(() => items.map((c) => c.gridId), [items]);
+  const top = items[0];
   const topId = top?.gridId;
   useEffect(() => {
     if (top) {
@@ -58,13 +62,13 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const pins: MapPin[] = useMemo(
     () =>
-      (q.data?.items ?? []).slice(0, 3).map((c, i) => ({
+      items.slice(0, 3).map((c, i) => ({
         id: c.gridId,
         rank: i + 1,
         label: c.admDong ?? c.gridId,
         center: c.center,
       })),
-    [q.data],
+    [items],
   );
 
   const select = (cell: { gridId: string; center: Point }) => {
@@ -86,7 +90,6 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
     );
   }
 
-  const items = q.data?.items ?? [];
   const partialCount = items.filter((c) => c.confidence === "partial").length;
 
   return (
@@ -110,10 +113,10 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         <section className={s.ranking}>
           <header className={s.rankHead}>
             <div>
-              {/* count = min(requested 24, inScope) — a page-size cap, not a
-                  computed cutoff. The title says "상위" so 24 reads as a cap. */}
+              {/* cap 20 (client top) + grade-1 threshold — the shown count is
+                  the cells that pass the bar, not a padded page. */}
               <h1 className={s.rankTitle}>
-                {q.data ? `추천 상위 ${int(q.data.count)}곳` : "추천 후보"}
+                {q.data ? `추천 상위 ${int(items.length)}곳` : "추천 후보"}
               </h1>
               {q.data ? (
                 <p className={s.rankSub}>

@@ -55,7 +55,7 @@ export const api = {
   meta: () => request<Meta>("/meta"),
   grids: (uptae: string, bbox: [number, number, number, number]) =>
     request<GridsResponse>(`/grids?uptae=${encodeURIComponent(uptae)}&bbox=${bbox.join(",")}`),
-  recommend: (uptae: string, districts: string[], top = 24) =>
+  recommend: (uptae: string, districts: string[], top = 20) =>
     request<RecommendResponse>(
       `/recommend?uptae=${encodeURIComponent(uptae)}&districts=${encodeURIComponent(districts.join(","))}&top=${top}`,
     ),

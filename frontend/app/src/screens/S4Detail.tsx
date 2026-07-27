@@ -8,6 +8,7 @@ import GoodwillCard from "../components/GoodwillCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
 import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
+import { isRecommendable } from "../lib/grade";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
@@ -53,7 +54,10 @@ export default function S4Detail({
     );
   }
 
-  const rank = rec.data ? rec.data.items.findIndex((c) => c.gridId === gridId) + 1 : 0;
+  // Rank within the same threshold-cut list S3 renders (lib/grade.ts).
+  const rank = rec.data
+    ? rec.data.items.filter(isRecommendable).findIndex((c) => c.gridId === gridId) + 1
+    : 0;
 
   return (
     <div className={s.page}>
