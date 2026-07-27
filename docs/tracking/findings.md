@@ -1,6 +1,6 @@
 # Findings — problems found in-flight that are out of the finder's write scope
 
-## F-A1. `pipeline.consistency` is 15/17, not 17/17 — `_ENV_PATH` NameError (2026-07-27, lane A)
+## F-A1. ~~`pipeline.consistency` is 15/17~~ — RESOLVED 2026-07-27 (`_ENV_PATH` NameError)
 
 **Symptom**
 ```
@@ -15,9 +15,21 @@ $ python -m pipeline.consistency
 never run in this checkout. Introduced when `config.py` gained the `KB_ENV` worktree override
 (`ENV_PATH`) and these two call sites kept the old private name.
 
-**Why it is not fixed here** — lane A's write scope is `model/` · `service/precompute.py` ·
-`kb.db`; `pipeline/` is explicitly change-forbidden. The fix is 2 tokens (`_ENV_PATH` →
-`ENV_PATH` on both lines) and belongs to whoever owns `pipeline/`.
+**Resolution** — the owner authorised the edit on 2026-07-27 and it is applied. It was three
+tokens, not two: `c_district` already imported `ENV_PATH` and only needed the dereference
+fixed, but `c_dongaccuracy` imported `ROOT` alone, so its import line needed `ENV_PATH` added
+as well. Both functions keep their own inline .env parse, matching the surrounding style.
+
+```
+$ python -m pipeline.consistency
+[district]     역지오코딩 표본 200건 · 자치구 일치 200 / 불일치 0 (100.0%)  -> PASS
+[dongaccuracy] 표본 200건 일치 200 / 불일치 0 (100.0%) 실패 0              -> PASS
+17/17 PASS   (exit 0)
+```
+
+The CRS and dong assignments were sound all along — what was missing was the guard, not the
+correctness. Both checks now make live Kakao calls, so 17/17 requires `KAKAO_REST_API_KEY`
+and network; without either they return `None` and are skipped rather than failing.
 
 **Blast radius** — the two dead checks are the *external* CRS witnesses (Kakao reverse-geocode
 of stored lon/lat vs the row's own address). Their silence is exactly the failure mode
@@ -29,13 +41,6 @@ displacement — the loss is the standing guard, not a known defect.
 **Note** — after the fix these two checks make live Kakao API calls, so 17/17 additionally
 requires `KAKAO_REST_API_KEY` and network.
 
-**Both checks were confirmed to pass** — replicated read-only against the live Kakao API
-(nothing in the repo touched), same seeds and same thresholds as the real checks:
-
-```
-district     표본 60  일치 60 / 불일치 0  = 100.0%      (임계: 없음 — 불일치가 있으면 CRS 의심)
-dongaccuracy 표본 80  일치 80 / 불일치 0  = 100.0%      (임계 n>=50 & >=99.0% -> True)
-```
-
-So the fix is the 2-token rename and nothing else: applying it takes the suite to 17/17, and
-the CRS/dong assignments themselves are sound. The guard was missing, not the correctness.
+(Before the fix was authorised, both checks had been replicated read-only at n=60/80 with the
+same 100.0% result, which is what made the repair a known-safe two-line change rather than a
+gamble.)

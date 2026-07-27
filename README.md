@@ -5,11 +5,11 @@
 **상태: 데이터 파이프라인 + 생존예측 모델 + 비용 시나리오 완료.** UI 미착수.
 
 ```
-verify 8/8 · consistency 15/17 · as-of selftest PASS · ≤T 셀프테스트 PASS · 누수 가드 PASS
+verify 8/8 · consistency 17/17 · as-of selftest PASS · ≤T 셀프테스트 PASS · 누수 가드 PASS
 ```
 
-consistency 2종(`district`·`dongaccuracy`)은 `pipeline/consistency.py`의 선행 버그로 실행 자체가
-안 된다 — 원인·영향 범위는 `docs/tracking/findings.md` F-A1.
+`consistency`의 `district`·`dongaccuracy`는 역지오코딩으로 좌표계를 외부 검증하므로
+`KAKAO_REST_API_KEY`와 네트워크가 필요하다(없으면 실패가 아니라 건너뜀).
 
 ---
 

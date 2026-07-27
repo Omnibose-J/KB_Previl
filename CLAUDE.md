@@ -26,7 +26,7 @@
 
 ```bash
 python -m pipeline.verify        # 적재 8/8
-python -m pipeline.consistency   # 논리 정합성 — 현재 15/17 (선행 버그, findings.md F-A1)
+python -m pipeline.consistency   # 논리 정합성 17/17 (역지오코딩 2종은 KAKAO 키 필요)
 python -m model.test_leakage     # 누수 가드 RED→GREEN
 python -m model.asof --selftest-cut   # 신규 피처: T 이후 행을 지워도 값 불변
 ```

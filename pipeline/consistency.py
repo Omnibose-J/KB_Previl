@@ -151,7 +151,7 @@ def c_district(con, sample=200):
 
     from .config import ENV_PATH, ROOT
     env = {}
-    for line in _ENV_PATH.open(encoding="utf-8-sig"):
+    for line in ENV_PATH.open(encoding="utf-8-sig"):
         s = line.strip()
         if s and not s.startswith("#") and "=" in s:
             k, v = s.split("=", 1)
@@ -316,9 +316,9 @@ def c_dongaccuracy(con, sample=200):
 
     import requests
 
-    from .config import ROOT
+    from .config import ENV_PATH, ROOT
     env = {}
-    for line in _ENV_PATH.open(encoding="utf-8-sig"):
+    for line in ENV_PATH.open(encoding="utf-8-sig"):
         s = line.strip()
         if s and not s.startswith("#") and "=" in s:
             k, v = s.split("=", 1)
