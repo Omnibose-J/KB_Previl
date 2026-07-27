@@ -208,7 +208,7 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
           </dd>
         </div>
         <div>
-          <dt>서울 평균 월매출</dt>
+          <dt>서울 중간 월매출</dt>
           <dd>
             {man(r.benchmarkMonthlyRevenue)}{" "}
             <em>
