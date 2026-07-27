@@ -19,6 +19,60 @@ from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
 LEAK_AUC = 0.90
 
+# 배포 경로 — 여기서만 검사한다. 실험 모듈(concept·place·place_exp)은 당연히
+# 실험 자산을 읽으므로 대상이 아니다.
+DEPLOY_PATH = ("model/asof.py", "model/dataset.py", "model/evaluate.py",
+               "model/train.py", "model/recommend.py", "service/precompute.py")
+
+# 스냅샷이라 as-of 재구성이 안 되는 것. asof.LEAKY 와 같은 종류이며 거기 빠져
+# 있던 것을 여기서 채운다 (asof.py 는 캐시 지문의 입력이라 건드리면 전 스플릿이
+# 무효화된다 — 가드는 가드 파일에 두는 편이 싸고 의미도 맞다).
+SNAPSHOT_ONLY = {
+    "trdar_flpop": "2026년 1분기 한 분기뿐 — lvpop_profile 과 같은 이유",
+}
+
+# 라운드 5(§11)에서 측정하고 배제한 원천. LEAKY 와 이유가 다르다 — 누수라서가
+# 아니라 여섯 번 재고 기여가 없어서다. 섞어두면 나중에 "trend 는 누수라서 못
+# 쓴다"는 잘못된 이해가 생긴다.
+#
+# 검사하는 것은 '이름이 등장하는가'가 아니라 '배포가 켜는가'다. `TREND` 상수
+# 정의와 `with_trend=False` 기본값은 §10 재현에 필요해서 남아 있고, 지우면
+# §6·§6-B 를 다시 돌릴 수 없다. **존재는 정당하고 활성화가 위반이다.**
+REJECTED = {
+    "trend": "검색 관심도 — 4회 측정 전부 기여 없음, 실제 유동인구와 ρ=0.079 (§11-E)",
+    "mention": "점포 언급량 — 점 단위로 내려도 기여 없음 (§6-B)",
+    "shop_concept": "상호명 컨셉 — 구성 변화가 성장을 예측 못 함, FDR 통과 0건 (§11-D)",
+}
+
+# 배포 경로에 있으면 곧바로 위반인 문자열.
+#
+# `asof.LEAKY` 의 키는 여기 넣지 않는다 — `grid_feature.food_store_cnt` 같은
+# 점 표기는 실제 코드에 그 모양으로 나타나지 않는 **문서용 라벨**이고, 넣으면
+# 금지 목록을 선언한 줄 자체가 위반으로 잡힌다. LEAKY 의 실질 가드는 3)이
+# 이미 한다(피처가 as-of 문서에 등재됐는가).
+#
+# 옵션은 `with_*=True` 로 잡는다. 테이블명 `trend`·`mention` 을 그대로 쓰면
+# `with_trend` 같은 정당한 식별자에 걸린다. 고유한 이름만 테이블로 잡는다.
+ACTIVATIONS = ("with_trend=True", "with_mention=True",
+               "shop_concept") + tuple(SNAPSHOT_ONLY)
+
+
+def scan_deploy_path(names):
+    """배포 경로 소스에서 주어진 문자열을 찾는다. -> [(파일, 줄, 문자열)]"""
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    hits = []
+    for rel in DEPLOY_PATH:
+        p = root / rel
+        if not p.exists():
+            continue
+        for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+            code = line.split("#", 1)[0]          # 주석에 이름을 적는 것은 허용
+            for nm in names:
+                if nm in code:
+                    hits.append((rel, i, nm))
+    return hits
+
 
 def auc_of(train, test, kind="logit"):
     from sklearn.metrics import roc_auc_score
@@ -66,10 +120,32 @@ def main():
     unknown = [n for n in covered if n not in FEATURES]
     print(f"   검사 대상 {len(covered)}개 (NUM·LOC3·DEPLOY·Tier1~3) 중 "
           f"as-of 문서 미등재: {unknown or '없음'}")
-    print(f"   금지 목록 {len(LEAKY)}종은 코드 어디에서도 참조되지 않음")
     doc_ok = not unknown
 
-    ok = red_ok and green_ok and doc_ok
+    # 4) 여기까지는 '피처 이름'만 봤다. 배제된 원천이 배포에서 실제로 켜지는
+    #    것은 별개의 사고이고, 이전에는 문구로만 단언하고 확인하지 않았다.
+    print("\n4) 배제 원천이 배포에서 켜지는지 확인")
+    from .asof import MENTION_FEATURES
+    from .train import TREND
+
+    tainted = set(TREND) | set(MENTION_FEATURES)
+    in_deploy = sorted(tainted & set(covered))
+    hits = scan_deploy_path(ACTIVATIONS)
+    print(f"   배제 원천 유래 피처 {len(tainted)}개 — 배포/후보 세트 침투: "
+          f"{in_deploy or '없음'}")
+    print(f"   배포 경로 {len(DEPLOY_PATH)}개 파일 · 활성화 문자열 "
+          f"{len(ACTIVATIONS)}종 검사: ", end="")
+    if hits:
+        print()
+        for f, ln, nm in hits:
+            print(f"   FAIL {f}:{ln}  '{nm}'")
+    else:
+        print("흔적 없음")
+    src_ok = not hits and not in_deploy
+    print(f"   -> {'PASS' if src_ok else 'FAIL'}"
+          f"   (존재는 정당하고 활성화가 위반 — §10 재현이 옵션을 쓴다)")
+
+    ok = red_ok and green_ok and doc_ok and src_ok
     print("\n" + "=" * 46)
     print(f"누수 가드 {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
