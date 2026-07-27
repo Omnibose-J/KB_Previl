@@ -70,12 +70,16 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <div className={s.note}>
                   <strong>선택한 업종 기준</strong>
                   <span>
+                    {/* The counts are scope-wide and barely move between 업종
+                        — the top-1 dong is what visibly reacts to the chips. */}
                     {search.uptae
                       ? rec.data
-                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(rec.data.count)}곳을 추천해요`
+                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(rec.data.count)}곳을 추천해요${
+                            rec.data.items[0]?.admDong ? ` · 지금 1순위는 ${rec.data.items[0].admDong}` : ""
+                          }`
                         : rec.isPending
                           ? "후보 세는 중…"
-                          : "후보 수를 불러오지 못했습니다"
+                          : "후보 수를 불러오지 못했어요"
                       : "업종을 고르면 후보가 바로 나와요"}
                   </span>
                 </div>

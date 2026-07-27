@@ -24,7 +24,7 @@ export const meters = (v: number) => `${int(Math.round(v))}m`;
 
 /** §0 원칙 2 — 숫자보다 문장 먼저. 값은 API 실측치에서만 파생된다. */
 export const survivalSentence = (survival: number) =>
-  `100곳 중 ${Math.round(survival * 100)}곳이 3년을 버텼습니다`;
+  `100곳 중 ${Math.round(survival * 100)}곳이 3년을 버텼어요`;
 
 /** Station name plus distance when measured; the name alone otherwise. */
 export const stationAnchor = (a: StationAnchor): string =>

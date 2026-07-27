@@ -175,12 +175,14 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {/* ── KPI row ──────────────────────────────────────────── */}
           <div className={s.kpis}>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>실제 3년 생존율</span>
+              {/* Class stat, not a spot stat — the dynamic label says so, else
+                  the same 75% on every top-graded detail reads as hardcoded. */}
+              <span className={s.kpiLabel}>{d.grade}등급 자리의 실제 3년 생존율</span>
               <p className={s.kpiV}>
                 <strong className={s.kpiGreen}>{pct0(d.observedSurvival)}</strong>
               </p>
               <span className={s.kpiCap}>
-                같은 등급 자리 기준{overall !== null ? ` · 서울 전체는 ${pct0(overall)}` : ""}
+                같은 등급이면 값이 같아요{overall !== null ? ` · 서울 전체는 ${pct0(overall)}` : ""}
               </span>
             </div>
             <div className={s.kpi}>

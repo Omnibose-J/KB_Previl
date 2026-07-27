@@ -16,7 +16,7 @@ export function Loading({ label = "불러오는 중…" }: { label?: string }) {
 export function ErrorState({ onRetry, detail }: { onRetry: () => void; detail?: string }) {
   return (
     <div className={s.error} role="alert">
-      <p className={s.errorTitle}>데이터를 불러오지 못했습니다 — 다시 시도</p>
+      <p className={s.errorTitle}>데이터를 불러오지 못했어요</p>
       {detail ? <p className={s.errorDetail}>{detail}</p> : null}
       <button className={s.retry} onClick={onRetry}>
         다시 시도
@@ -26,5 +26,5 @@ export function ErrorState({ onRetry, detail }: { onRetry: () => void; detail?: 
 }
 
 export function Empty() {
-  return <p className={s.empty}>조건에 맞는 격자가 없습니다. 범위를 넓혀보세요.</p>;
+  return <p className={s.empty}>조건에 맞는 자리가 없어요. 범위를 넓혀보세요.</p>;
 }
