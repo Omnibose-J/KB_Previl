@@ -1,206 +1,225 @@
+/* Economics card — S4 centrepiece, styled in the figma card language
+   (white r16 card, 결과 3열 with big 900-weight numbers). */
+
 .card {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 28px 26px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
 }
 
 .head {
-  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .title {
-  font-size: var(--font-size-title-lg);
-  line-height: var(--line-height-title-lg);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--space-2);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
 }
 
+.lead {
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+/* inputs */
 .inputs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-5);
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--color-border-subtle);
+  gap: 12px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
 }
 
 .fieldLabel {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-text-tertiary);
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t6);
 }
 
 .req {
   font-style: normal;
-  font-size: var(--font-size-caption-xs);
-  color: var(--color-brand-gold-text);
-  background: var(--color-brand-yellow-bg);
-  border-radius: var(--radius-xs);
-  padding: 0 var(--space-1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 9px;
+  font-weight: 900;
 }
 
 .fieldInput {
   display: flex;
   align-items: baseline;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--color-border-strong);
-  padding-bottom: var(--space-1);
+  gap: 4px;
 }
 
 .fieldInput input {
   width: 100%;
-  min-width: 0;
   border: 0;
   background: none;
-  padding: 0;
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
-.fieldInput input:focus {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
   outline: none;
+  padding: 0;
 }
 
 .fieldInput input::placeholder {
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-ghost);
-  font-size: var(--font-size-body);
+  color: var(--fg-t8);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .unit {
+  font-size: 11px;
+  color: var(--fg-t7);
   flex: none;
-  font-size: var(--font-size-label);
-  color: var(--color-text-muted);
 }
 
 .prompt {
-  padding: var(--space-8) 0 var(--space-2);
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-size: 13px;
+  font-weight: 500;
   text-align: center;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-body-lg);
 }
 
+/* results */
 .results {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-  margin-top: var(--space-6);
+  gap: 12px;
 }
 
-.result {
+.result,
+.resultStrong {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-5);
-  background: var(--color-surface-50);
-  border-radius: var(--radius-lg);
+  gap: 5px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
 }
 
-/* The risk-adjusted pair is the point of the screen — it gets the weight. */
 .resultStrong {
-  composes: result;
-  background: var(--color-surface-100);
-  border: 1px solid var(--color-border-subtle);
+  background: var(--fg-card);
+  border-color: var(--fg-chipline);
 }
 
 .resultLabel {
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t6);
 }
 
 .resultValue {
-  font-size: var(--font-size-metric);
-  line-height: var(--line-height-metric);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 33px;
+  color: var(--fg-ink);
 }
 
 .positive .resultValue {
-  color: var(--color-positive-base);
+  color: var(--fg-green);
 }
 
 .negative .resultValue {
-  color: var(--color-negative-base);
+  color: var(--fg-red);
 }
 
 .resultNote {
-  font-size: var(--font-size-caption-xs);
-  line-height: var(--line-height-caption-xs);
-  color: var(--color-text-muted);
+  font-size: 11px;
+  color: var(--fg-t7);
 }
 
-/* Mandatory whenever revenue was not supplied (§4). Styled as a standing
-   qualifier, not a warning — it is how the number is defined. */
+/* mandatory captions */
 .caption {
-  margin-top: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-100);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-text-tertiary);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--fg-wash);
+  font-size: 12px;
+  color: var(--fg-t4);
 }
 
 .sensitive {
-  margin-top: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-caution-bg);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-caution-text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--fg-orange-bg);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-orange-deep);
 }
 
+/* grade comparison mini-table */
 .compare {
-  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .compareTitle {
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-3);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--fg-line2);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .table th {
+  padding: 10px 16px;
   text-align: left;
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t5);
+  border-top: 1px solid var(--fg-line3);
 }
 
 .table td {
+  padding: 10px 16px;
   text-align: right;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+  border-top: 1px solid var(--fg-line3);
 }
 
-.rowOn th,
-.rowOn td {
-  background: var(--color-brand-yellow-bg);
-  color: var(--color-brand-gold-text);
+.table tr:first-child th,
+.table tr:first-child td {
+  border-top: 0;
+}
+
+.rowOn {
+  background: var(--fg-y-bg);
+}
+
+.rowOn th {
+  color: var(--fg-ink);
+  font-weight: 700;
 }

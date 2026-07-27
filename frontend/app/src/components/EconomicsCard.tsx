@@ -6,7 +6,6 @@ import { months, signedMan } from "../lib/format";
 import { gradeLabel } from "../lib/grade";
 import { ErrorState, Loading } from "./states";
 import s from "./EconomicsCard.module.css";
-import ui from "../styles/ui.module.css";
 
 // 경제성 카드 — the centrepiece of S4 (ui-spec §3-S4). 단순 회수 vs 위험반영
 // 회수 is the one contrast only we can draw: same revenue, same rent, different
@@ -67,7 +66,7 @@ export default function EconomicsCard({
     <section className={s.card}>
       <header className={s.head}>
         <h2 className={s.title}>이 자리에 들어가면, 3년 뒤에</h2>
-        <p className={ui.lead}>
+        <p className={s.lead}>
           같은 매출·같은 임대료여도 자리가 다르면 결과가 갈립니다. 그 차이는 생존 확률에서 옵니다.
         </p>
       </header>

@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "../../design/tokens/tokens.css";
 import "./styles/fonts.css";
+import "@fontsource/noto-sans-kr/400.css";
+import "@fontsource/noto-sans-kr/500.css";
+import "@fontsource/noto-sans-kr/700.css";
+import "@fontsource/noto-sans-kr/900.css";
 import "./styles/global.css";
 
 // No-mock rule: queries fail loudly (no retry storms, no placeholder data).

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { api } from "../api/client";
@@ -8,104 +7,149 @@ import { ErrorState, Loading } from "../components/states";
 import { int } from "../lib/format";
 import { useSearch } from "../state/search";
 import s from "./S2Input.module.css";
-import ui from "../styles/ui.module.css";
 
-// S2 조건 입력 — spec: ui-spec.md §3-S2 (P0).
-// The mockup's STEP 1~4 form is dismantled (§0 원칙 3): required inputs are
-// 업종 + 범위 and nothing else. 예산 is one collapsed row; 매출·마진·면적 are
-// inline inputs on S4. 창업자 프로필 is deleted outright — none of it reaches
-// the model, so collecting it would be pretending to use it.
+// S2, rebuilt against figma-snapshot S2 (STEP boxes + dark summary panel).
+// Differences from the mockup are data-honesty, not layout: STEP 4 창업자
+// 프로필 is not collected (nothing in the model consumes it), the funnel shows
+// live API counts instead of 12,480→842→24, and the 가중치 note states what is
+// actually precomputed. 예산 sliders feed /economics only — they never filter.
+
+const UPFRONT = { min: 0, max: 20000, step: 100 }; // 만원
+const RENT = { min: 0, max: 600, step: 10 }; // 만원/월
+
 export default function S2Input({ go }: { go: (s: Screen) => void }) {
   const search = useSearch();
-  const [budgetOpen, setBudgetOpen] = useState(false);
-  const q = useQuery({ queryKey: ["meta"], queryFn: api.meta });
+  const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
+
+  // Live funnel: same key S3 uses, so 분석 시작 lands on a warm cache.
+  const rec = useQuery({
+    queryKey: ["recommend", search.uptae, search.districts],
+    queryFn: () => api.recommend(search.uptae!, search.districts),
+    enabled: search.uptae !== null,
+  });
 
   return (
-    <>
-      <Nav step={1} onHome={() => go({ name: "landing" })} />
+    <div className={s.page}>
+      <Nav step={1} onHome={() => go({ name: "landing" })} right={<span className={s.guest}>게스트</span>} />
       <main className={s.body}>
+        {/* ── left: form ─────────────────────────────────────────────── */}
         <div className={s.form}>
           <header className={s.head}>
-            <h1 className={ui.sectionTitle}>어떤 가게를, 어디에 내시나요?</h1>
-            <p className={ui.lead}>
-              업종과 지역만 고르면 결과가 나옵니다. 예산은 나중에 넣어도 됩니다.
-            </p>
+            <h1>어떤 조건으로 찾을까요?</h1>
+            <p>업종만 필수입니다. 예산은 입력하면 손익 계산까지 이어집니다.</p>
           </header>
 
-          {q.isPending ? (
-            <Loading />
-          ) : q.isError ? (
-            <ErrorState onRetry={() => q.refetch()} detail={String(q.error)} />
-          ) : (
-            <>
-              <section className={ui.card}>
-                <h2 className={s.boxTitle}>업종</h2>
-                <p className={s.boxHint}>업종마다 별도 스코어를 미리 계산해 두었습니다.</p>
+          {/* STEP 1 · 예산 */}
+          <section className={s.box}>
+            <div className={s.boxHead}>
+              <div className={s.boxTitleRow}>
+                <span className={s.stepTag}>STEP 1 (선택)</span>
+                <h2>창업 예산</h2>
+              </div>
+              <p>초기투자와 월 임대료를 입력하면 상세 화면의 손익분기 계산에 반영됩니다. 추천 순위에는 쓰이지 않습니다.</p>
+            </div>
+            <BudgetSlider
+              label="초기투자 총액"
+              hint="보증금 + 권리금 + 인테리어 합산"
+              cfg={UPFRONT}
+              value={search.upfront}
+              onChange={(v) => search.set({ upfront: v })}
+              format={(v) => `${int(v)}만 원`}
+              rangeLabel={["0", "2억"]}
+            />
+            <BudgetSlider
+              label="월 임대료"
+              hint="임대료는 매물마다 달라 데이터로 채우지 않습니다"
+              cfg={RENT}
+              value={search.rentMonthly}
+              onChange={(v) => search.set({ rentMonthly: v })}
+              format={(v) => `${int(v)}만 원`}
+              rangeLabel={["0", "600만"]}
+            />
+          </section>
+
+          {/* STEP 2 · 업종 */}
+          <section className={s.box}>
+            <div className={s.boxHead}>
+              <div className={s.boxTitleRow}>
+                <span className={s.stepTag}>STEP 2</span>
+                <h2>업종</h2>
+              </div>
+              <p>업종에 따라 좋은 입지의 기준이 달라집니다. 12개 업태 각각 별도 등급을 사전계산했습니다.</p>
+            </div>
+            {meta.isPending ? (
+              <Loading />
+            ) : meta.isError ? (
+              <ErrorState onRetry={() => meta.refetch()} detail={String(meta.error)} />
+            ) : (
+              <>
                 <div className={s.chips}>
-                  {/* meta().uptae verbatim — trimming "외국음식전문점" to "외국음식"
-                      breaks the DB key and the lookup fails silently (§7). */}
-                  {q.data.uptae.map((u) => (
+                  {/* meta().uptae verbatim — trimming labels breaks the DB key (§7). */}
+                  {meta.data.uptae.map((u) => (
                     <button
                       key={u}
-                      className={search.uptae === u ? ui.chipOn : ui.chip}
+                      className={search.uptae === u ? s.chipOn : s.chip}
                       onClick={() => search.set({ uptae: u })}
                     >
                       {u}
                     </button>
                   ))}
                 </div>
-              </section>
-
-              <section className={ui.card}>
-                <h2 className={s.boxTitle}>지역</h2>
-                <p className={s.boxHint}>자치구 25곳 전부를 다룹니다. 여러 곳을 함께 고를 수 있습니다.</p>
-                <div className={s.chips}>
-                  <button
-                    className={search.districts.length === 0 ? ui.chipOn : ui.chip}
-                    onClick={() => search.set({ districts: [] })}
-                  >
-                    서울 전역
-                  </button>
-                  {q.data.districts.map((d) => (
-                    <button
-                      key={d}
-                      className={search.districts.includes(d) ? ui.chipOn : ui.chip}
-                      onClick={() => search.toggleDistrict(d)}
-                    >
-                      {d}
-                    </button>
-                  ))}
+                <div className={s.note}>
+                  <strong>선택한 업종 기준</strong>
+                  <span>
+                    {search.uptae
+                      ? rec.data
+                        ? `『${search.uptae}』 범위 내 격자 ${int(rec.data.inScope)}개 · 등급 상위 ${int(rec.data.count)}곳을 추천합니다`
+                        : rec.isPending
+                          ? "후보 수 계산 중…"
+                          : "후보 수를 불러오지 못했습니다"
+                      : "업태를 고르면 같은 격자라도 그 업태 기준 등급으로 다시 평가합니다"}
+                  </span>
                 </div>
-              </section>
-            </>
-          )}
+              </>
+            )}
+          </section>
 
-          <section className={ui.card}>
-            <button className={s.accordion} onClick={() => setBudgetOpen((v) => !v)}>
-              <span>예산도 입력하면 손익까지 계산합니다</span>
-              <span className={s.accordionMark}>{budgetOpen ? "−" : "+"}</span>
-            </button>
-            {budgetOpen ? (
-              <div className={s.budget}>
-                <MoneyField
-                  label="초기투자 총액"
-                  hint="보증금 + 권리금 + 인테리어를 합한 금액"
-                  value={search.upfront}
-                  onChange={(v) => search.set({ upfront: v })}
-                />
-                <MoneyField
-                  label="월 임대료"
-                  hint="임대료는 매물마다 달라 데이터로 채울 수 없습니다"
-                  value={search.rentMonthly}
-                  onChange={(v) => search.set({ rentMonthly: v })}
-                />
+          {/* STEP 3 · 범위 */}
+          <section className={s.box}>
+            <div className={s.boxHead}>
+              <div className={s.boxTitleRow}>
+                <span className={s.stepTag}>STEP 3</span>
+                <h2>희망 범위</h2>
+              </div>
+              <p>서울 자치구 25곳 전부를 다룹니다. 여러 곳을 함께 고를 수 있습니다.</p>
+            </div>
+            {meta.data ? (
+              <div className={s.chips}>
+                <button
+                  className={search.districts.length === 0 ? s.chipOn : s.chip}
+                  onClick={() => search.set({ districts: [] })}
+                >
+                  서울 전역
+                </button>
+                {meta.data.districts.map((d) => (
+                  <button
+                    key={d}
+                    className={search.districts.includes(d) ? s.chipOn : s.chip}
+                    onClick={() => search.toggleDistrict(d)}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
             ) : null}
+            <div className={s.mapPreview}>
+              {search.uptae && rec.data
+                ? `범위 내 격자 ${int(rec.data.inScope)}개 · 다음 단계에서 100m 격자 지도로 표시됩니다`
+                : "선택한 범위는 다음 단계에서 100m 격자 지도로 표시됩니다"}
+            </div>
           </section>
         </div>
 
-        <aside className={s.summary}>
-          <div className={ui.cardDark}>
+        {/* ── right: dark summary panel ──────────────────────────────── */}
+        <aside className={s.side}>
+          <div className={s.summary}>
             <p className={s.summaryTitle}>입력한 조건</p>
             <dl className={s.kv}>
               <div>
@@ -113,76 +157,118 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <dd>{search.uptae ?? "미선택"}</dd>
               </div>
               <div>
-                <dt>지역</dt>
+                <dt>범위</dt>
                 <dd>
                   {search.districts.length === 0
                     ? "서울 전역"
-                    : `${search.districts.length}개 자치구`}
+                    : search.districts.length <= 2
+                      ? search.districts.join(" · ")
+                      : `${search.districts.length}개 자치구`}
                 </dd>
               </div>
               <div>
+                <dt>초기투자</dt>
+                <dd>{search.upfront === null ? "미입력" : `${int(search.upfront)}만 원`}</dd>
+              </div>
+              <div>
                 <dt>월 임대료</dt>
-                <dd>{search.rentMonthly === null ? "미입력" : `${int(search.rentMonthly)}만`}</dd>
+                <dd>{search.rentMonthly === null ? "미입력" : `${int(search.rentMonthly)}만 원`}</dd>
               </div>
             </dl>
 
             <hr className={s.rule} />
 
-            {/* Funnel row 1 is a real API value. Rows 2-3 are only knowable
-                after the query runs — saying so beats inventing 12,480→842. */}
             <div className={s.funnel}>
               <div>
                 <span>서울 전체 격자</span>
-                <strong>{q.data ? `${int(q.data.gridCount)}개` : "—"}</strong>
+                <strong className={s.fDim}>{meta.data ? `${int(meta.data.gridCount)}개` : "…"}</strong>
               </div>
               <div>
-                <span>범위 내 격자</span>
-                <strong className={s.pending}>분석하면 확인됩니다</strong>
+                <span>범위 내 격자 (업종 기준)</span>
+                <strong>
+                  {search.uptae ? (rec.data ? `${int(rec.data.inScope)}개` : "…") : "업종 선택 후"}
+                </strong>
+              </div>
+              <div>
+                <span>상위 추천 후보</span>
+                <strong className={s.fY}>
+                  {search.uptae && rec.data ? `${int(rec.data.count)}곳` : "…"}
+                </strong>
               </div>
             </div>
 
-            <button
-              className={s.cta}
-              disabled={!search.uptae}
-              onClick={() => go({ name: "results" })}
-            >
-              분석 시작
+            <button className={s.cta} disabled={!search.uptae} onClick={() => go({ name: "results" })}>
+              AI 분석 시작하기
             </button>
-            {!search.uptae ? <p className={s.ctaHint}>업종을 골라주세요</p> : null}
+          </div>
+          <p className={s.caption}>
+            등급은 사전계산되어 있어 결과가 바로 표시됩니다. 결과는 참고 정보이며 최종 판단은
+            사용자에게 있습니다.
+          </p>
+          <div className={s.help}>
+            <strong>아직 업종을 못 정하셨나요?</strong>
+            <span>업종 칩을 바꿔가며 후보 수 변화를 바로 비교할 수 있습니다. 12개 업태 모두 사전계산되어 있습니다.</span>
           </div>
         </aside>
       </main>
       <CaveatStrip />
-    </>
+    </div>
   );
 }
 
-/** 만원 단위 입력. Empty stays null — never coerced to 0 (§4). */
-function MoneyField({
+/** Figma budget slider — yellow fill track, 만원 value on the right.
+ *  null = untouched; the first drag sets a value, 지우기 resets to null. */
+function BudgetSlider({
   label,
   hint,
+  cfg,
   value,
   onChange,
+  format,
+  rangeLabel,
 }: {
   label: string;
   hint: string;
+  cfg: { min: number; max: number; step: number };
   value: number | null;
   onChange: (v: number | null) => void;
+  format: (v: number) => string;
+  rangeLabel: [string, string];
 }) {
+  const v = value ?? cfg.min;
+  const fillPct = ((v - cfg.min) / (cfg.max - cfg.min)) * 100;
   return (
-    <label className={s.money}>
-      <span className={s.moneyLabel}>{label}</span>
-      <span className={s.moneyInput}>
-        <input
-          type="number"
-          min={0}
-          value={value ?? ""}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-          placeholder="0"
-        />
-        <span className={s.moneyUnit}>만원</span>
-      </span>
-      <span className={ui.captionBlock}>{hint}</span>
-    </label>
+    <div className={s.slider}>
+      <div className={s.sliderTop}>
+        <span className={s.sliderLabel}>
+          {label}
+          <em>{hint}</em>
+        </span>
+        <span className={s.sliderValue}>
+          {value === null ? "미입력" : format(value)}
+          {value !== null ? (
+            <button className={s.sliderClear} onClick={() => onChange(null)}>
+              지우기
+            </button>
+          ) : null}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={cfg.min}
+        max={cfg.max}
+        step={cfg.step}
+        value={v}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className={s.range}
+        style={{
+          background: `linear-gradient(to right, var(--fg-y) ${fillPct}%, #edebe6 ${fillPct}%)`,
+        }}
+      />
+      <div className={s.rangeEnds}>
+        <span>{rangeLabel[0]}</span>
+        <span>{rangeLabel[1]}</span>
+      </div>
+    </div>
   );
 }

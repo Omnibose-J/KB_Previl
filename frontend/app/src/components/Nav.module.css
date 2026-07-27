@@ -1,26 +1,22 @@
+/* Figma-snapshot compact nav: white bar, 1px warm hairline, logo 28px mark. */
+
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
-  padding: 0 var(--space-16);
-  background: var(--color-surface-0);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.navDark {
-  composes: nav;
-  background: transparent;
-  border-bottom: 0;
+  gap: 16px;
+  padding: 15px 32px;
+  background: var(--fg-card);
+  border-bottom: 1px solid var(--fg-line);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
+  padding: 0;
   border: 0;
   background: none;
-  padding: 0;
 }
 
 .mark {
@@ -28,75 +24,78 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand-yellow);
-  color: var(--color-brand-on-yellow);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  border-radius: 7px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-family: var(--fg-font-kb);
+  font-size: 13px;
+  font-weight: 500; /* KBFG max weight; synthesis is blocked globally */
 }
 
 .wordmark {
-  font-size: var(--font-size-subhead-sm);
-  line-height: var(--line-height-subhead-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-ink);
 }
 
-.navDark .wordmark {
-  color: var(--color-text-on-dark-primary);
-}
-
-.steps {
+.center {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  color: var(--color-text-faint);
-}
-
-.stepsDark {
-  composes: steps;
-  color: var(--color-text-on-dark-subtle);
-}
-
-.step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.stepOn {
-  composes: step;
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.stepsDark .stepOn {
-  color: var(--color-text-on-dark-primary);
-}
-
-.stepNum {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-400);
-  color: var(--color-text-subtle);
-  font-size: var(--font-size-caption);
-}
-
-.stepOn .stepNum {
-  background: var(--color-ink-800);
-  color: var(--color-brand-yellow);
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  font-size: var(--font-size-body);
-  color: var(--color-text-tertiary);
+  gap: 10px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+/* stepper (S2) */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step,
+.stepOn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #9a9a9a;
+}
+
+.stepOn {
+  color: var(--fg-dark);
+  font-weight: 700;
+}
+
+.stepNum {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--fg-chipline);
+  color: var(--fg-t6);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepOn .stepNum {
+  background: var(--fg-dark);
+  color: var(--fg-y);
+}
+
+.stepTick {
+  display: block;
+  width: 28px;
+  height: 1px;
+  background: var(--fg-chipline);
+  margin-left: 10px;
 }

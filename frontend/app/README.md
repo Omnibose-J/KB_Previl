@@ -2,6 +2,8 @@
 
 스펙: `../design/ui-spec.md` (계약 전체) · B의 응답 스키마: `../../lanes/B-backend.md`
 
+**2026-07-27 방향 전환**: 비주얼·레이아웃은 `../design/figma-snapshot/`(렌더 4장 + spec.md 픽셀 스펙)을 1:1로 따른다. 단 시안의 목업 수치·금지 카피는 여전히 ui-spec 교체 표를 따르며, 화면 수치는 전부 API에서 온다 — 충실도는 시각이지 서사가 아니다.
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173 — /api는 FastAPI(8000)로 프록시
@@ -33,8 +35,8 @@ npm run dev        # http://localhost:5173 — /api는 FastAPI(8000)로 프록�
 
 카카오 JS SDK 대신 **MapLibre GL + OSM**을 쓴다 — `KAKAO_JAVASCRIPT_KEY`가 발급되지 않았고, 스펙 §1이 지정한 폴백이다. 키가 나오면 `src/components/GridMap.tsx` 한 파일만 교체하면 된다.
 
-베이스맵은 채도를 죽여 회색으로 깔고, 색은 데이터 레이어만 쓴다. 등급 램프는 KB 블루 10단이며 **브랜드 옐로우는 데이터를 칠하지 않는다** — 옐로우는 CTA와 추천 후보 셀 테두리 전용이다.
+베이스맵은 채도를 죽여 회색으로 깔고, 색은 데이터 레이어만 쓴다. 등급 램프는 **브랜드 옐로우 10단 이산**(피그마 히트맵 스텝, `global.css`의 `--color-heatmap-*`)이며, 후보 셀 강조는 다크 테두리 + 다크 순위 핀이 담당한다 — 옐로우 램프 위에 옐로우 테두리는 보이지 않는다.
 
 ## 폰트
 
-KB금융 본문체(KBFG Text) Light·Medium 2종만 공개돼 있다. 굵기 위계 대신 300↔500 대비와 크기·색으로 위계를 만든다. 자세한 제약과 Bold·제목체를 나중에 넣는 방법은 `public/fonts/README.md`.
+기본 UI 폰트는 **Noto Sans KR**(@fontsource, 400/500/700/900)이다 — 피그마 타입 스케일이 w700·w900 헤드라인에 의존하는데 KBFG Text는 Light·Medium 2종뿐이라 굵은 위계를 만들 수 없다. KBFG는 로고 마크(`--fg-font-kb`)에 남는다. KBFG Bold·제목체를 구하면 `public/fonts/README.md` 절차로 되돌릴 수 있다.

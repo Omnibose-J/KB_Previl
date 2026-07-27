@@ -1,80 +1,324 @@
-.body {
-  display: grid;
-  grid-template-columns: var(--layout-results-ranking) var(--layout-results-map);
-  gap: var(--layout-results-gap);
-  padding: var(--space-6) var(--layout-gutter-results) var(--space-6);
-  height: calc(100vh - 64px - 44px); /* nav + caveat strip */
-  min-height: 720px;
+/* S3 — figma metrics: 600px ranking + flexible map panel, gap 24, pad 24/32. */
+
+.page {
+  background: var(--fg-paper);
+  min-height: 100vh;
 }
 
+.condPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  background: var(--fg-wash);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+.condPill i {
+  font-style: normal;
+  color: var(--fg-t9);
+}
+
+.condPill button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-y-deep);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 600px 1fr;
+  gap: 24px;
+  padding: 24px 32px 32px;
+  align-items: start;
+}
+
+/* ── ranking column ──────────────────────────────── */
 .ranking {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  overflow-y: auto;
-  padding-right: var(--space-2);
+  gap: 14px;
 }
 
 .rankHead {
-  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .rankTitle {
-  font-size: var(--font-size-title-xl);
-  line-height: var(--line-height-title-xl);
-  font-weight: var(--font-weight-medium);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  line-height: 33px;
 }
 
 .rankSub {
-  margin-top: var(--space-1);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-  color: var(--color-text-muted);
+  font-size: 12px;
+  color: var(--fg-t6);
+  margin-top: 3px;
+}
+
+.sort {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5a5a5a;
+  flex: none;
+}
+
+/* What-if dark panel */
+.whatif {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--fg-dark);
+}
+
+.whatifHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.whatifHead strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-y);
+}
+
+.reset {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--fg-dt3);
+}
+
+.reset:hover {
+  color: #fff;
+}
+
+.whatifRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.1fr;
+  gap: 10px;
+}
+
+.wCtl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: var(--fg-dark-chip);
+  border: 1px solid var(--fg-dark-stroke);
+  text-align: left;
+  color: #fff;
+}
+
+button.wCtl:not(:disabled):hover {
+  border-color: var(--fg-dt3);
+}
+
+button.wCtl:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.wTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.wSub {
+  font-size: 10px;
+  color: var(--fg-dt3);
+}
+
+.wSelect {
+  border: 0;
+  background: none;
+  color: var(--fg-y);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  outline: none;
+}
+
+.wSelect option {
+  color: var(--fg-ink);
+}
+
+.wInputRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--fg-dt2);
+}
+
+.wInput {
+  width: 72px;
+  border: 0;
+  border-bottom: 1px solid var(--fg-dark-stroke);
+  background: none;
+  color: var(--fg-y);
+  font-size: 12px;
+  font-weight: 700;
+  outline: none;
+  padding: 0 0 2px;
+}
+
+.wInput::placeholder {
+  color: var(--fg-dt4);
+  font-weight: 400;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 14px;
 }
 
-/* The map owns the larger half — it is the primary navigation (§0 원칙 4). */
+/* ── map panel ───────────────────────────────────── */
 .mapPanel {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  padding: var(--space-4);
-  min-height: 0;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+  overflow: hidden;
+  position: sticky;
+  top: 16px;
 }
 
 .mapHead {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  padding: 0 var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
 }
 
 .mapTitle {
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
 }
 
-.conditions {
-  font-size: var(--font-size-label);
-  color: var(--color-text-secondary);
-  background: var(--color-surface-200);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-4);
+.tabs {
+  display: flex;
+  gap: 6px;
 }
 
+.tab,
+.tabOn {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--fg-wash);
+  color: #6a6a6a;
+}
+
+.tabOn {
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-weight: 700;
+}
+
+.tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.mapBox {
+  height: 560px;
+  background: var(--fg-mapbg);
+}
+
+/* insights strip */
+.insights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 20px 18px;
+  background: var(--fg-card-warm);
+}
+
+.insGreen,
+.insOrange,
+.insGray {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.insGreen {
+  background: var(--fg-green-bg);
+}
+
+.insOrange {
+  background: var(--fg-orange-bg);
+}
+
+.insGray {
+  background: var(--fg-gray-bg);
+}
+
+.insGreen strong {
+  color: var(--fg-green);
+}
+
+.insOrange strong {
+  color: var(--fg-orange);
+}
+
+.insGray strong {
+  color: var(--fg-t5);
+}
+
+.insights strong {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.insights span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+/* guard (no uptae yet) */
 .guard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-20);
-  color: var(--color-text-muted);
+  gap: 16px;
+  padding: 120px 0;
+  font-size: 15px;
+  color: var(--fg-t3);
+}
+
+.guardBtn {
+  padding: 12px 24px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-size: 14px;
+  font-weight: 700;
 }

@@ -24,18 +24,34 @@ export const SOURCES = [
   "지하철 접근성",
 ] as const;
 
-/** S1 feature cards — 6 mockup cards collapsed into 3 (ui-spec §3-S1). */
-export const FEATURES = [
+/** S1 feature cards — figma keeps 6 slots (2026-07-27 rebuild); each mockup
+ *  claim is swapped for what the model actually does (ui-spec §3-S1 교체 표).
+ *  The SNS/타이밍 슬롯 are replaced outright: 비정형 measured twice, no lift. */
+export const FEATURES_6 = [
   {
     title: "실측으로 검증된 등급",
-    body: "예측 확률이 아니라, 과거에 그 등급을 받은 자리들이 실제로 몇 곳이나 3년을 버텼는지를 보여드립니다. 학습에 쓰지 않은 뒷 기간으로 검증했습니다.",
+    body: "예측 확률이 아니라, 과거에 같은 등급을 받은 자리들이 실제로 몇 곳이나 3년을 버텼는지 보여드립니다. 학습에 쓰지 않은 뒷 기간으로 따로 검증했습니다.",
+  },
+  {
+    title: "업종별 사전계산 등급",
+    body: "카페와 고깃집은 좋은 자리가 다릅니다. 12개 업태 각각 별도의 등급을 사전계산해, 같은 격자도 업태에 따라 등급이 갈립니다.",
   },
   {
     title: "검증된 자리 vs 과열 신호",
-    body: "이미 가게가 많은 곳은 검증된 자리, 최근 몇 년 새 급증한 곳은 과열 신호로 구분합니다. 데이터가 실제로 그 방향을 가리켰습니다.",
+    body: "스냅샷이 아니라 이력을 봅니다. 오래 버틴 점포가 많은 곳과 최근 개업이 급증한 곳을 구분해 표시합니다. 데이터가 실제로 가리킨 방향입니다.",
   },
   {
-    title: "입지 위험을 반영한 손익",
-    body: "같은 매출·같은 임대료여도 자리가 다르면 3년 뒤 손에 남는 돈이 갈립니다. 생존 확률을 반영한 회수 기간을 따로 계산합니다.",
+    title: "내 업종 기준 경쟁 분석",
+    body: "주변 업종 나열이 아니라, 같은 업종의 영업 점포 수·개업 추이·이웃 자리 생존율로 경쟁 환경을 평가합니다.",
+  },
+  {
+    title: "등급 + 격자별 근거",
+    body: "등급마다 실측 생존율을 병기하고, 격자별 근거(경쟁·이력·역 접근성)를 함께 제시합니다. 점수 뒤에 숨지 않습니다.",
+  },
+  {
+    title: "What-if 재계산",
+    body: "업종을 바꾸면, 범위를 넓히면, 임대료를 조정하면 추천과 손익이 실제로 다시 계산됩니다. 화면 어디에도 저장된 예시 수치는 없습니다.",
   },
 ] as const;
+
+export const TEAM = ["소범진", "이희수", "최지연"] as const;

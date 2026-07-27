@@ -1,159 +1,433 @@
-/* The single dark surface in the product. The mockup had three (hero, table,
-   what-if), which flattened the hierarchy signal (ui-spec §0 슬롭 표). */
-.hero {
-  background: var(--color-ink-800);
-  padding-bottom: var(--space-20);
+/* S1 landing — metrics traced from figma-snapshot/spec.md (S1 frame). */
+
+.page {
+  background: var(--fg-card);
 }
 
-.heroBody {
-  padding: var(--space-16) var(--layout-gutter-landing) 0;
-  max-width: var(--layout-landing-content);
-}
-
-.badge {
-  display: inline-block;
-  border: 1px solid var(--color-ink-border-strong);
-  background: var(--color-ink-raised-alt);
-  border-radius: var(--radius-pill);
-  padding: var(--space-2) var(--space-4);
-  color: var(--color-brand-yellow);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-}
-
-/* Left-aligned, like KB's own brand sites — the mockup centred it. */
-.title {
-  margin-top: var(--space-5);
-  font-family: var(--font-family-display);
-  font-size: var(--font-size-hero);
-  line-height: var(--line-height-hero);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-on-dark-primary);
-  letter-spacing: -0.02em;
-}
-
-/* The one brand accent on this screen (§0 원칙 5). */
-.titleAccent {
-  font-style: normal;
-  color: var(--color-brand-yellow);
-}
-
-.sub {
-  margin-top: var(--space-5);
-  max-width: 720px;
-  font-size: var(--font-size-subhead-lg);
-  line-height: 30px;
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-on-dark-secondary);
-}
-
-.sub strong {
-  color: var(--color-text-on-dark-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.searchCard {
+/* ── nav ─────────────────────────────────────────── */
+.nav {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  width: 640px;
-  margin-top: var(--space-10);
-  padding: var(--space-3);
-  background: var(--color-surface-0);
-  border-radius: var(--radius-2xl);
+  justify-content: space-between;
+  padding: 20px 64px;
+  background: var(--fg-card);
 }
 
-.field {
-  flex: 1;
+.logo {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-5);
+  align-items: center;
+  gap: 10px;
 }
 
-.fieldLabel {
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-text-subtle);
+.mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-family: var(--fg-font-kb);
+  font-size: 15px;
+  font-weight: 500;
 }
 
-.select {
+.wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.menu > button {
   border: 0;
   background: none;
   padding: 0;
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a4a4a;
+}
+
+.menu > button:hover {
+  color: var(--fg-ink);
+}
+
+.login {
+  background: var(--fg-ink) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  padding: 10px 18px !important;
+}
+
+/* ── hero ────────────────────────────────────────── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: var(--fg-dark);
+  padding: 88px 64px 72px;
+  text-align: center;
+}
+
+.badge {
+  padding: 7px 14px;
+  border-radius: 100px;
+  background: var(--fg-badge-bg);
+  border: 1px solid var(--fg-badge-line);
+  color: var(--fg-y);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.h1 {
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 68px;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.h1 em {
+  font-style: normal;
+  color: var(--fg-y);
+}
+
+.sub {
+  max-width: 720px;
+  font-size: 17px;
+  line-height: 30px;
+  color: var(--fg-dt1);
+}
+
+/* search pill */
+.searchCard {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 942px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--fg-card);
+  margin-top: 8px;
+  text-align: left;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  padding: 10px 20px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.fieldValue {
+  border: 0;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+  width: 100%;
+}
+
+.fieldValue::placeholder {
+  color: var(--fg-t8);
+  font-weight: 500;
+}
+
+.fieldDivider {
+  width: 1px;
+  height: 36px;
+  background: var(--fg-divider);
+  flex: none;
+}
+
+.searchBtn {
+  flex: none;
+  padding: 18px 34px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.searchBtn:hover {
+  filter: brightness(1.05);
 }
 
 .sources {
-  margin-top: var(--space-8);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-  color: var(--color-text-on-dark-subtle);
+  font-size: 12px;
+  color: var(--fg-dt4);
 }
 
-/* 정직성 스트립 — sits directly under the hero so the caveat is unavoidable. */
-.honesty {
-  padding: var(--space-5) var(--layout-gutter-landing);
-  background: var(--color-brand-yellow-bg);
-  border-bottom: 1px solid var(--color-border-subtle);
+/* ── section shells ─────────────────────────────── */
+.secHead {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 780px;
 }
 
-.honestyText {
-  font-size: var(--font-size-body-lg);
-  line-height: var(--line-height-body-lg);
-  color: var(--color-brand-gold-text);
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fg-y-deep);
 }
 
-.features {
-  padding: var(--space-20) var(--layout-gutter-landing);
-  background: var(--color-surface-0);
+.eyebrowY {
+  composes: eyebrow;
+  color: var(--fg-y);
 }
 
-.features h2 {
-  margin-top: var(--space-3);
-  margin-bottom: var(--space-10);
+.h2 {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 48px;
+  color: var(--fg-ink);
 }
 
-/* Deliberately uneven: one lead card at double width, two supporting cards.
-   Six identical cards was the mockup's "AI-generated landing" tell (§0). */
-.featureGrid {
+.h2Dark {
+  composes: h2;
+  color: #fff;
+}
+
+.secSub {
+  font-size: 16px;
+  line-height: 28px;
+  color: #5a5a5a;
+}
+
+.secSubDark {
+  composes: secSub;
+  color: var(--fg-dt1);
+}
+
+/* ── why now ─────────────────────────────────────── */
+.why {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  background: var(--fg-paper);
+  padding: 80px 64px;
+}
+
+.whyCards {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: var(--space-5);
-  align-items: start;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
-.feature {
-  background: var(--color-surface-50);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  padding: var(--space-7);
+.whyCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
 }
 
-.featureLead {
-  composes: feature;
-  background: var(--color-surface-100);
-  padding: var(--space-8);
+.whyNum {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--fg-y);
 }
 
-.featureLead h3 {
-  font-size: var(--font-size-title-xl);
-  line-height: var(--line-height-title-xl);
+.whyCard h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
 }
 
-.featureNum {
-  display: block;
-  margin-bottom: var(--space-3);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-brand-gold);
+.whyCard p {
+  font-size: 14px;
+  line-height: 25px;
+  color: var(--fg-t4);
 }
 
-.feature h3,
-.featureLead h3 {
-  margin-bottom: var(--space-3);
+/* ── what it does ────────────────────────────────── */
+.what {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  background: var(--fg-card);
+  padding: 88px 64px;
+}
+
+.featGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.featCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 30px;
+  border-radius: 16px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.featNum {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fg-y);
+}
+
+.featCard h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.featCard p {
+  font-size: 14px;
+  line-height: 25px;
+  color: var(--fg-t4);
+}
+
+.featProof {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text) !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  line-height: 18px !important;
+}
+
+/* ── how it differs (dark) ───────────────────────── */
+.differs {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--fg-dark);
+  padding: 88px 64px;
+}
+
+.table {
+  border-radius: 16px;
+  background: var(--fg-dark-card);
+  border: 1px solid #332f2a;
+  overflow: hidden;
+}
+
+.tHead,
+.tRow {
+  display: grid;
+  grid-template-columns: 180px 1fr 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 18px 28px;
+}
+
+.tHead {
+  background: var(--fg-dark-row);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.tHead > span:nth-child(2),
+.tHead > .tOurs {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tOurs {
+  color: var(--fg-y);
+}
+
+.tRow {
+  border-top: 1px solid var(--fg-dark-line);
+  font-size: 14px;
+}
+
+.tAxis {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-dt3);
+}
+
+.tTheirs {
+  color: var(--fg-dt2);
+  font-weight: 500;
+}
+
+.tOursCell {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ── CTA band ────────────────────────────────────── */
+.cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background: var(--fg-y);
+  padding: 80px 64px;
+  text-align: center;
+}
+
+.ctaH {
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 50px;
+  color: var(--fg-ink);
+}
+
+.ctaSub {
+  font-size: 16px;
+  color: var(--fg-y-dim);
+}
+
+.ctaBtn {
+  padding: 18px 40px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fg-dark);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ctaBtn:hover {
+  background: var(--fg-ink);
+}
+
+/* ── footer ──────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--fg-darkest);
+  padding: 36px 64px;
+  font-size: 12px;
+  color: var(--fg-dt4);
+}
+
+.footNote {
+  color: var(--fg-dt5);
 }

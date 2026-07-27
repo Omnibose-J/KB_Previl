@@ -1,6 +1,91 @@
-/* Layout shell only — visual design tokens come from ../../design/tokens/tokens.css.
-   New screens use the 4px spacing grid and the 10-step type ramp (ui-spec §5).
-   Reusable primitives (card/btn/chip/pill/tile) live in ui.module.css. */
+/* Figma-faithful rebuild (2026-07-27). Palette/type below mirror
+   design/figma-snapshot/spec.md exactly; tokens.css still loads first but the
+   screen modules reference these --fg-* vars. Numbers on screen still come only
+   from the API — fidelity is visual, not narrative. */
+
+:root {
+  /* brand */
+  --fg-y: #ffbc00;
+  --fg-y-deep: #b08800;
+  --fg-y-text: #8a6a00;
+  --fg-y-bg: #fff9e6;
+  --fg-y-dim: #5a4a18;
+  --fg-y-dim2: #7a6428;
+
+  /* dark surfaces (warm) */
+  --fg-ink: #1a1a1a;
+  --fg-dark: #141414;
+  --fg-darkest: #0e0e0e;
+  --fg-dark-card: #1e1c19;
+  --fg-dark-row: #26231f;
+  --fg-dark-line: #2e2a25;
+  --fg-dark-chip: #242019;
+  --fg-dark-stroke: #38322a;
+  --fg-dark-stroke2: #4a443c;
+  --fg-badge-bg: #2a2622;
+  --fg-badge-line: #4a4238;
+  --fg-y-pill-bg: #3a2e00;
+
+  /* light surfaces */
+  --fg-paper: #f7f6f3;
+  --fg-card: #ffffff;
+  --fg-card-warm: #fafaf8;
+  --fg-line: #e8e6e1;
+  --fg-line2: #eae8e3;
+  --fg-line3: #efede8;
+  --fg-chipline: #dedcd6;
+  --fg-wash: #f2f1ed;
+  --fg-gray-bg: #f0efec;
+  --fg-mapbg: #edebe6;
+  --fg-divider: #e8e8e4;
+
+  /* text on light */
+  --fg-t2: #3a3a3a;
+  --fg-t3: #5a5a5a;
+  --fg-t4: #6b6b6b;
+  --fg-t5: #7a7a7a;
+  --fg-t6: #8a8a8a;
+  --fg-t7: #9a9a9a;
+  --fg-t8: #a8a8a8;
+  --fg-t9: #b8b8b8;
+
+  /* text on dark */
+  --fg-dt1: #a8a29a;
+  --fg-dt2: #9c958b;
+  --fg-dt3: #8a837a;
+  --fg-dt4: #6b655d;
+  --fg-dt5: #4a453e;
+  --fg-dt6: #a09a92;
+
+  /* semantic */
+  --fg-green: #1fa463;
+  --fg-green-bg: #e6f6ee;
+  --fg-green-on-dark: #4ed08a;
+  --fg-green-dark-bg: #12351f;
+  --fg-orange: #e0782a;
+  --fg-orange-deep: #b85e10;
+  --fg-orange-bg: #fdf0e4;
+  --fg-red: #e0522a;
+
+  /* fonts — Noto carries the figma weights (400/500/700/900); KBFG stays for
+     the brand mark, where Light/Medium is enough. */
+  --fg-font: "Noto Sans KR", "KBFG Text", "Malgun Gothic", sans-serif;
+  --fg-font-kb: "KBFG Text", "Noto Sans KR", sans-serif;
+
+  /* grade ramp override: figma heatmap = brand yellow, alpha-stepped, discrete.
+     grade 1 = best = strongest. GridMap + badges read these vars. */
+  --color-heatmap-1: rgba(255, 188, 0, 0.95);
+  --color-heatmap-2: rgba(255, 188, 0, 0.85);
+  --color-heatmap-3: rgba(255, 188, 0, 0.74);
+  --color-heatmap-4: rgba(255, 188, 0, 0.63);
+  --color-heatmap-5: rgba(255, 188, 0, 0.53);
+  --color-heatmap-6: rgba(255, 188, 0, 0.43);
+  --color-heatmap-7: rgba(255, 188, 0, 0.34);
+  --color-heatmap-8: rgba(255, 188, 0, 0.26);
+  --color-heatmap-9: rgba(255, 188, 0, 0.18);
+  --color-heatmap-10: rgba(255, 188, 0, 0.12);
+  --color-heatmap-null: #c9c6c0;
+}
 
 * {
   box-sizing: border-box;
@@ -8,15 +93,18 @@
 
 body {
   margin: 0;
-  font-family: var(--font-family-base);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
-  background: var(--color-surface-100);
-  min-width: 1440px; /* fixed desktop demo — no breakpoints (ui-spec §5) */
+  font-family: var(--fg-font);
+  font-weight: 400;
+  color: var(--fg-ink);
+  background: var(--fg-paper);
+  /* 1440-design demo, but the scrollbar eats ~15px of the viewport: the frame
+     tolerates that shrink instead of clipping the right column. */
+  min-width: 1280px;
   -webkit-font-smoothing: antialiased;
-  /* KBFG Text ships Light+Medium only. Without this the browser smears a
-     synthetic bold over dense Hangul at body size; hierarchy is 300 vs 500. */
+  /* KBFG ships Light+Medium only — block synthetic bold on the brand face.
+     Noto provides real 700/900 so headings keep their weight. */
   font-synthesis: none;
+  word-break: keep-all;
 }
 
 h1,
@@ -44,9 +132,10 @@ ul {
   list-style: none;
 }
 
-/* The whole app is a fixed 1440 frame; screens center themselves inside it. */
+/* 1440 design frame, centered; shrinks gracefully by the scrollbar width. */
 #root {
-  width: var(--layout-frame-width);
+  width: 100%;
+  max-width: 1440px;
   margin: 0 auto;
 }
 

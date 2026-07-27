@@ -1,194 +1,708 @@
+/* S4 — figma metrics: crumb 66px, dark hero 177px, 960px main + 360px sidebar. */
+
+.page {
+  background: var(--fg-paper);
+  min-height: 100vh;
+}
+
+.pad {
+  padding: 48px;
+}
+
+.guard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 120px 0;
+}
+
+/* ── breadcrumb bar ──────────────────────────────── */
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 48px;
+  background: var(--fg-card);
+  border-bottom: 1px solid var(--fg-line);
+  font-size: 13px;
+  color: #5a5a5a;
+}
+
+.back {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5a5a5a;
+}
+
+.back:hover {
+  color: var(--fg-ink);
+}
+
+.crumbPath {
+  font-weight: 500;
+  white-space: pre;
+}
+
+.crumbSpacer {
+  flex: 1;
+}
+
+/* ── dark hero ───────────────────────────────────── */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  background: var(--fg-dark);
+  padding: 32px 48px;
+}
+
+.heroL {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heroPills {
+  display: flex;
+  gap: 8px;
+}
+
+.pillGreenDark,
+.pillOrangeDark,
+.pillYellowDark,
+.pillGrayDark {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pillGreenDark {
+  background: var(--fg-green-dark-bg);
+  color: var(--fg-green-on-dark);
+}
+
+.pillOrangeDark {
+  background: #3a2413;
+  color: var(--fg-orange);
+}
+
+.pillYellowDark {
+  background: var(--fg-y-pill-bg);
+  color: var(--fg-y);
+}
+
+.pillGrayDark {
+  background: var(--fg-dark-row);
+  color: var(--fg-dt1);
+}
+
+.heroTitle {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 49px;
+  color: #fff;
+}
+
+.heroSub {
+  font-size: 14px;
+  color: var(--fg-dt2);
+}
+
+.heroGrade {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+.heroGradeLabel {
+  font-size: 12px;
+  color: var(--fg-dt3);
+}
+
+.heroGradeNum {
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 57px;
+  color: var(--fg-y);
+}
+
+.heroGradeCap {
+  font-size: 11px;
+  color: var(--fg-dt3);
+}
+
+/* ── layout ──────────────────────────────────────── */
 .body {
   display: grid;
-  grid-template-columns: var(--layout-detail-main) var(--layout-detail-sidebar);
-  gap: var(--layout-detail-gap);
-  padding: var(--space-8) var(--layout-gutter-detail) var(--space-16);
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  padding: 28px 48px 40px;
   align-items: start;
 }
 
 .main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: 20px;
 }
 
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  position: sticky;
-  top: var(--space-6);
-}
-
-.crumb {
-  font-size: var(--font-size-body);
-  color: var(--color-text-tertiary);
-}
-
-/* ---------- hero ---------- */
-
-.hero {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
-}
-
-.place {
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  color: var(--color-text-muted);
-}
-
-.heroGrade {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-}
-
-/* 숫자보다 문장 먼저 (§0 원칙 2): the sentence is the headline, the percentage
-   is its footnote — the reverse of the mockup's "62%" hero. */
-.heroSentence {
-  margin-top: var(--space-4);
-  font-family: var(--font-family-display);
-  font-size: var(--font-size-display-sm);
-  line-height: var(--line-height-display-sm);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: -0.02em;
-}
-
-.heroSub {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-body-lg);
-  line-height: var(--line-height-body-lg);
-  color: var(--color-text-tertiary);
-}
-
-/* ---------- kpi ---------- */
-
+/* KPI row */
 .kpis {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  gap: 16px;
 }
 
 .kpi {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-}
-
-.kpiTitle {
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-}
-
-.kpiBig {
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
-}
-
-.line {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-1) 0;
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  color: var(--color-text-tertiary);
-}
-
-.line strong {
-  font-size: var(--font-size-subhead-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
-/* ---------- sidebar ---------- */
-
-.sideTitle {
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--space-4);
-}
-
-.gradeTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gradeTable th,
-.gradeTable td {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.gradeTable th {
-  text-align: left;
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-tertiary);
-}
-
-.gradeTable td {
-  text-align: right;
-  font-weight: var(--font-weight-medium);
-}
-
-.sample {
-  color: var(--color-text-faint);
-  font-weight: var(--font-weight-regular) !important;
-}
-
-.rowOn th,
-.rowOn td {
-  background: var(--color-brand-yellow-bg);
-  color: var(--color-brand-gold-text);
-}
-
-.limits {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 8px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
 }
 
-.limits li {
-  padding-left: var(--space-4);
-  position: relative;
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  color: var(--color-text-secondary);
+.kpiLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t6);
 }
 
-.limits li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-text-ghost);
+.kpiV {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
 }
 
-.sourceTitle {
-  margin-top: var(--space-5);
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
+.kpiV strong {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 42px;
+  color: var(--fg-ink);
 }
 
-.sources {
-  margin-top: var(--space-1);
-  margin-bottom: var(--space-3);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-  color: var(--color-text-secondary);
+.kpiV em {
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 700;
+  color: #6a6a6a;
+}
+
+.kpiGreen {
+  color: var(--fg-green) !important;
+}
+
+.kpiMuted {
+  font-size: 20px !important;
+  color: var(--fg-t7) !important;
+}
+
+.kpiCap {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+/* generic card */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 28px 26px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+}
+
+.cardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardHead h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.cardHead p {
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+.cardHeadRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.llmTag {
+  flex: none;
+  padding: 7px 12px;
+  border-radius: 100px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* signal bar pairs */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.barPair {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+}
+
+.barLabel em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--fg-t8);
+}
+
+.barRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 90px 1fr 110px;
+  gap: 14px;
+  align-items: center;
+}
+
+.barName {
+  font-size: 12px;
+  color: var(--fg-t5);
+}
+
+.barTrack {
+  height: 18px;
+  border-radius: 5px;
+  background: var(--fg-wash);
+  overflow: hidden;
+}
+
+.barY,
+.barG {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.barY {
+  background: var(--fg-y);
+}
+
+.barG {
+  background: var(--fg-chipline);
+}
+
+.barValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+  text-align: right;
+}
+
+/* AI report */
+.reportBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: var(--fg-card-warm);
+}
+
+.reportBody p {
+  font-size: 14px;
+  line-height: 27px;
+  color: var(--fg-t2);
+}
+
+/* 경쟁/위험 pair */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.vs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.vsGreen,
+.vsOrange {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 12px;
+}
+
+.vsGreen {
+  background: var(--fg-green-bg);
+}
+
+.vsOrange {
+  background: var(--fg-orange-bg);
+}
+
+.vsGreen > span {
+  color: var(--fg-green);
+}
+
+.vsOrange > span {
+  color: var(--fg-orange);
+}
+
+.vs span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vsGreen strong {
+  color: var(--fg-green);
+}
+
+.vsOrange strong {
+  color: var(--fg-orange);
+}
+
+.vs strong {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 31px;
+}
+
+.vs em {
+  font-style: normal;
+  font-size: 11px;
+  color: #5a5a5a;
+}
+
+.verdict {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 21px;
+}
+
+/* risk rows */
+.risks {
+  display: flex;
+  flex-direction: column;
+}
+
+.risk {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.risk:last-child {
+  border-bottom: 0;
+}
+
+.lvHigh,
+.lvMid,
+.lvLow {
+  flex: none;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.lvHigh {
+  background: var(--fg-red);
+}
+
+.lvMid {
+  background: var(--fg-orange);
+}
+
+.lvLow {
+  background: var(--fg-green);
+}
+
+.riskBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.riskBody strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.riskBody p {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--fg-t5);
+}
+
+/* observed-by-grade table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--fg-line2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table thead tr {
+  background: var(--fg-card-warm);
+}
+
+.table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t7);
+}
+
+.table td {
+  padding: 12px 20px;
+  border-top: 1px solid var(--fg-line3);
+  font-size: 13px;
+  color: var(--fg-t2);
+}
+
+.table td:first-child {
+  font-weight: 700;
+}
+
+.rowOn {
+  background: var(--fg-y-bg);
+}
+
+.rowTag {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+/* ── sidebar ─────────────────────────────────────── */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+/* yellow loan concept card */
+.loan {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 26px;
+  border-radius: 16px;
+  background: var(--fg-y);
+}
+
+.loanTag {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--fg-y-dim);
+}
+
+.loan h3 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--fg-ink);
+}
+
+.loanList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--fg-card);
+}
+
+.loanList li {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+.loanBtn {
+  padding: 16px 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
+.loanCap {
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--fg-y-dim2);
+}
+
+/* dark coaching card */
+.coach {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: var(--fg-dark);
+}
+
+.coachTag {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--fg-y);
+}
+
+.coach p {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: #fff;
+}
+
+.coachChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coachChips span {
+  padding: 5px 10px;
+  border-radius: 100px;
+  background: var(--fg-dark-row);
+  color: var(--fg-dt1);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.coachBtn {
+  padding: 14px 0;
+  border: 1px solid var(--fg-dark-stroke2);
+  border-radius: 10px;
+  background: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
+/* alarm concept card */
+.alarm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
+}
+
+.alarm strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.alarm p {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--fg-t5);
+}
+
+.alarm button {
+  padding: 12px 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--fg-wash);
+  color: var(--fg-t2);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
+/* data & limits card */
+.datacard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--fg-wash);
+}
+
+.datacard strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-t2);
+}
+
+.datacard ul {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.datacard li {
+  font-size: 11px;
+  line-height: 19px;
+  color: var(--fg-t5);
+}
+
+.dataFoot {
+  font-size: 10px;
+  color: var(--fg-t7);
 }

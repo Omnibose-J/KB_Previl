@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Map as MlMap,
+  Marker,
   NavigationControl,
   type GeoJSONSource,
   type LngLatBoundsLike,
@@ -61,18 +62,28 @@ const quantise = (b: Bbox): Bbox => b.map((v) => Math.round(v * 500) / 500) as B
  *  (413) and reads as "no data here" — the wrong claim entirely. */
 const FOCUS_ZOOM = 15;
 
+/** Dark rank pin (figma S3 "Pin/…"): rank circle + 행정동 label. */
+export interface MapPin {
+  id: string;
+  rank: number;
+  label: string;
+  center: Point;
+}
+
 export default function GridMap({
   uptae,
   focus,
   candidateIds,
+  pins = [],
   selectedId,
   hoveredId,
   onSelect,
 }: {
   uptae: string;
   focus: Point | null;
-  /** grid ids that made the ranked list — the only cells allowed brand yellow */
+  /** grid ids that made the ranked list — outlined dark on the yellow ramp */
   candidateIds: string[];
+  pins?: MapPin[];
   selectedId: string | null;
   hoveredId: string | null;
   onSelect: (cell: GridCell) => void;
@@ -116,7 +127,8 @@ export default function GridMap({
         id: "grid-fill",
         type: "fill",
         source: "grids",
-        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.72 },
+        // The ramp colors carry their own alpha (figma yellow heatmap steps).
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 1 },
       });
       m.addLayer({
         id: "grid-line",
@@ -124,16 +136,14 @@ export default function GridMap({
         source: "grids",
         paint: { "line-color": "#FFFFFF", "line-width": 0.4, "line-opacity": 0.5 },
       });
-      // Brand yellow marks the ranked candidates only. Outlining every grade-1
-      // cell looked right in the spec but not on screen: in a dense district
-      // most cells are grade 1, so the map turned into a yellow grid and the
-      // accent stopped meaning anything (§0 원칙 5 outranks its own example).
+      // Ranked candidates get a dark outline: the ramp itself is now brand
+      // yellow (figma heatmap), so yellow outlines would vanish into it.
       m.addLayer({
         id: "grid-top",
         type: "line",
         source: "grids",
         filter: ["in", ["get", "gridId"], ["literal", []]],
-        paint: { "line-color": "#FFBC00", "line-width": 2.5 },
+        paint: { "line-color": "#141414", "line-width": 1.6 },
       });
       // Hover/selection echo from the list (Zillow-style two-way sync).
       m.addLayer({
@@ -190,6 +200,28 @@ export default function GridMap({
     m.flyTo({ center: focus, zoom: Math.max(m.getZoom(), FOCUS_ZOOM), speed: 1.6 });
   }, [focus]);
 
+  // Dark rank pins for the top candidates (figma S3). DOM markers so the pill
+  // styling matches the mockup exactly.
+  const markers = useRef<Marker[]>([]);
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    markers.current.forEach((mk) => mk.remove());
+    markers.current = pins.map((p) => {
+      const el = document.createElement("div");
+      el.className = s.pin;
+      el.innerHTML = `<i>${p.rank}</i><span></span>`;
+      (el.querySelector("span") as HTMLSpanElement).textContent = p.label;
+      return new Marker({ element: el, anchor: "bottom", offset: [0, -6] })
+        .setLngLat(p.center)
+        .addTo(m);
+    });
+    return () => {
+      markers.current.forEach((mk) => mk.remove());
+      markers.current = [];
+    };
+  }, [pins, ready]);
+
   return (
     <div className={s.wrap}>
       <div ref={holder} className={s.canvas} />
@@ -223,22 +255,17 @@ function Bubble({ cell }: { cell?: GridCell }) {
   );
 }
 
-/** Five labelled stops out of ten — labelling all ten is unreadable (§3-S3). */
+/** Figma floating legend: 낮음 → five swatches → 높음. Swatches sample the
+ *  10-step ramp at the labelled stops (§3-S3: 10 labels are unreadable). */
 function Legend() {
   return (
     <div className={s.legend}>
-      <span className={s.legendTitle}>입지 등급</span>
-      <div className={s.ramp}>
-        {(Array.from({ length: 10 }, (_, i) => i + 1) as Grade[]).map((g) => (
-          <i key={g} style={{ background: `var(--color-heatmap-${g})` }} />
-        ))}
-      </div>
-      <div className={s.legendScale}>
-        {LEGEND_STEPS.map((g) => (
-          <span key={g}>{g}</span>
-        ))}
-      </div>
-      <span className={s.legendNote}>1등급이 가장 좋은 자리입니다</span>
+      <span>등급 낮음</span>
+      {[...LEGEND_STEPS].reverse().map((g: Grade) => (
+        <i key={g} className={s.swatch} style={{ background: `var(--color-heatmap-${g})` }} />
+      ))}
+      <span>높음</span>
+      <span className={s.legendNote}>1등급이 가장 좋은 자리</span>
     </div>
   );
 }

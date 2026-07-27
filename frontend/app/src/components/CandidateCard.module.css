@@ -1,67 +1,179 @@
-.card {
+/* Figma S3 candidate card: r14, pad 20/22, metric strip on #FAFAF8. */
+
+.card,
+.cardOn {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  gap: 14px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: var(--fg-card);
+  border: 1px solid var(--fg-line);
   cursor: pointer;
 }
 
+.cardOn {
+  border: 2px solid var(--fg-y);
+  padding: 19px 21px; /* keep inner size stable against the 2px border */
+}
+
 .card:hover {
-  border-color: var(--color-text-ghost);
+  border-color: var(--fg-chipline);
 }
 
 .top {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.rank {
+.ti {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rank,
+.rankTop {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
   flex: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-300);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--fg-line3);
+  color: var(--fg-ink);
+  font-size: 14px;
+  font-weight: 900;
 }
 
-.title {
-  flex: 1;
+.rankTop {
+  background: var(--fg-y);
+}
+
+.nm {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
 .name {
-  font-size: var(--font-size-title-sm);
-  line-height: var(--line-height-title-sm);
-  font-weight: var(--font-weight-medium);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  line-height: 28px;
 }
 
 .anchor {
-  margin-top: 2px;
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-label);
-  color: var(--color-text-muted);
+  font-size: 12px;
+  color: var(--fg-t6);
 }
 
-/* 숫자보다 문장 먼저 (§0 원칙 2) — this line outranks the metric tiles. */
-.sentence {
-  font-size: var(--font-size-subhead);
-  line-height: var(--line-height-subhead);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
-.foot {
+.pills {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 24px;
+  gap: 8px;
+  flex: none;
+}
+
+.pillGreen,
+.pillOrange {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pillGreen {
+  background: var(--fg-green-bg);
+  color: var(--fg-green);
+}
+
+.pillOrange {
+  background: var(--fg-orange-bg);
+  color: var(--fg-orange);
+}
+
+.gradePill {
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--fg-dark);
+  color: var(--fg-y);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* metric strip */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+}
+
+.m {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.m > span {
+  font-size: 11px;
+  color: var(--fg-t7);
+}
+
+.m > strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  line-height: 26px;
+}
+
+.mMuted {
+  color: var(--fg-t7) !important;
+  font-size: 14px !important;
+}
+
+.m > em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--fg-t8);
+}
+
+/* evidence line */
+.evidence {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--fg-t4);
+  flex-wrap: wrap;
+}
+
+.evidence > strong {
+  font-weight: 700;
+  color: var(--fg-t6);
+  flex: none;
+}
+
+.open {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-y-deep);
+  flex: none;
+}
+
+.open:hover {
+  text-decoration: underline;
 }

@@ -2,19 +2,19 @@
    standing property of the model, not an incident (ui-spec §4). */
 .strip {
   display: flex;
-  gap: var(--space-5);
+  flex-wrap: wrap;
+  gap: 6px 20px;
   align-items: center;
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-surface-200);
-  border-top: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-caption);
-  line-height: var(--line-height-caption);
+  padding: 12px 32px;
+  background: var(--fg-wash);
+  border-top: 1px solid var(--fg-line);
+  color: var(--fg-t5);
+  font-size: 11px;
+  line-height: 17px;
 }
 
 .item + .item::before {
   content: "·";
-  margin-right: var(--space-5);
-  color: var(--color-text-ghost);
+  margin-right: 20px;
+  color: var(--fg-t8);
 }
