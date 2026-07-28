@@ -72,6 +72,25 @@ quote 는 불만 하나에 대한 원문 25자 이내 인용이다. 불만이 �
 글: """
 
 
+def store(rows):
+    """§I-19 — 판정 쌍을 남긴다. **저장하지 않은 검정은 근거로 인용하지 않는다.**
+
+    §I-11 이 0.996 으로 통과했는데도 "positive 를 얼마나 재현하는가"를 사후에
+    확인할 수 없었던 이유가 이것이다. 출력만 하고 버렸다.
+    """
+    if not rows:
+        return
+    con = sqlite3.connect(DB_PATH)
+    con.execute("""CREATE TABLE IF NOT EXISTS verify_pair (
+        task TEXT, rowid_post INTEGER, key TEXT,
+        first TEXT, second TEXT, model TEXT,
+        PRIMARY KEY (task, rowid_post, key))""")
+    con.executemany("INSERT OR REPLACE INTO verify_pair VALUES(?,?,?,?,?,?)", rows)
+    con.commit()
+    con.close()
+    print(f"  판정 쌍 {len(rows):,}건 저장 → verify_pair")
+
+
 def eq_exact(a, b):
     return a == b
 
@@ -196,22 +215,23 @@ def main():
     print(f"task={a.task} · 2차 판정 {len(pick)}건 · model={MODEL} · 항목 순서 역순")
 
     def one(r):
-        _rid, txt, *first = r
+        rid, txt, *first = r
         raw = complete(cli, cfg["prompt"] + txt[:700], cfg["max_out"], fails)
         if raw is None:
-            return None, None
+            return None, None, None
         try:
-            return tuple(first), second(a.task, json.loads(raw))
+            return rid, tuple(first), second(a.task, json.loads(raw))
         except json.JSONDecodeError:
             fails["JSONDecodeError"] += 1
-            return None, None
+            return None, None, None
 
     eq = cfg["eq"]
     agree = {k: [0, 0] for k in keys}
     both_n = 0
+    kept = []
     try:
         with ThreadPoolExecutor(max_workers=a.workers) as ex:
-            for first, sec in ex.map(one, pick):
+            for rid, first, sec in ex.map(one, pick):
                 if first is None:
                     continue
                 both_n += 1
@@ -219,8 +239,10 @@ def main():
                     agree[k][1] += 1
                     if eq(f, s):
                         agree[k][0] += 1
+                    kept.append((a.task, rid, k, str(f), str(s), MODEL))
     except DailyLimit as e:
         print(f"일일 한도 소진 — {e}")
+    store(kept)
 
     if fails:
         print("  실패 " + " · ".join(f"{k} {v:,}" for k, v in
