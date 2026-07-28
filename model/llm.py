@@ -22,7 +22,12 @@ MAX_RETRY = 4
 
 
 class DailyLimit(RuntimeError):
-    """RPD 소진 — 재시도해도 오늘은 안 풀린다."""
+    """RPD 소진 또는 잔액 부족 — 재시도해도 안 풀린다."""
+
+
+# 429 라고 다 같은 429가 아니다. 아래 문구가 들어오면 기다려도 안 풀리므로
+# 백오프 재시도가 순수한 낭비다(호출당 7초 + 4회). 즉시 위로 올린다.
+HARD_STOP = ("requests per day", "RPD", "insufficient_quota", "exceeded your current quota")
 
 
 def load_key():
@@ -58,11 +63,10 @@ def complete(cli, prompt, max_out, fails, model=MODEL):
                 messages=[{"role": "user", "content": prompt}])
             return r.choices[0].message.content
         except Exception as e:
-            name = type(e).__name__
             msg = str(e)
-            if "requests per day" in msg or "RPD" in msg:
+            if any(s in msg for s in HARD_STOP):
                 raise DailyLimit(msg[:200])
-            fails[name] += 1
+            fails[type(e).__name__] += 1
             if attempt == MAX_RETRY - 1:
                 return None
             time.sleep(2 ** attempt)      # 1 · 2 · 4초

@@ -21,6 +21,8 @@ import numpy as np
 
 from model.gripe_run import CATS
 from model.llm import MODEL, DailyLimit, client, complete, new_fails
+from model.guest_run import PARTY as GUEST_PARTY, PURPOSE as GUEST_PURPOSE
+from model.merit_run import CATS as MERIT_CATS
 from model.price_run import parse as price_parse
 from pipeline.config import DB_PATH
 
@@ -83,7 +85,56 @@ def eq_price(a, b):
     return abs(a - b) <= PRICE_TOL * max(a, b)
 
 
+GUEST_REV = """다음은 한국어 음식점 관련 블로그 글의 일부다. 글쓴이의 **방문 맥락**만
+뽑아 JSON으로 출력하라. 가게의 위치·맛·가격 평가는 무시한다.
+
+근거가 없으면 null 로 둔다. 추측하지 말고 글에 드러난 것만 답하라.
+
+{
+ "quote": "시간·동행을 드러낸 원문 20자 이내 인용. 없으면 빈 문자열",
+ "purpose": "meal"|"cafe"|"drink"|null,
+ "party": "alone"|"date"|"family"|"friends"|"work"|null,
+   // work = 회식·업무 미팅
+ "time": "morning"|"lunch"|"afternoon"|"dinner"|"night"|null
+}
+
+글: """
+
+MERIT_REV = """다음은 한국어 음식점 관련 블로그 글의 일부다. 글쓴이가 **칭찬한 항목**만
+뽑아 JSON으로 출력하라. 불만은 담지 마라.
+
+각 항목은 칭찬이 있을 때만 true, 없거나 언급이 없으면 false 로 둔다.
+quote 는 칭찬 하나에 대한 원문 25자 이내 인용이다. 칭찬이 하나도 없으면 빈 문자열.
+
+{
+ "quote":   "칭찬 원문 25자 이내 인용. 칭찬 없으면 빈 문자열",
+ "fresh":   true|false,   // 재료가 신선하다
+ "kind":    true|false,   // 응대가 친절하다
+ "mood":    true|false,   // 분위기·인테리어가 좋다
+ "value":   true|false,   // 가격 대비 만족스럽다, 가성비가 좋다
+ "portion": true|false,   // 양이 많다, 푸짐하다
+ "taste":   true|false    // 맛있다, 맛이 좋다
+}
+
+글: """
+
+
 TASKS = {
+    # §I-14 — time 은 비노출이라 채점 대상이 아니다
+    "guest": {
+        "table": "guest_label",
+        "keys": ("party", "purpose"),
+        "prompt": GUEST_REV,
+        "max_out": 400,
+        "eq": eq_exact,
+    },
+    "merit": {
+        "table": "merit_label",
+        "keys": MERIT_CATS,
+        "prompt": MERIT_REV,
+        "max_out": 400,
+        "eq": eq_exact,
+    },
     "price": {
         "table": "price_label",
         "keys": ("per_person",),
@@ -106,7 +157,12 @@ def second(task, d):
     if task == "price":
         got = price_parse(d)
         return (got[0] if got else None,)
-    return tuple(1 if d.get(c) is True else 0 for c in CATS)
+    if task == "guest":
+        q = (d.get("quote") or "").strip()
+        p, u = d.get("party"), d.get("purpose")
+        return (p if p in GUEST_PARTY else None, u if u in GUEST_PURPOSE else None)
+    cats = MERIT_CATS if task == "merit" else CATS
+    return tuple(1 if d.get(c) is True else 0 for c in cats)
 
 
 def main():
