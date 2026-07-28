@@ -427,7 +427,8 @@ interface EstimateResponse extends CandidateValues {
   gridId: string;
   uptae: string;
   grade: Grade;
-  recoveryProb: number; // W1~W4 고정 0.4, W7에서 출처 배선
+  successionProb: number; // P(승계)만. 권리금 지불비율은 미확보
+  recoverySource: "constant" | "survival_curve_proxy" | "m2";
   effectiveCost: number;
   costBreakdown: {
     rent: number;
@@ -464,6 +465,7 @@ interface CompareItem extends EstimateResponse {
 interface CompareResponse {
   uptae: string;
   revenueResolution: "trade_area";
+  recoverySource: "constant" | "survival_curve_proxy" | "m2";
   paramsUsed: {
     opportunityRate: number;
     horizonMonths: number;
@@ -481,9 +483,21 @@ interface CompareResponse {
 `/compare`는 입력 순서의 후보마다 caller가 보낸 `label`을 그대로 되싣고
 `rentRank`와 `teoRank`를 함께 싣는다. 같은 `gridId`의 다른 층 후보도
 `label`로 구분하며, label을 서버가 주소·층에서 추정하지 않는다.
-TEO 순위는 `burdenRate` → `effectiveCost` → `recoveryProb` 순이며, 부담률
+TEO 순위는 `burdenRate` → `effectiveCost` → `successionProb` 순이며, 부담률
 결측 후보는 관측 후보 뒤에 둔다. 같은 상권×업종 값을 공유하는 후보는
 `revenueTied: true`라서 개별 매출 추정으로 오해하지 않게 한다.
+
+승계 확률 출처는 `KB_RECOVERY_SOURCE`로 `constant`,
+`survival_curve_proxy`, `m2` 중 하나를 명시적으로 고른다. 기본은 기존
+W1~W4 계약을 보존하는 `constant`이고, 선택한 원천이 없거나 유효하지 않으면
+다른 원천으로 넘어가지 않고 `503`이다. `m2`는 요청 시 모델을 실행하지 않고
+배치가 만든 `succession_score`의 2022 bin별 실측 승계율만 읽는다.
+서비스는 model version `m2-gbm-close-2005-2021-cal-2022-v1`과 관측월
+`202607`도 함께 검증하며, 재학습이 W6 채택 문턱을 실패하면 배치가 기존
+테이블 교체를 거부한다.
+`successionProb`는 `P(승계)`이지 `P(승계) × E[지불비율]`이 아니다. 현재
+권리금 상각은 승계 시 전액 회수를 놓은 민감도 계산이며, 실제 지불비율 원천은
+확보되지 않았음을 `notice`에 밝힌다.
 
 ### `POST /api/economics`
 

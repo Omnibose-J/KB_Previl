@@ -220,31 +220,70 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 ### W6 — M2 학습 + 캘리브레이션 · 1일 · **도전 과제**
 
-- [ ] **시간 기반 분할** (랜덤 분할 금지 — 명세서 §5.2.2 + 이 저장소 규율 동일)
+- [x] **시간 기반 분할** (랜덤 분할 금지 — 명세서 §5.2.2 + 이 저장소 규율 동일)
   → verify: `python -m model.recovery --holdout`
-- [ ] 확률을 원값으로 쓰지 않고 **bin별 실측 승계율**로 캘리브레이션한다
+- [x] 확률을 원값으로 쓰지 않고 **bin별 실측 승계율**로 캘리브레이션한다
       (기존 `precompute.py` 등급 패턴과 동일)
   → verify: `python -m model.recovery --calibration`
-- [ ] 누수 가드 통과
+- [x] 누수 가드 통과
   → verify: `python -m model.test_leakage`
-- [ ] **개선이 없으면 없다고 기록한다.** 기여 판별 불가 시 `docs/model-findings.md`에
+- [x] **개선이 없으면 없다고 기록한다.** 기여 판별 불가 시 `docs/model-findings.md`에
       negative result로 남기고 회수확률은 W7의 상수/생존곡선 프록시로 되돌린다
   → verify: `docs/model-findings.md`에 실험 대장 항목 추가 확인
 
+**W6 실행 증거 (2026-07-28, `KB_DB=kb-w5-work.db`)**
+
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m model.recovery --holdout`
+  → exit 0 (`train=175,401`, `calibration=11,736`, `holdout=13,001`,
+  `ΔAUC=+0.1334`, `ΔBrier=+0.0156`, `ADOPT`)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m model.recovery --calibration`
+  → exit 0 (2022 실측 승계율 10개 bin을 2023 홀드아웃에 적용,
+  calibrated Brier `0.1140`)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m model.test_leakage`
+  → exit 0 (RED AUC `1.0000` 탐지, GREEN AUC `0.6537`,
+  M2 폐업월 승계행 poison 전후 피처 불변, 누수 가드 PASS)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
+  grep -n "M2 succession model and calibration" docs/model-findings.md`
+  → exit 0 (`# 21` 실험 대장 항목 확인)
+
 ### W7 — 회수확률 배선 · 0.5일
 
-- [ ] `/estimate`·`/compare`의 회수확률 출처가 **상수 → 생존곡선 프록시 → M2** 순으로
+- [x] `/estimate`·`/compare`의 회수확률 출처가 **상수 → 생존곡선 프록시 → M2** 순으로
       교체 가능하며, 응답이 어느 것을 썼는지 `recoverySource`로 밝힌다
   → verify: `python -m pytest service/test_app.py -k "recovery_source" -q`
-- [ ] **"회수확률"이 아니라 "승계 확률"로 라벨링된다** — 명세서 §5.2의
+- [x] **"회수확률"이 아니라 "승계 확률"로 라벨링된다** — 명세서 §5.2의
       `P(승계) × E[지불비율]` 중 우리는 **앞항만** 낸다. 지불비율 원천(부동산원 앵커)은 미확보
   → verify: `grep -rn "recoveryProb\|승계" service/app.py` — 응답 필드 설명에 명시 확인
+
+**W7 실행 증거 (2026-07-28, `KB_DB=kb-w5-work.db`)**
+
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m model.recovery --build-serving`
+  → exit 0 (`succession_score=229,356`, calibrated rates `10`,
+  `as_of_ym=202607`, model `m2-gbm-close-2005-2021-cal-2022-v1`)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python scripts/verify_recovery_contract.py`
+  → exit 0 (`constant=0.4`, `survival_curve_proxy=0.2840909`,
+  `m2=0.1260647`, compare `recoverySource=m2`, actual `paramsUsed`,
+  same-grid labels preserved, invalid source `503`, OpenAPI `successionProb`)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m pytest service/test_app.py
+  -k "recovery_source" -q`
+  → **exit 1** (`55 deselected`; 기존 파일에 해당 테스트가 0건이다).
+  사용자 금지에 따라 테스트를 추가·수정해 이 명령을 초록으로 만들지 않았다
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
+  grep -rn "recoveryProb\|승계" service/app.py`
+  → exit 0 (`successionProb` 설명과 `recoverySource` 설명의 승계 표기 확인,
+  public `recoveryProb` 필드 없음)
 
 ### 전 구간 무회귀
 
 - [x] 기존 게이트 4종이 전부 통과 상태를 유지한다
   → verify: `python -m pipeline.verify && python -m pipeline.consistency && python -m model.test_leakage && python -m model.asof --selftest-cut`
-- [x] 기존 API 테스트 40여 건 무회귀
+- [ ] 기존 API 테스트 40여 건 무회귀
   → verify: `python -m pytest service/test_app.py -q`
 - [x] 요청 경로에 모델이 새지 않았다
   → verify: `grep -rn "^from model\|^import model" service/*.py` → `precompute.py` 외 0건
@@ -259,14 +298,39 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 - 위 게이트는 `pipeline.db.init()`의 숨은 schema commit 때문에 공유 DB를 변경했다.
   기능 게이트 결과는 유효하지만 읽기 전용 증거로는 무효다. 원인과 영향은
   `docs/tracking/findings.md` F-A2에 기록했다
-- `python -m pytest service/test_app.py -q` → exit 0 (`55 passed`)
+- W1-W5 당시 `python -m pytest service/test_app.py -q`
+  → exit 0 (`55 passed`)
 - `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -rn "^from model\|^import model" service/*.py`
   → exit 0 (`service/precompute.py`만 일치)
 - `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -rn "trend\|mention" service/*.py`
   → exit 1 (일치 0건)
-- `python -m pytest service/test_cost.py service/test_app.py -q -p no:cacheprovider`
+- W1-W5 당시
+  `python -m pytest service/test_cost.py service/test_app.py -q -p no:cacheprovider`
   → exit 0 (`65 passed`)
 - `ruff check service` → exit 0
+
+**W6-W7 이후 재실행 증거 (2026-07-28, `KB_DB=kb-w5-work.db`)**
+
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db';
+  $env:PYTHONUTF8=1; $env:PYTHONIOENCODING='utf-8';
+  cmd /d /c "python -m pipeline.verify && python -m pipeline.consistency &&
+  python -m model.test_leakage && python -m model.asof --selftest-cut"`
+  → exit 0 (`8/8`, `17/17`, M2 poison 포함 누수 가드 PASS,
+  `≤T` 3,600회 불변성 PASS)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db';
+  python -m pytest service/test_cost.py service/test_app.py -q
+  -p no:cacheprovider`
+  → **exit 1** (`64 passed`, `1 failed`). 실패 1건은 W7에서 제거한 public
+  `recoveryProb`를 계속 요구하는 기존 계약이며 테스트는 수정하지 않았다
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
+  grep -rn "^from model\|^import model" service/*.py`
+  → exit 0 (`service/precompute.py` 4줄만 일치, 요청 경로 0건)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
+  grep -rn "trend\|mention" service/*.py`
+  → exit 1 (일치 0건)
+- `ruff check service model/recovery.py scripts/verify_recovery_contract.py`
+  → exit 0
+- `npm run build` (`frontend/app`) → exit 0
 
 ---
 

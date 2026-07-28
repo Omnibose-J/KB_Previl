@@ -251,3 +251,31 @@ The recovery database remains at
 `a10ff8a8e64fcc83c4ffc1e9a7d6475e0488ad1c43be13b4c84670a475bd3de1`.
 All three return `quick_check=ok`; the ranking metadata values remain
 unchanged.
+
+## W6-W7 succession model and serving result (2026-07-28)
+
+W6 uses closure-year cohorts, with 2005-2021 for training, 2022 for calibration,
+and 2023 as the untouched holdout. The adopted M2 result is AUC 0.7474 versus
+0.6140 for the train-only industry baseline. Its 2022-bin calibrated Brier is
+0.1140 versus 0.1296 for the previous-year observed-rate constant. The absolute
+rate still drifts from 11.12% in 2022 to 15.08% in 2023; W7 therefore exposes
+the source and does not present the output as a goodwill payment ratio.
+
+The work database has a `succession_score` serving table with 229,356
+grid-industry rows, ten calibrated observed rates, observation month 202607,
+and model version `m2-gbm-close-2005-2021-cal-2022-v1`. Request handling only
+reads this table; it does not import or execute `model.*`. `KB_RECOVERY_SOURCE`
+selects `constant`, `survival_curve_proxy`, or `m2`; missing or invalid selected
+sources fail with 503 rather than falling through. The request path rejects a
+different M2 model version or observation month, and the writer refuses to
+replace the serving table when the holdout adoption gate fails.
+
+The exact W7 pytest verifier currently exits 1 with 55 deselected because
+`service/test_app.py` contains no `recovery_source` test. The existing full API
+suite has one intentional stale-contract failure: it still requires public
+`recoveryProb`, while W7 requires public `successionProb`. The other 64 tests
+pass. Tests were not added, edited, weakened, or deleted.
+
+W6-W7 development and serving-table writes have used only
+`kb-w5-work.db`. The original `kb.db` has not received `succession_score`;
+applying that table requires separate write approval.

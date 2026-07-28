@@ -22,7 +22,8 @@ LEAK_AUC = 0.90
 # 배포 경로 — 여기서만 검사한다. 실험 모듈(concept·place·place_exp)은 당연히
 # 실험 자산을 읽으므로 대상이 아니다.
 DEPLOY_PATH = ("model/asof.py", "model/dataset.py", "model/evaluate.py",
-               "model/train.py", "model/recommend.py", "service/precompute.py")
+               "model/train.py", "model/recommend.py", "model/recovery.py",
+               "service/precompute.py")
 
 # 스냅샷이라 as-of 재구성이 안 되는 것. asof.LEAKY 와 같은 종류이며 거기 빠져
 # 있던 것을 여기서 채운다 (asof.py 는 캐시 지문의 입력이라 건드리면 전 스플릿이
@@ -93,6 +94,33 @@ def poison(split, y):
     return (out, yy, meta)
 
 
+def recovery_cutoff_guard():
+    """A successor opening in the closure month must not alter M2 features."""
+    from .asof import AsOf
+    from .recovery import features_before_closure
+
+    grid_id = "100_100"
+    uptae = "한식"
+    close_ym = 202301
+    base = [
+        (grid_id, uptae, 2020 * 12 + 1, 2022 * 12 + 11, 50.0),
+    ]
+    future_successor = (
+        grid_id,
+        uptae,
+        2023 * 12 + 1,
+        None,
+        75.0,
+    )
+    before = features_before_closure(
+        AsOf(base), grid_id, uptae, close_ym
+    )
+    poisoned = features_before_closure(
+        AsOf([*base, future_successor]), grid_id, uptae, close_ym
+    )
+    return before == poisoned
+
+
 def main():
     con = init()
     train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
@@ -113,10 +141,17 @@ def main():
 
     print("\n3) 피처 목록에 금지 소스가 없는지 확인")
     from .asof import FEATURES, LEAKY
+    from .recovery import RECOVERY_FEATURES
     from .train import DEPLOY, LOC3, NUM, TIER1, TIER2, TIER3
     # Every set a model may be fitted on, not just the v1 NUM set: a feature can
     # only be used if asof.FEATURES states when it becomes observable.
-    covered = sorted(set(NUM) | set(LOC3) | set(DEPLOY) | set(TIER1 + TIER2 + TIER3))
+    covered = sorted(
+        set(NUM)
+        | set(LOC3)
+        | set(DEPLOY)
+        | set(RECOVERY_FEATURES)
+        | set(TIER1 + TIER2 + TIER3)
+    )
     unknown = [n for n in covered if n not in FEATURES]
     print(f"   검사 대상 {len(covered)}개 (NUM·LOC3·DEPLOY·Tier1~3) 중 "
           f"as-of 문서 미등재: {unknown or '없음'}")
@@ -145,7 +180,12 @@ def main():
     print(f"   -> {'PASS' if src_ok else 'FAIL'}"
           f"   (존재는 정당하고 활성화가 위반 — §10 재현이 옵션을 쓴다)")
 
-    ok = red_ok and green_ok and doc_ok and src_ok
+    print("\n5) M2 폐업월 직후 승계행 차단")
+    recovery_ok = recovery_cutoff_guard()
+    print("   close_ym 승계행 poison 전후 피처: "
+          f"{'불변 PASS' if recovery_ok else '변경 FAIL — 미래 승계 누수'}")
+
+    ok = red_ok and green_ok and doc_ok and src_ok and recovery_ok
     print("\n" + "=" * 46)
     print(f"누수 가드 {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1

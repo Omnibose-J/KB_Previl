@@ -54,6 +54,7 @@ class ViewportErrorResponse(ErrorResponse):
 Grade = Annotated[int, Field(ge=1, le=10)]
 Point = tuple[float, float]
 UptaeName = Annotated[str, Field(min_length=1, max_length=80)]
+RecoverySource = Literal["constant", "survival_curve_proxy", "m2"]
 
 
 class ObservedGrade(ApiModel):
@@ -327,7 +328,21 @@ class EstimateResponse(ApiModel):
     asking_goodwill: float
     area_m2: float
     floor: int
-    recovery_prob: Annotated[float, Field(ge=0, le=1)]
+    succession_prob: Annotated[
+        float,
+        Field(
+            ge=0,
+            le=1,
+            description=(
+                "폐업 뒤 다음 영업자가 이어받을 승계 확률. 권리금 지불비율이나 "
+                "회수확률이 아니며, 지불비율 원천은 확보되지 않았습니다."
+            ),
+        ),
+    ]
+    recovery_source: Annotated[
+        RecoverySource,
+        Field(description="승계 확률에 실제 사용한 원천"),
+    ]
     effective_cost: float
     cost_breakdown: CostBreakdownResponse
     monthly_revenue: float | None
@@ -349,6 +364,7 @@ class CompareItemResponse(EstimateResponse):
 class CompareResponse(ApiModel):
     uptae: UptaeName
     revenue_resolution: Literal["trade_area"]
+    recovery_source: RecoverySource
     params_used: CostParamsInput
     items: list[CompareItemResponse]
 
@@ -632,6 +648,7 @@ def compare(payload: CompareInput) -> dict:
     return {
         "uptae": payload.uptae,
         "revenue_resolution": estimation_service.REVENUE_RESOLUTION,
+        "recovery_source": evaluated[0][0]["recovery_source"],
         "params_used": cost_params,
         "items": estimation_service.rank_candidates(evaluated),
     }

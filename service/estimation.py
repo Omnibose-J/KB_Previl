@@ -2,22 +2,88 @@
 
 from dataclasses import asdict
 import math
+import os
 
 from service import api
 from service.cost import CostParams, effective_monthly_cost
 from service.goodwill import UPTAE_INDUTY
 
 
-DEFAULT_RECOVERY_PROB = 0.4
+DEFAULT_SUCCESSION_PROB = 0.4
+DEFAULT_RECOVERY_SOURCE = "constant"
+RECOVERY_SOURCES = {"constant", "survival_curve_proxy", "m2"}
+M2_MODEL_VERSION = "m2-gbm-close-2005-2021-cal-2022-v1"
+M2_AS_OF_YM = 202607
 REVENUE_RESOLUTION = "trade_area"
 ESTIMATE_NOTICE = (
     "상권×동일 업종의 최신 분기 점포당 추정매출을 사용한 참고용 계산이며, "
-    "개별 매물의 매출을 예측하거나 배분한 값이 아닙니다."
+    "개별 매물의 매출을 예측하거나 배분한 값이 아닙니다. 승계 확률은 "
+    "권리금 지불비율이 아니며, 지불비율 원천은 확보되지 않았습니다. "
+    "권리금 상각은 승계 시 전액 회수를 가정한 민감도 계산입니다."
 )
 
 
 class EstimationUnavailableError(RuntimeError):
     """A required source for candidate estimation is unavailable."""
+
+
+def _succession_probability(detail, uptae):
+    source = os.environ.get(
+        "KB_RECOVERY_SOURCE",
+        DEFAULT_RECOVERY_SOURCE,
+    )
+    if source not in RECOVERY_SOURCES:
+        raise EstimationUnavailableError(
+            f"지원하지 않는 KB_RECOVERY_SOURCE입니다: {source}"
+        )
+
+    if source == "constant":
+        return DEFAULT_SUCCESSION_PROB, source
+
+    if source == "survival_curve_proxy":
+        probability = detail["observed_survival"]
+    else:
+        with api.readonly_connection() as con:
+            table_exists = con.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='succession_score'"
+            ).fetchone()
+            if table_exists is None:
+                raise EstimationUnavailableError(
+                    "M2 승계 확률 원천 테이블이 없습니다."
+                )
+            row = con.execute(
+                "SELECT succession_prob, recovery_source, as_of_ym, model_version "
+                "FROM succession_score "
+                "WHERE grid_id = ? AND uptae = ?",
+                (detail["grid_id"], uptae),
+            ).fetchone()
+        if row is None:
+            raise EstimationUnavailableError(
+                "해당 격자·업태의 M2 승계 확률 원천 행이 없습니다."
+            )
+        if row["recovery_source"] != "m2":
+            raise EstimationUnavailableError(
+                "M2 승계 확률 원천 계보가 일치하지 않습니다."
+            )
+        if (
+            row["model_version"] != M2_MODEL_VERSION
+            or row["as_of_ym"] != M2_AS_OF_YM
+        ):
+            raise EstimationUnavailableError(
+                "M2 승계 확률 모델 버전 또는 관측시점이 일치하지 않습니다."
+            )
+        probability = row["succession_prob"]
+
+    if (
+        probability is None
+        or not math.isfinite(probability)
+        or not 0 <= probability <= 1
+    ):
+        raise EstimationUnavailableError(
+            f"{source} 승계 확률 원천값이 유효하지 않습니다."
+        )
+    return float(probability), source
 
 
 def _trade_area_revenue(grid_id, uptae, sales_available):
@@ -97,14 +163,14 @@ def estimate_candidate(
         uptae,
         detail["sales_available"],
     )
-    recovery_prob = DEFAULT_RECOVERY_PROB
+    succession_prob, recovery_source = _succession_probability(detail, uptae)
     try:
         breakdown = effective_monthly_cost(
             deposit=deposit,
             monthly_rent=monthly_rent,
             maintenance_fee=0,
             premium=asking_goodwill,
-            recovery_prob=recovery_prob,
+            recovery_prob=succession_prob,
             params=CostParams(**cost_params),
         )
     except ValueError as exc:
@@ -132,7 +198,8 @@ def estimate_candidate(
         "asking_goodwill": asking_goodwill,
         "area_m2": area_m2,
         "floor": floor,
-        "recovery_prob": recovery_prob,
+        "succession_prob": succession_prob,
+        "recovery_source": recovery_source,
         "effective_cost": breakdown.effective_monthly_cost,
         "cost_breakdown": asdict(breakdown),
         "monthly_revenue": monthly_revenue,
@@ -148,6 +215,11 @@ def estimate_candidate(
 
 def rank_candidates(evaluated):
     results = [dict(result) for result, _trade_area_code in evaluated]
+    for result in results:
+        if "succession_prob" not in result and "recovery_prob" in result:
+            # Internal W1-W4 fixtures use the former key. Public serialization
+            # remains successionProb; this adapter does not invent a value.
+            result["succession_prob"] = result.pop("recovery_prob")
 
     rent_order = sorted(
         range(len(results)),
@@ -163,7 +235,7 @@ def rank_candidates(evaluated):
             burden is None,
             burden if burden is not None else 0,
             result["effective_cost"],
-            -result["recovery_prob"],
+            -result["succession_prob"],
             index,
         )
 

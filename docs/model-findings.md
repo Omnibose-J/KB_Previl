@@ -1948,3 +1948,72 @@ PASS(신규 None 필드 포함) · `pytest service/test_app.py 46 passed`.
 `model/backtest.py` 가 실제로는 `CONFIRMED_TEST_YEARS`(2023)로 돌면서 출력에는
 폐기된 `evaluate.TEST_YEARS`(2019-2022)를 찍고 있었다. 이 출력을 근거로 문서를
 쓰면 **코호트를 잘못 설명하게 된다.** 실제 사용 값을 찍도록 고쳤다.
+
+---
+
+# 21. M2 succession model and calibration (2026-07-28)
+
+## 21-A. Pre-registered boundary
+
+The event clock starts at closure, not opening. The experiment therefore uses
+closure year with three disjoint chronological cohorts:
+
+```
+train        2005-2021  n=175,401  observed succession=0.0532
+calibration       2022  n= 11,736  observed succession=0.1112
+holdout           2023  n= 13,001  observed succession=0.1508
+```
+
+Features are the 19 W7-reproducible members of `LOC2`, reconstructed at
+`close_ym - 1`. The label and post-closure columns never enter the feature
+matrix. The adoption gate was fixed before opening the holdout: AUC must beat
+the train-only industry baseline by at least 0.005, and calibrated Brier must
+be no worse than a constant using the 2022 observed rate.
+
+## 21-B. Holdout result
+
+```
+by_uptae(train only)  AUC 0.6140  Brier 0.1335
+M2 raw                AUC 0.7474  Brier 0.1133
+2022 rate constant    AUC 0.5000  Brier 0.1296
+M2 calibrated                    Brier 0.1140
+
+delta AUC    +0.1334
+delta Brier  +0.0156
+decision     ADOPT
+```
+
+This is a positive result under the pre-registered gate. It does not license
+serving raw LightGBM probabilities. The serving candidate is the observed
+2022 succession rate of the raw-score bin.
+
+## 21-C. Calibration limitation
+
+The calendar base rate rises from 11.12% in the calibration cohort to 15.08%
+in the holdout. Every broad holdout region is therefore higher than its
+applied 2022 rate, most visibly in the top bin:
+
+```
+bin 1   applied 0.0153  holdout observed 0.0225  n=1,289
+bin 5   applied 0.0784  holdout observed 0.1054  n=1,300
+bin 10  applied 0.3560  holdout observed 0.4774  n=1,504
+```
+
+The calibrated model still beats the previous-year constant on Brier, but its
+absolute probabilities lag the 2023 regime. W7 must disclose `recoverySource`
+and must call the value a succession probability. It must not reinterpret the
+probability as a goodwill payment ratio. Candidates with the same grid and
+industry receive the same M2 value; the source has no verified unit-level
+allocation.
+
+## 21-D. Reproducibility
+
+The feature dataset cache is derived and ignored. Its fingerprint covers the
+as-of implementation, dataset builder, split years, feature list, every
+relevant `licence` and `addr_tenancy` input row, database path, and an explicit
+dataset version. The experiment reads SQLite with `mode=ro` and
+`PRAGMA query_only=ON`.
+
+Gates: holdout command exit 0; calibration command exit 0; leakage guard exit
+0 with poisoned-feature RED detected, normal-feature GREEN accepted, and a
+closure-month successor poison leaving `close_ym - 1` M2 features unchanged.
