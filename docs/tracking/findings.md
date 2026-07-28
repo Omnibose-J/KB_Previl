@@ -61,7 +61,22 @@ average) but is not exposed. Blast radius: the 沅뚮━湲??묒긽 由ы룷??ca
 unbuilt; everything else ships. Fix is small: expose per-uptae benchmark revenue
 (+ level + as-of) on /meta or a dedicated endpoint, then lane C builds the card.
 
-## F-C2. /goodwill: two uptae have no benchmark mapping and fail as 503 "retry"
+## F-C2. ~~/goodwill: two uptae have no benchmark mapping and fail as 503 "retry"~~ — RESOLVED 2026-07-29
+
+**Resolved** — `meta.goodwillSupportedUptae` (557e9c9) exposes the 10 mapped
+uptae; S4 uses it to replace the goodwill entry button with a "제공 불가"
+pre-state before any request is sent (3ce822a). That closes (b) outright and
+makes (a) unreachable from the UI.
+
+The optional 422 was **not** taken: `/goodwill` still answers 503 for the two
+uptae, kept deliberately as a direct-call defense. The mapping itself was not
+extended — Seoul's food taxonomy has only two unused codes and neither
+corresponds to a catch-all bucket ("기타") or to 인도·태국 cuisine, so any
+mapping would be the cross-industry borrow `goodwill.py` explicitly refuses.
+**The absence is real; refusing is correct.**
+
+The three "minor deviations" below were noted in the same audit and are
+**still open** — they are separate from F-C2 proper.
 
 **Found** 2026-07-27 (lane C, design-vs-implementation audit of goodwill).
 
