@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
+import ConceptMixCard from "../components/ConceptMixCard";
 import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
 import { ErrorState, Loading } from "../components/states";
@@ -261,6 +262,8 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               />
             </div>
           </section>
+
+          <ConceptMixCard mix={d.conceptMix} />
 
           {/* ── AI report (real LLM call, whitelist-guarded server-side) ── */}
           <section className={s.card}>

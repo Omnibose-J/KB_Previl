@@ -1,0 +1,106 @@
+/* 주변 점포 구성 — S4 report-sheet section (flat, rule-topped),
+   순위 막대 하나로 구성을 읽히게 한다. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.head h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.head p {
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+.unavailable {
+  padding: 18px;
+  border: 1px dashed var(--fg-line);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--fg-t6);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 72px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-ink);
+}
+
+/* span 이라 display 를 지정하지 않으면 인라인이 되어 높이·너비가 먹지 않는다. */
+.track {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--fg-line);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--fg-y);
+}
+
+/* 1위만 색을 진하게 — 색만으로 구분하지 않도록 수치를 항상 함께 보여준다. */
+.fillTop {
+  background: var(--fg-y-deep);
+}
+
+.count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.more {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--fg-y-text);
+  cursor: pointer;
+}
+
+.note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg-t6);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 60px 1fr 40px;
+    gap: 8px;
+  }
+}

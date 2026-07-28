@@ -518,7 +518,41 @@ def grid_detail(grid_id, uptae):
         row = con.execute(
             GRID_SELECT + " WHERE f.grid_id = ?", (uptae, grid_id)
         ).fetchone()
-    return _grid_detail(row, uptae) if row else None
+        if row is None:
+            return None
+        mix = _concept_mix(con, grid_id)
+    item = _grid_detail(row, uptae)
+    item["concept_mix"] = mix
+    return item
+
+
+def _concept_mix(con, grid_id):
+    """주변 3x3 링의 상호명 콘셉트 구성. 추론이 아니라 집계다(model/concept_mix.py).
+
+    배치가 아직 안 돌았으면 `available=False` 로 알린다. 빈 구성과 미실행은
+    다른 상태이므로 빈 배열로 뭉개지 않는다.
+    """
+    try:
+        rows = con.execute(
+            "SELECT concept, n FROM grid_concept WHERE grid_id = ? "
+            "ORDER BY n DESC, concept",
+            (grid_id,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return {"available": False, "items": [], "shops": 0,
+                "source": None, "claim": None}
+    meta = dict(
+        con.execute(
+            "SELECT k, v FROM score_meta WHERE k LIKE 'concept_mix\\_%' ESCAPE '\\'"
+        ).fetchall()
+    )
+    return {
+        "available": True,
+        "items": [{"concept": r["concept"], "shops": r["n"]} for r in rows],
+        "shops": sum(r["n"] for r in rows),
+        "source": meta.get("concept_mix_source"),
+        "claim": meta.get("concept_mix_claim"),
+    }
 
 
 def at_point(lon, lat, uptae):

@@ -148,11 +148,31 @@ class Sales(ApiModel):
     available: bool
 
 
+class ConceptCount(ApiModel):
+    concept: str
+    shops: int
+
+
+class ConceptMix(ApiModel):
+    """주변 3x3 링의 상호명 콘셉트 구성. 관측 집계이지 예측이 아니다.
+
+    `available=False` 는 배치 미실행이고 `items=[]` 는 구성이 잡히지 않는
+    격자다. 둘을 같은 모양으로 내보내면 화면이 없는 것을 없다고 못 한다.
+    """
+
+    available: bool
+    items: list[ConceptCount]
+    shops: int
+    source: str | None
+    claim: str | None
+
+
 class GridDetail(GridCell):
     adm_dong: str | None
     district: str | None
     nearest_station: StationAnchor | None
     competition: Competition
+    concept_mix: ConceptMix | None = None
     area_survival: AreaSurvival
     demand: Demand
     sales: Sales

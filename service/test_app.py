@@ -3,6 +3,7 @@
 from contextlib import contextmanager
 import json
 import sqlite3
+import shutil
 import statistics
 
 import numpy as np
@@ -1225,3 +1226,50 @@ def test_buildings_caps_factual_sort_at_fifty(monkeypatch, tmp_path):
     buildings = response.json()["buildings"]
     assert len(buildings) == 50
     assert all(building["activeShops"] == 1 for building in buildings)
+
+
+def _sample_grid_with_concepts():
+    with api.readonly_connection() as connection:
+        return connection.execute(
+            "SELECT grid_id FROM grid_concept GROUP BY grid_id "
+            "ORDER BY SUM(n) DESC LIMIT 1"
+        ).fetchone()["grid_id"]
+
+
+def test_concept_mix_counts_are_observations_not_predictions():
+    grid_id = _sample_grid_with_concepts()
+
+    response = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"})
+
+    assert response.status_code == 200
+    mix = response.json()["conceptMix"]
+    assert mix["available"] is True
+    assert mix["items"], "표본 격자에 구성이 있어야 한다"
+    assert mix["shops"] == sum(item["shops"] for item in mix["items"])
+    assert all(item["shops"] >= 1 for item in mix["items"])
+    # 개수는 내림차순이라 화면이 다시 정렬하지 않는다
+    counts = [item["shops"] for item in mix["items"]]
+    assert counts == sorted(counts, reverse=True)
+    # 관측이라는 선언이 응답에 남아 있어야 한다
+    assert mix["claim"] == "observation_only:not_predictive"
+    assert mix["source"] == "licence.bplcnm:open_only"
+
+
+def test_concept_mix_reports_unavailable_when_batch_missing(monkeypatch, tmp_path):
+    """배치 미실행은 빈 구성이 아니다 — 없는 것을 없다고 말해야 한다."""
+    grid_id = _sample_grid_with_concepts()
+    stripped = tmp_path / "no-concept.db"
+
+    with api.readonly_connection() as connection:
+        source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
+    shutil.copy(source_path, stripped)
+    with sqlite3.connect(stripped) as connection:
+        connection.execute("DROP TABLE grid_concept")
+    monkeypatch.setattr(api, "DB_PATH", stripped)
+
+    response = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"})
+
+    assert response.status_code == 200
+    mix = response.json()["conceptMix"]
+    assert mix["available"] is False
+    assert mix["items"] == []

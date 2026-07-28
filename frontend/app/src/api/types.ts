@@ -106,6 +106,26 @@ export interface AreaSurvival {
   sample: number | null;
 }
 
+export interface ConceptCount {
+  concept: string;
+  shops: number;
+}
+
+/**
+ * 주변 3x3 링(약 300m)에서 상호명으로 분류된 영업중 점포 구성. 관측 집계이지
+ * 예측이 아니다 — 등급·생존율과 연결하지 않는다.
+ *
+ * `available: false` = 배치 미실행, `items: []` = 구성이 잡히지 않는 격자.
+ * 두 상태를 같게 그리면 없는 것을 없다고 말할 수 없다.
+ */
+export interface ConceptMix {
+  available: boolean;
+  items: ConceptCount[];
+  shops: number;
+  source: string | null;
+  claim: string | null;
+}
+
 /** All 행정동-resolution: identical for every grid in the same dong. */
 export interface Demand {
   dayPopulation: number | null;
@@ -132,6 +152,7 @@ export interface GridDetail extends GridCell {
   district: string | null;
   nearestStation: StationAnchor | null;
   competition: Competition;
+  conceptMix: ConceptMix | null;
   areaSurvival: AreaSurvival;
   demand: Demand;
   sales: Sales;
