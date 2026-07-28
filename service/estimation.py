@@ -10,7 +10,7 @@ from service.goodwill import UPTAE_INDUTY
 
 
 DEFAULT_SUCCESSION_PROB = 0.4
-DEFAULT_RECOVERY_SOURCE = "constant"
+DEFAULT_RECOVERY_SOURCE = "m2"
 RECOVERY_SOURCES = {"constant", "survival_curve_proxy", "m2"}
 M2_MODEL_VERSION = "m2-gbm-close-2005-2021-cal-2022-v1"
 M2_AS_OF_YM = 202607

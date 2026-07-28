@@ -1371,16 +1371,11 @@ def test_estimate_returns_cost_for_grid_and_coordinates(monkeypatch):
     assert coordinate_body["effectiveCost"] == pytest.approx(900)
 
 
-def test_recovery_source_transitions_from_constant_to_m2(monkeypatch):
+def test_recovery_source_defaults_to_m2_and_constant_rolls_back(monkeypatch):
     sample = _sample_goodwill_grid()
     payload = _estimate_payload(sample)
-
-    monkeypatch.setenv("KB_RECOVERY_SOURCE", "constant")
-    constant = client.post("/api/estimate", json=payload)
-    assert constant.status_code == 200
-    constant_body = constant.json()
-    assert constant_body["successionProb"] == 0.4
-    assert constant_body["recoverySource"] == "constant"
+    candidate = dict(payload)
+    candidate.pop("uptae")
 
     with api.readonly_connection() as con:
         expected = con.execute(
@@ -1390,13 +1385,87 @@ def test_recovery_source_transitions_from_constant_to_m2(monkeypatch):
         ).fetchone()
     assert expected is not None
 
-    monkeypatch.setenv("KB_RECOVERY_SOURCE", "m2")
-    m2 = client.post("/api/estimate", json=payload)
-    assert m2.status_code == 200
-    m2_body = m2.json()
-    assert m2_body["successionProb"] == pytest.approx(expected[0])
-    assert m2_body["recoverySource"] == "m2"
-    assert m2_body["successionProb"] != constant_body["successionProb"]
+    monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
+    estimate = client.post("/api/estimate", json=payload)
+    compare = client.post(
+        "/api/compare",
+        json={"uptae": sample["uptae"], "candidates": [candidate]},
+    )
+    assert estimate.status_code == compare.status_code == 200
+    assert estimate.json()["successionProb"] == pytest.approx(expected[0])
+    assert estimate.json()["recoverySource"] == "m2"
+    assert compare.json()["items"][0]["successionProb"] == pytest.approx(expected[0])
+    assert compare.json()["recoverySource"] == "m2"
+
+    monkeypatch.setenv("KB_RECOVERY_SOURCE", "constant")
+    estimate = client.post("/api/estimate", json=payload)
+    compare = client.post(
+        "/api/compare",
+        json={"uptae": sample["uptae"], "candidates": [candidate]},
+    )
+    assert estimate.json()["successionProb"] == 0.4
+    assert estimate.json()["recoverySource"] == "constant"
+    assert compare.json()["items"][0]["successionProb"] == 0.4
+    assert compare.json()["recoverySource"] == "constant"
+
+
+@pytest.mark.parametrize(
+    ("table_exists", "row_overrides", "detail"),
+    [
+        (None, {}, "원천 테이블"),
+        ((1,), None, "원천 행"),
+        ((1,), {"recovery_source": "constant"}, "계보"),
+        ((1,), {"model_version": "wrong-version"}, "모델 버전 또는 관측시점"),
+        ((1,), {"as_of_ym": 202606}, "모델 버전 또는 관측시점"),
+        ((1,), {"succession_prob": None}, "원천값"),
+    ],
+)
+def test_m2_source_failures_return_503_without_constant_fallback(
+    monkeypatch, table_exists, row_overrides, detail
+):
+    sample = _sample_goodwill_grid()
+    payload = _estimate_payload(sample)
+    original_connection = api.readonly_connection
+    row = None
+    if row_overrides is not None:
+        row = {
+            "succession_prob": 0.2,
+            "recovery_source": "m2",
+            "as_of_ym": estimation_service.M2_AS_OF_YM,
+            "model_version": estimation_service.M2_MODEL_VERSION,
+            **row_overrides,
+        }
+
+    class Cursor:
+        def __init__(self, value):
+            self.value = value
+
+        def fetchone(self):
+            return self.value
+
+    class RecoveryConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, query, params=()):
+            if "name='succession_score'" in query:
+                return Cursor(table_exists)
+            if "FROM succession_score" in query:
+                return Cursor(row)
+            return self.connection.execute(query, params)
+
+    @contextmanager
+    def recovery_connection():
+        with original_connection() as connection:
+            yield RecoveryConnection(connection)
+
+    monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
+    monkeypatch.setattr(api, "readonly_connection", recovery_connection)
+    response = client.post("/api/estimate", json=payload)
+
+    assert response.status_code == 503
+    assert detail in response.json()["detail"]
+    assert "successionProb" not in response.json()
 
 
 def test_estimate_not_evaluated():
@@ -1413,14 +1482,26 @@ def test_estimate_not_evaluated():
     )
 
 
-def test_estimate_outside_trade_area():
+def test_estimate_outside_trade_area(monkeypatch):
     sample = _sample_grid(sales_available=False)
+    payload = _estimate_payload(sample)
+    monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
 
-    response = client.post("/api/estimate", json=_estimate_payload(sample))
+    response = client.post("/api/estimate", json=payload)
 
     assert response.status_code == 200
     body = response.json()
-    assert body["effectiveCost"] == pytest.approx(466.6666666667)
+    assert body["recoverySource"] == "m2"
+    assert body["successionProb"] != 0.4
+    params = body["paramsUsed"]
+    expected_cost = (
+        payload["monthlyRent"]
+        + payload["deposit"] * params["opportunityRate"] / 12
+        + payload["askingGoodwill"]
+        * (1 - body["successionProb"])
+        / params["horizonMonths"]
+    )
+    assert body["effectiveCost"] == pytest.approx(expected_cost)
     assert body["monthlyRevenue"] is None
     assert body["burdenRate"] is None
     assert body["revenueAsOfQuarter"] is None
