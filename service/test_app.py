@@ -1330,8 +1330,9 @@ def _estimate_payload(sample, **overrides):
     return payload
 
 
-def test_estimate_returns_cost_for_grid_and_coordinates():
+def test_estimate_returns_cost_for_grid_and_coordinates(monkeypatch):
     sample = _sample_goodwill_grid()
+    monkeypatch.setenv("KB_RECOVERY_SOURCE", "constant")
 
     by_grid = client.post("/api/estimate", json=_estimate_payload(sample))
 
@@ -1339,7 +1340,9 @@ def test_estimate_returns_cost_for_grid_and_coordinates():
     body = by_grid.json()
     assert body["gridId"] == sample["grid_id"]
     assert body["effectiveCost"] == pytest.approx(466.6666666667)
-    assert body["recoveryProb"] == 0.4
+    assert body["successionProb"] == 0.4
+    assert body["recoverySource"] == "constant"
+    assert "recoveryProb" not in body
     assert body["monthlyRevenue"] > 0
     assert body["revenueResolution"] == "trade_area"
     assert body["burdenRate"] == pytest.approx(
@@ -1366,6 +1369,34 @@ def test_estimate_returns_cost_for_grid_and_coordinates():
     coordinate_body = by_coordinates.json()
     assert coordinate_body["gridId"] == sample["grid_id"]
     assert coordinate_body["effectiveCost"] == pytest.approx(900)
+
+
+def test_recovery_source_transitions_from_constant_to_m2(monkeypatch):
+    sample = _sample_goodwill_grid()
+    payload = _estimate_payload(sample)
+
+    monkeypatch.setenv("KB_RECOVERY_SOURCE", "constant")
+    constant = client.post("/api/estimate", json=payload)
+    assert constant.status_code == 200
+    constant_body = constant.json()
+    assert constant_body["successionProb"] == 0.4
+    assert constant_body["recoverySource"] == "constant"
+
+    with api.readonly_connection() as con:
+        expected = con.execute(
+            "SELECT succession_prob FROM succession_score "
+            "WHERE grid_id = ? AND uptae = ?",
+            (sample["grid_id"], sample["uptae"]),
+        ).fetchone()
+    assert expected is not None
+
+    monkeypatch.setenv("KB_RECOVERY_SOURCE", "m2")
+    m2 = client.post("/api/estimate", json=payload)
+    assert m2.status_code == 200
+    m2_body = m2.json()
+    assert m2_body["successionProb"] == pytest.approx(expected[0])
+    assert m2_body["recoverySource"] == "m2"
+    assert m2_body["successionProb"] != constant_body["successionProb"]
 
 
 def test_estimate_not_evaluated():

@@ -150,7 +150,7 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 - [x] 응답이 `rentRank`와 `teoRank`를 **둘 다** 싣는다 (명세서 §6.1 — 하나라도 빠지면 실패)
   → verify: `python -m pytest service/test_app.py -k "compare_returns_both_ranks" -q`
-- [x] 동률 tie-break가 `burdenRate → effectiveCost → recoveryProb` 순으로 결정적이다
+- [x] 동률 tie-break가 `burdenRate → effectiveCost → successionProb` 순으로 결정적이다
   → verify: `python -m pytest service/test_app.py -k "compare_tiebreak" -q`
 - [x] **부담률은 상권이 다른 후보 간에만 비교 가능**하다는 사실이 응답에 실린다 —
       같은 상권 후보끼리는 `revenueTied: true`
@@ -269,11 +269,16 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
   → exit 0 (`constant=0.4`, `survival_curve_proxy=0.2840909`,
   `m2=0.1260647`, compare `recoverySource=m2`, actual `paramsUsed`,
   same-grid labels preserved, invalid source `503`, OpenAPI `successionProb`)
-- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db'; $env:PYTHONUTF8=1;
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb.db'; $env:PYTHONUTF8=1;
+  $env:PYTHONIOENCODING='utf-8'; python -m model.recovery --build-serving`
+  → exit 0 (`succession_score=229,356`, calibrated rates `10`,
+  `as_of_ym=202607`, model `m2-gbm-close-2005-2021-cal-2022-v1`)
+- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb.db'; $env:PYTHONUTF8=1;
   $env:PYTHONIOENCODING='utf-8'; python -m pytest service/test_app.py
   -k "recovery_source" -q`
-  → **exit 1** (`55 deselected`; 기존 파일에 해당 테스트가 0건이다).
-  사용자 금지에 따라 테스트를 추가·수정해 이 명령을 초록으로 만들지 않았다
+  → exit 0 (`1 passed, 55 deselected`). 실제 동일 후보 응답에서
+  `constant: successionProb=0.4`와 DB의 보정값을 쓰는
+  `m2: recoverySource=m2` 전이를 검증한다
 - `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
   grep -rn "recoveryProb\|승계" service/app.py`
   → exit 0 (`successionProb` 설명과 `recoverySource` 설명의 승계 표기 확인,
@@ -283,7 +288,7 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 - [x] 기존 게이트 4종이 전부 통과 상태를 유지한다
   → verify: `python -m pipeline.verify && python -m pipeline.consistency && python -m model.test_leakage && python -m model.asof --selftest-cut`
-- [ ] 기존 API 테스트 40여 건 무회귀
+- [x] 기존 API 테스트 40여 건 무회귀
   → verify: `python -m pytest service/test_app.py -q`
 - [x] 요청 경로에 모델이 새지 않았다
   → verify: `grep -rn "^from model\|^import model" service/*.py` → `precompute.py` 외 0건
@@ -309,19 +314,20 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
   → exit 0 (`65 passed`)
 - `ruff check service` → exit 0
 
-**W6-W7 이후 재실행 증거 (2026-07-28, `KB_DB=kb-w5-work.db`)**
+**W6-W7 이후 재실행 증거**
 
-- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db';
+- 2026-07-28 사본:
+  `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db';
   $env:PYTHONUTF8=1; $env:PYTHONIOENCODING='utf-8';
   cmd /d /c "python -m pipeline.verify && python -m pipeline.consistency &&
   python -m model.test_leakage && python -m model.asof --selftest-cut"`
   → exit 0 (`8/8`, `17/17`, M2 poison 포함 누수 가드 PASS,
   `≤T` 3,600회 불변성 PASS)
-- `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb-w5-work.db';
+- 2026-07-29 원본:
+  `$env:KB_DB='C:\Users\sobeo\Desktop\KB\kb.db';
   python -m pytest service/test_cost.py service/test_app.py -q
   -p no:cacheprovider`
-  → **exit 1** (`64 passed`, `1 failed`). 실패 1건은 W7에서 제거한 public
-  `recoveryProb`를 계속 요구하는 기존 계약이며 테스트는 수정하지 않았다
+  → exit 0 (`66 passed`)
 - `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path;
   grep -rn "^from model\|^import model" service/*.py`
   → exit 0 (`service/precompute.py` 4줄만 일치, 요청 경로 0건)

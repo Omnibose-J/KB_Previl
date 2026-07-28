@@ -261,7 +261,7 @@ and 2023 as the untouched holdout. The adopted M2 result is AUC 0.7474 versus
 rate still drifts from 11.12% in 2022 to 15.08% in 2023; W7 therefore exposes
 the source and does not present the output as a goodwill payment ratio.
 
-The work database has a `succession_score` serving table with 229,356
+The work and source databases have a `succession_score` serving table with 229,356
 grid-industry rows, ten calibrated observed rates, observation month 202607,
 and model version `m2-gbm-close-2005-2021-cal-2022-v1`. Request handling only
 reads this table; it does not import or execute `model.*`. `KB_RECOVERY_SOURCE`
@@ -270,12 +270,17 @@ sources fail with 503 rather than falling through. The request path rejects a
 different M2 model version or observation month, and the writer refuses to
 replace the serving table when the holdout adoption gate fails.
 
-The exact W7 pytest verifier currently exits 1 with 55 deselected because
-`service/test_app.py` contains no `recovery_source` test. The existing full API
-suite has one intentional stale-contract failure: it still requires public
-`recoveryProb`, while W7 requires public `successionProb`. The other 64 tests
-pass. Tests were not added, edited, weakened, or deleted.
+After explicit approval on 2026-07-29, `python -m model.recovery
+--build-serving` wrote the table to the original `kb.db`. Source and gated work
+copy have the same content fingerprint
+`bba2451701d1477e01807bfd4b712a31309e9d02bafe025ea4e710b18a9d8759`;
+both return `quick_check=ok`, contain 229,356 non-NULL M2 rows and ten distinct
+calibrated rates, and retain the four ranking metadata values. The recovery
+baseline remains unchanged and returns `quick_check=ok`.
 
-W6-W7 development and serving-table writes have used only
-`kb-w5-work.db`. The original `kb.db` has not received `succession_score`;
-applying that table requires separate write approval.
+The W7 verifier now selects a real contract test. It sends the same candidate
+first with `KB_RECOVERY_SOURCE=constant`, then with `m2`, checks public
+`successionProb` and `recoverySource`, and compares the M2 value with the actual
+`succession_score` row. The command exits 0 with one selected test. The stale
+`recoveryProb` assertion was updated to the owner-approved W7 contract; the
+full cost and API suite exits 0 with 66 passing tests.
