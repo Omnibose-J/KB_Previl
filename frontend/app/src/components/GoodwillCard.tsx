@@ -167,6 +167,11 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
         </div>
       </div>
 
+      {/* 호가 3분해 — 위 «괴리»가 얼마나 비싼지라면, 이건 그 돈이 무엇의 값인지다.
+          점수만 보여주면 사용자는 아무것도 못 한다. 항목별로 쪼개야 어느 항목의
+          근거를 물어볼지가 정해진다 (기획서 §4.3.1). */}
+      <Decomposition d={r.decomposition} asking={r.askingGoodwill} />
+
       {/* Valuation 분해 */}
       <p className={s.valuation}>
         무형 {man(r.intangibleValue)} + 유형 {man(r.tangibleValue)}
@@ -244,6 +249,87 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
 
       <p className={s.notice}>{r.notice}</p>
     </>
+  );
+}
+
+/**
+ * 호가 = 시설 + 영업 + 바닥. 앞의 둘은 산정 관행이 있고, 바닥은 «부르는 것이
+ * 값»이라 분쟁의 핵심이다 — 그래서 바닥만 벤치마크 대비로 따로 세운다.
+ *
+ * `floorKey`는 잔차라 음수가 나올 수 있다(호가 < 시설+영업). 그건 계산 실패가
+ * 아니라 «근거보다 싸게 부른다»는 사실이므로 음수 그대로 말한다. 다만 쌓기
+ * 막대로는 그릴 수 없어 그 경우 막대를 생략한다 — 없는 길이를 지어내지 않는다.
+ */
+function Decomposition({
+  d,
+  asking,
+}: {
+  d: import("../api/types").GoodwillDecomposition;
+  asking: number;
+}) {
+  const parts = [
+    { key: "facility", name: "시설", value: d.facility, note: "인테리어·집기 · 5년 감가" },
+    { key: "business", name: "영업", value: d.business, note: "단골·매출로 버는 몫" },
+    { key: "floorKey", name: "바닥", value: d.floorKey, note: "자리 그 자체의 값" },
+  ] as const;
+  const stackable = d.facility >= 0 && d.business >= 0 && d.floorKey >= 0 && asking > 0;
+
+  return (
+    <section className={s.decomp}>
+      <div className={s.decompHead}>
+        <h4>부르는 값이 무엇의 값인지</h4>
+        <p>호가 {man(asking)}을 항목별로 쪼갰어요.</p>
+      </div>
+
+      {stackable ? (
+        <div className={s.decompBar} role="img" aria-label={`시설 ${man(d.facility)}, 영업 ${man(d.business)}, 바닥 ${man(d.floorKey)}`}>
+          {parts.map((p) => (
+            <i
+              key={p.key}
+              className={s[`decompSeg_${p.key}`]}
+              style={{ width: `${(p.value / asking) * 100}%` }}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <ul className={s.decompList}>
+        {parts.map((p) => (
+          <li key={p.key} className={s.decompRow}>
+            <i className={s[`decompDot_${p.key}`]} />
+            <span className={s.decompName}>{p.name}</span>
+            <strong className={s.decompValue}>{man(p.value)}</strong>
+            <span className={s.decompNote}>{p.note}</span>
+          </li>
+        ))}
+      </ul>
+
+      {d.floorKey < 0 ? (
+        <p className={s.decompUnder}>
+          바닥권리금이 마이너스예요. 시설과 영업의 값만 따져도 호가보다 크다는 뜻이라, 자리값을
+          따로 붙이지 않고 부르고 있어요.
+        </p>
+      ) : null}
+
+      {/* 유형자산을 안 넣으면 시설이 0이 되고, 그러면 바닥 = 호가 − 영업이라
+          위 «괴리»와 같은 숫자가 된다. 같은 값이 두 이름으로 보이면 사용자는
+          둘을 다른 것으로 읽는다 — 왜 그런지 말해주고 입력을 유도한다. */}
+      {d.facility === 0 ? (
+        <p className={s.decompUnder}>
+          인테리어·집기를 아직 안 넣으셔서 시설 몫이 0이에요. 그래서 바닥권리금이 위 «괴리»와 같은
+          값으로 잡혀요. 위에서 <b>유형자산 추가</b>로 넣으면 그만큼 바닥에서 빠져요.
+        </p>
+      ) : null}
+
+      {/* 기획서 §4.3.1은 «동일 상권 평균 대비 62% 높습니다»까지 요구하지만, 그
+          평균을 만들려면 상권별 바닥권리금 표본이 있어야 한다 — 권리금은 신고
+          의무가 없어 그 표본이 세상에 없다. 없는 비교를 지어내지 않고, 무엇이
+          없는지 말한다. */}
+      <p className={s.decompBench}>
+        바닥권리금은 «부르는 것이 값»이라 비교할 시세가 없어요. 그래서 «평균 대비 얼마»는 내지
+        않았어요 — 대신 위 참고가와 얼마나 벌어지는지로 보세요.
+      </p>
+    </section>
   );
 }
 

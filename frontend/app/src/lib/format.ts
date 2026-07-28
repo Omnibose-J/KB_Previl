@@ -22,6 +22,13 @@ export const months = (v: number) => `${Math.round(v)}개월`;
 
 export const meters = (v: number) => `${int(Math.round(v))}m`;
 
+/** 서버 분기 코드 "20261" -> "2026년 1분기". 형식이 다르면 원문을 그대로 둔다 —
+ *  못 읽는 값을 그럴듯하게 바꾸는 것이 조용히 거짓이 되는 경로다. */
+export const quarter = (v: string): string => {
+  const m = /^(\d{4})([1-4])$/.exec(v.trim());
+  return m ? `${m[1]}년 ${m[2]}분기` : v;
+};
+
 /** §0 원칙 2 — 숫자보다 문장 먼저. 값은 API 실측치에서만 파생된다. */
 export const survivalSentence = (survival: number) =>
   `100곳 중 ${Math.round(survival * 100)}곳이 3년을 버텼어요`;

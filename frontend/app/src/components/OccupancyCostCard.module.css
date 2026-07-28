@@ -1,0 +1,401 @@
+/* 실질 월 점유비용 카드 — S4 손익·권리금 탭. Economics 카드와 같은 시트 언어
+   (플랫 섹션, 상단 hairline, 4열 입력). 다른 점은 결과부: 한 달 치 돈을 한 줄
+   막대로 쌓아 «월세 옆에 얼마가 더 붙는지»를 숫자보다 먼저 보이게 한다. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.lead {
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+/* ── inputs ─────────────────────────────────────────────── */
+
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.req {
+  font-style: normal;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.fieldInput {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fieldInput input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+}
+
+.fieldInput input::placeholder {
+  font-weight: 300;
+  color: var(--fg-t8);
+}
+
+.unit {
+  flex: none;
+  font-size: 11px;
+  color: var(--fg-t6);
+}
+
+.prompt {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-wash);
+  font-size: 13px;
+  color: var(--fg-t4);
+  text-align: center;
+}
+
+/* ── headline ───────────────────────────────────────────── */
+
+.headline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 22px;
+  border-radius: 12px;
+  background: var(--fg-y-bg);
+  border: 1px solid var(--fg-y);
+  animation: fadeUp 0.2s ease-out;
+}
+
+.headlineMain {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.headlineLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-y-text);
+}
+
+.headlineValue {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--fg-ink);
+  letter-spacing: -0.5px;
+}
+
+.headlineGap {
+  font-size: 13px;
+  color: var(--fg-y-dim);
+}
+
+.headlineGap b {
+  font-weight: 700;
+}
+
+.gapAccent {
+  color: var(--fg-orange-deep);
+}
+
+/* ── one month of money, stacked ────────────────────────── */
+
+.bar {
+  display: flex;
+  height: 26px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--fg-gray-bg);
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  /* 아주 얇은 조각도 보이게 — 0폭이면 «없다»로 읽힌다 */
+  min-width: 2px;
+}
+
+.segRent {
+  background: var(--fg-t3);
+}
+
+.segMaint {
+  background: var(--fg-t7);
+}
+
+.segDeposit {
+  background: var(--fg-y-deep);
+}
+
+.segGoodwill {
+  background: var(--fg-orange);
+}
+
+/* ── legend ─────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.legendRow {
+  display: grid;
+  grid-template-columns: 10px 88px 92px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.legendRow:last-child {
+  border-bottom: 0;
+}
+
+.dot_rent,
+.dot_maint,
+.dot_deposit,
+.dot_goodwill {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.dot_rent {
+  background: var(--fg-t3);
+}
+
+.dot_maint {
+  background: var(--fg-t7);
+}
+
+.dot_deposit {
+  background: var(--fg-y-deep);
+}
+
+.dot_goodwill {
+  background: var(--fg-orange);
+}
+
+.legendName {
+  font-size: 13px;
+  color: var(--fg-t2);
+}
+
+.legendValue {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  text-align: right;
+}
+
+.legendNote {
+  font-size: 11px;
+  color: var(--fg-t6);
+}
+
+/* ── 승계 확률 ──────────────────────────────────────────── */
+
+.succession,
+.successionFlat {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+/* 기본값 상태 — 측정치 카드와 시각적으로 구분해 «아직 계산 안 된 값»으로 읽히게
+   한다. 점선 테두리는 앱에서 «근거 없음/대기»에 이미 쓰는 신호다. */
+.successionFlat {
+  background: var(--fg-wash);
+  border-style: dashed;
+  border-color: var(--fg-chipline);
+}
+
+.successionLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t4);
+}
+
+.successionValue,
+.successionValueDim {
+  grid-row: span 2;
+  align-self: center;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.successionValue {
+  color: var(--fg-ink);
+}
+
+/* 기본값은 크기를 낮추고 색을 죽인다 — 옆 자리도 같은 값인데 굵게 띄우면
+   «이 자리의 숫자»로 읽힌다. */
+.successionValueDim {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.successionNote {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t6);
+}
+
+/* ── 부담률 ─────────────────────────────────────────────── */
+
+.burden {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--fg-line2);
+  background: var(--fg-card-warm);
+}
+
+.burdenMain {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.burdenLabel {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-t4);
+}
+
+.burdenValue {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--fg-ink);
+}
+
+.burdenNote,
+.burdenTied {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t6);
+}
+
+.burdenTied {
+  padding-top: 6px;
+  border-top: 1px dashed var(--fg-line);
+  color: var(--fg-t5);
+}
+
+/* 부담률 등급(SAFE/CAUTION/…)은 UI에서 뺐다 — 임계선 0.13은 «일반적으로 알려진»
+   값이지 우리 데이터로 검증한 값이 아니라, 색으로 판정하면 없는 근거를 주장하게
+   된다. 서버도 같은 이유로 burdenGrade를 내지 않는다. 숫자만 낸다.
+
+   «매출 근거 없음»은 오류가 아니라 정답이다 — 에러 스타일을 쓰지 않는다. */
+.burdenNone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--fg-wash);
+  border: 1px dashed var(--fg-chipline);
+}
+
+.burdenNone strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+.burdenNone p {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t5);
+}
+
+.notice {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t7);
+}
+
+/* ── 좁은 화면 ──────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .inputs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .headlineValue {
+    font-size: 26px;
+  }
+
+  /* 노트를 값 아래로 흘려 이름이 0폭으로 눌리지 않게 한다 */
+  .legendRow {
+    grid-template-columns: 10px 1fr auto;
+  }
+
+  .legendNote {
+    grid-column: 2 / -1;
+  }
+}

@@ -6,6 +6,7 @@ import type { GridDetail, Meta } from "../api/types";
 import ConceptMixCard from "../components/ConceptMixCard";
 import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
+import OccupancyCostCard from "../components/OccupancyCostCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
 import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
@@ -343,6 +344,16 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.panel} hidden={tab !== "moneyTab"}>
+          {/* ── 실질 월 점유비용 — 비용이 손익보다 먼저 온다 (기획서 §3) ──
+              월세·보증금·권리금을 한 숫자로 합쳐야 그 다음 손익 계산의
+              분모가 정직해진다. 임대료 입력은 아래 손익 카드와 공유한다. */}
+          <OccupancyCostCard
+            gridId={d.gridId}
+            uptae={uptae}
+            rentMonthly={search.rentMonthly}
+            onRentChange={(v) => search.set({ rentMonthly: v })}
+          />
+
           {/* ── economics (centrepiece) ──────────────────────────── */}
           <EconomicsCard
             gridId={d.gridId}

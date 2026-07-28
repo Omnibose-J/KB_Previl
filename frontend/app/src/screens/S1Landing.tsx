@@ -107,6 +107,13 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           </button>
         </div>
 
+        {/* 두 번째 입구 — 기획서 §1.4. 예비창업자 대부분은 «어디가 좋아?»가
+            아니라 후보를 이미 손에 쥔 채 «여기 계약해도 되나요»를 묻는다.
+            그 사람에게 위 검색창은 처음부터 자기 질문이 아니다. */}
+        <button className={s.altEntry} onClick={() => go({ name: "compare" })}>
+          이미 본 매물이 있으신가요? <b>월세 말고 실제로 나가는 돈으로 비교해 보기 →</b>
+        </button>
+
         {/* proof stats — the killer numbers, promoted out of body small-print
             (UX critique #3). All live: provenance consts + meta(). */}
         <div className={s.stats}>

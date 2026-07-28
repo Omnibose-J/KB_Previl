@@ -423,6 +423,151 @@
   color: var(--fg-t6);
 }
 
+/* ---- 호가 3분해 (기획서 §4.3.1) ----
+   바닥권리금만 다른 색을 준다 — 시설·영업은 산정 관행이 있고 바닥은 없어서,
+   «근거를 물어볼 수 있는 구간»이 어디인지가 색으로 먼저 읽혀야 한다. */
+
+.decomp {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.decompHead h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.decompHead p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--fg-t6);
+}
+
+.decompBar {
+  display: flex;
+  height: 22px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--fg-gray-bg);
+}
+
+.decompBar > i {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+}
+
+.decompSeg_facility {
+  background: var(--fg-t5);
+}
+
+.decompSeg_business {
+  background: var(--fg-y-deep);
+}
+
+.decompSeg_floorKey {
+  background: var(--fg-orange);
+}
+
+.decompList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.decompRow {
+  display: grid;
+  grid-template-columns: 10px 44px 84px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--fg-line3);
+}
+
+.decompRow:last-child {
+  border-bottom: 0;
+}
+
+.decompDot_facility,
+.decompDot_business,
+.decompDot_floorKey {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.decompDot_facility {
+  background: var(--fg-t5);
+}
+
+.decompDot_business {
+  background: var(--fg-y-deep);
+}
+
+.decompDot_floorKey {
+  background: var(--fg-orange);
+}
+
+.decompName {
+  font-size: 12px;
+  color: var(--fg-t2);
+}
+
+.decompValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  text-align: right;
+}
+
+.decompNote {
+  font-size: 11px;
+  color: var(--fg-t6);
+}
+
+.decompMessage {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--fg-orange-bg);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-orange-deep);
+}
+
+.decompUnder,
+.decompBench {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t6);
+}
+
+.decompUnder b {
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
+.decompBench b {
+  font-weight: 700;
+  color: var(--fg-t2);
+}
+
+@media (max-width: 560px) {
+  .decompRow {
+    grid-template-columns: 10px 1fr auto;
+  }
+
+  .decompNote {
+    grid-column: 2 / -1;
+  }
+}
+
 /* ---- responsive ---- */
 @media (max-width: 1024px) {
   .inputs { flex-wrap: wrap; }

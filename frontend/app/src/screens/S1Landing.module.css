@@ -201,6 +201,30 @@ select.fieldEmpty {
   box-shadow: none;
 }
 
+/* 두 번째 입구 — 검색창과 경쟁하지 않도록 텍스트 링크 급으로 낮춘다.
+   버튼 두 개를 나란히 두면 «어느 쪽이 본론인지» 판단을 사용자에게 떠넘긴다. */
+.altEntry {
+  /* 히어로가 가운데 정렬이라 여기도 가운데 — 왼쪽 끝에 붙으면 다른 단의
+     잔여물처럼 읽힌다 */
+  align-self: center;
+  margin-top: 14px;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: var(--fg-dt1);
+}
+
+.altEntry b {
+  font-weight: 500;
+  color: var(--fg-y);
+  border-bottom: 1px solid transparent;
+}
+
+.altEntry:hover b {
+  border-bottom-color: var(--fg-y);
+}
+
 /* proof stats row */
 .stats {
   display: flex;

@@ -1,7 +1,11 @@
 import type {
   BuildingsResponse,
+  CompareInput,
+  CompareResponse,
   EconomicsInput,
   EconomicsResponse,
+  EstimateInput,
+  EstimateResponse,
   GoodwillInput,
   GoodwillResponse,
   GridDetail,
@@ -71,6 +75,12 @@ export const api = {
     request<EconomicsResponse>("/economics", { method: "POST", body: JSON.stringify(input) }),
   goodwill: (input: GoodwillInput) =>
     request<GoodwillResponse>("/goodwill", { method: "POST", body: JSON.stringify(input) }),
+  /** 단일 후보 → 실질 월 점유비용 + 부담률 (criteria §W2) */
+  estimate: (input: EstimateInput) =>
+    request<EstimateResponse>("/estimate", { method: "POST", body: JSON.stringify(input) }),
+  /** 후보 1~3건 → 월세순 vs 실질비용순 병렬 (criteria §W3). 4건 이상은 422 */
+  compare: (input: CompareInput) =>
+    request<CompareResponse>("/compare", { method: "POST", body: JSON.stringify(input) }),
   report: (gridId: string, uptae: string) =>
     request<ReportResponse>("/report", {
       method: "POST",

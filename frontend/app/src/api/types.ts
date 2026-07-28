@@ -264,11 +264,28 @@ export interface GoodwillInput {
   assets?: GoodwillAssetInput[];
 }
 
+/**
+ * 호가 3분해 (개발명세서 §5.3 후반 — 규칙 기반, ML 아님).
+ * 시설 ← tangible(감가 잔존), 영업 ← intangible(초과이익 환원),
+ * 바닥 ← asking − 시설 − 영업 (잔차).
+ *
+ * `floorKey`는 **음수일 수 있고 음수 그대로 렌더한다** — 호가가 산정근거보다
+ * 낮다는 사실이지 계산 실패가 아니다. 0으로 깎으면 "근거보다 싸게 부르는
+ * 자리"를 "근거만큼 부르는 자리"로 바꿔버린다.
+ */
+export interface GoodwillDecomposition {
+  facility: number;
+  business: number;
+  /** 잔차 — 음수 가능. clamp 금지 (호가 < 시설+영업이라는 사실이다) */
+  floorKey: number;
+}
+
 export interface GoodwillResponse {
   gridId: string;
   uptae: string;
   grade: Grade;
   askingGoodwill: number;
+  decomposition: GoodwillDecomposition;
   monthlyRevenue: number; // 상권 단위 — caption is mandatory
   benchmarkMonthlyRevenue: number;
   benchmarkLevel: 1 | 2 | 3 | 4;
@@ -308,4 +325,121 @@ export interface GoodwillResponse {
     estimatedGoodwill: number;
   }>;
   notice: string;
+}
+
+// --- 실질 월 점유비용 · 후보 비교 (criteria-backend-teo-v1 §1 W1~W3) --------
+//
+// 기획서의 관점 전환: 보증금·월세·권리금은 형태만 다른 같은 자리값이다. 셋을
+// «한 달에 실제로 빠져나가는 돈» 하나로 환산하면 매물 순위가 뒤집힌다.
+//
+//   실질 월 점유비용 = 월세 + 관리비
+//                    + 보증금 × opportunityRate ÷ 12      (돌려받으므로 이자만)
+//                    + 권리금 × (1 − 승계확률) ÷ horizonMonths
+//
+// 이 계산은 서버의 순수 함수이며 클라이언트는 절대 다시 계산하지 않는다 —
+// 두 곳에서 계산하면 반올림만 어긋나도 화면과 리포트가 다른 숫자를 말한다.
+
+/**
+ * 서버는 `extra="forbid"`다 — 여기 없는 키를 하나라도 보내면 422다.
+ * 필드명·중첩은 `service/app.py`의 Pydantic 모델이 정본이고, 이 파일은 그걸
+ * 옮긴 것이다. 마음대로 예쁘게 고치면 런타임에서만 터진다.
+ */
+export interface CostParams {
+  /** 보증금 기회비용 연이율 */
+  opportunityRate?: number;
+  /** 권리금 상각 기간(개월) */
+  horizonMonths?: number;
+}
+
+export interface CostBreakdown {
+  rent: number; // 만원/월
+  maintenance: number;
+  depositOpportunity: number;
+  /** 권리금 중 못 건지는 몫의 월할. 서버 이름이 premium* 이다 */
+  premiumAmortized: number;
+  effectiveMonthlyCost: number;
+}
+
+/** 위치는 gridId **또는** lon+lat 중 하나만. 둘 다 주면 422다. */
+export interface CandidateValues {
+  gridId?: string;
+  lon?: number;
+  lat?: number;
+  deposit: number; // 만원 — 사용자 입력, 데이터에서 오지 않는다
+  monthlyRent: number; // 만원
+  askingGoodwill: number; // 만원 — 0 = 무권리
+  areaM2: number; // 필수
+  /** 필수. 지하는 음수(-1 = B1) */
+  floor: number;
+}
+
+export interface CandidateInput extends CandidateValues {
+  /** 화면이 붙인 고유 이름(A·B·C). 서버가 그대로 되싣는다 — 같은 격자에 후보가
+   *  둘일 수 있어(같은 건물 다른 층) gridId로는 후보를 구분할 수 없다. */
+  label?: string;
+}
+
+export interface EstimateInput extends CandidateValues {
+  uptae: string;
+  costParams?: CostParams;
+}
+
+export type RecoverySource = "constant" | "survival_curve_proxy" | "m2";
+
+export interface EstimateResponse {
+  gridId: string;
+  uptae: string;
+  grade: Grade;
+  /** 서버가 입력을 되싣는다 — 화면이 자기가 보낸 값을 다시 기억할 필요가 없다 */
+  deposit: number;
+  monthlyRent: number;
+  askingGoodwill: number;
+  areaM2: number;
+  floor: number;
+  /** `P(승계) × E[지불비율]` 중 앞항만. 지불비율 원천은 미확보다. */
+  successionProb: number;
+  /** 서버가 실제로 선택한 승계 확률 원천. */
+  recoverySource: RecoverySource;
+  effectiveCost: number;
+  costBreakdown: CostBreakdown;
+  /**
+   * 상권 단위 추정매출. **매물 단위가 아니다** — 같은 상권 후보끼리는 같은 값이
+   * 들어온다. 격자·매물로 분해하지 않는다는 결정의 결과다.
+   */
+  monthlyRevenue: number | null;
+  revenueAsOfQuarter: string | null;
+  revenueResolution: "trade_area";
+  /** null = 상권 밖이라 매출 근거 없음. **0으로 그리지 않는다** */
+  burdenRate: number | null;
+  /** 비어 있는 축 이름 — 화면은 채우지 않고 비었다고 말한다 */
+  missingAxes: string[];
+  notice: string;
+  /** 서버가 생략된 입력까지 채워 실제 계산에 쓴 값. 화면 각주의 유일한 근거다. */
+  paramsUsed: Required<CostParams>;
+}
+
+export interface CompareInput {
+  uptae: string;
+  /** 1~3건. 범위를 벗어나면 422 */
+  candidates: CandidateInput[];
+  costParams?: CostParams;
+}
+
+export interface CompareItem extends EstimateResponse {
+  /** 보낸 label을 그대로 되싣는다. 안 보냈으면 null */
+  label: string | null;
+  /** 월세 오름차순 — 부동산 앱이 보여주는 순서 */
+  rentRank: number;
+  /** 실질 월 점유비용 오름차순 — 우리 순서 */
+  teoRank: number;
+  /** true = 이 후보의 매출이 다른 후보와 동점 → 부담률로 줄 세울 수 없다 */
+  revenueTied: boolean;
+}
+
+export interface CompareResponse {
+  uptae: string;
+  revenueResolution: "trade_area";
+  recoverySource: RecoverySource;
+  paramsUsed: Required<CostParams>;
+  items: CompareItem[];
 }
