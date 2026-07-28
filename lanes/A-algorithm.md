@@ -96,18 +96,26 @@ text_profile(grid_id PK, n_post, price_med, price_q1, price_q3, price_n,
 노출 규칙은 `score_meta`에 선언돼 있다. 코드에 하드코딩하지 말고 이 값을 읽어라.
 
 ```
-text_profile_exposed             gripe,guest    ← 검정을 통과한 신호
-text_profile_gripe_fixable       wait|seat|service|clean|price|noise
-text_profile_gripe_constraint    parking        ← 화면에서 분리할 것
+text_profile_exposed             (빈 값)        ← 노출 승인된 항목이 없다
+text_profile_exposure_note       I-20:gripe reject(precision 0.087-0.167)
+                                 guest:precision untested
 text_profile_gripe_judged_grids  5065           ← 판정 충분
 text_profile_gripe_listed_grids  3056           ← 실제 목록 보유
 text_profile_gripe_gate2_grids   601            ← 한 범주에 독립 점포 2곳 이상
 text_profile_guest_grids         557
 text_profile_claim               observation_only:not_predictive
-text_profile_verdicts            I-11:pass · I-13:pass · I-9:reject
+text_profile_verdicts            I-11:agree_pass · I-20:precision_reject · I-13:pass · I-9:reject
 ```
 
-**`exposed` 는 "검정을 통과했다"는 뜻이지 "이 형태로 화면에 내라"가 아니다.** 무엇을 어떤 단위로 낼지는 `docs/unstructured-product-design.md` 가 정한다 — 격자 r1 게이트를 넘는 곳이 601개뿐이라 표시 단위가 바뀐다.
+## `text_profile` 은 화면에 내지 않는다 (2026-07-28, §18)
+
+**§I-20 에서 `gripe` 7범주가 전부 정밀도 기각됐다** — 8.7~16.7%, 기준 0.70. 1차가 불만을 붙인 글의 32~61% 에서 두 독립 판정자가 모두 "그런 불만 없다"고 했다.
+
+§I-11 의 일치율 0.996 은 철회하지 않는다. 그것은 **재현성** 검정이고 통과했다. **같은 라벨을 두 번 내놓는 것과 그 라벨이 맞는 것은 다르다** — 300건×7범주=2,100셀에서 positive 기대값이 13.3셀이라 0.996 은 "둘 다 false" 가 만든 값이었다.
+
+- 테이블과 컬럼은 남긴다. 재판정 후 다시 재려면 비교 대상이 필요하다
+- **`exposed` 가 비어 있으면 아무것도 내지 않는다.** "아직 안 정했다"가 아니라 "내지 말라"다
+- 다시 노출하려면 §I-19 기준(정밀도 ≥0.70 · Wilson 하한 ≥0.50 · kappa ≥0.40)을 통과해야 한다
 
 **지켜야 할 것 둘.**
 

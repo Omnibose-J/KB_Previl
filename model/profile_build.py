@@ -223,8 +223,13 @@ def declare(con, n_grid):
     # 세 값으로 쪼개면서 폐기 — 남겨 두면 옛 키를 읽는 쪽이 계속 5,065를 쓴다
     con.execute("DELETE FROM score_meta WHERE k = 'text_profile_gripe_grids'")
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
-        # §I-11 통과(0.996) · §I-14 통과(party 0.833 / purpose 0.727)
-        ("text_profile_exposed", "gripe,guest"),
+        # §I-20 — `gripe` 7범주 전부 정밀도 기각(8.7~16.7%, 기준 0.70).
+        # `guest` 는 정밀도를 잰 적이 없다. 노출 승인된 항목이 없다.
+        # **빈 값은 "아직 안 정했다"가 아니라 "내지 말라"다.**
+        # §I-11 의 일치율 0.996 은 희소 클래스라 "둘 다 false" 가 만든 값이었다.
+        ("text_profile_exposed", ""),
+        ("text_profile_exposure_note",
+         "I-20:gripe reject(precision 0.087-0.167) · guest:precision untested"),
         ("text_profile_guest_grids", str(n_guest)),
         # §I-14 — time 은 판정했지만 노출하지 않는다. H-4(§16)가 기각한
         # "저녁 언급이 많다 = 저녁 장사가 되는 동네" 추론을 화면이 유도한다.
@@ -244,7 +249,8 @@ def declare(con, n_grid):
         # 예측이 아니라 관측 사실이다 (§I-3 규칙 2). 생존·등급과 연결짓지 않는다.
         ("text_profile_claim", "observation_only:not_predictive"),
         ("text_profile_verdicts",
-         "I-11:pass(agree=0.996) · I-13:pass(macroF1=0.4701) · I-9:reject(rho=0.138)"),
+         "I-11:agree_pass(0.996) · I-20:precision_reject(0.087-0.167) · "
+         "I-13:pass(macroF1=0.4701) · I-9:reject(rho=0.138)"),
     ])
 
 
