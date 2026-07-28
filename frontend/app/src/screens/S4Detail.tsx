@@ -370,7 +370,20 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               <h2>부르는 권리금, 적당한가요?</h2>
               <p>이 자리 기록으로 참고가를 계산해 드려요. 감정평가는 아니에요.</p>
             </div>
-            {d.sales.available ? (
+            {/* 막는 이유가 둘이고 서로 다른 말이 필요하다 — 업종에 비교할
+                벤치마크가 없는 것(어느 자리든 불가)과, 이 격자에 매출 근거가
+                없는 것(다른 자리면 가능). 업종 쪽을 먼저 본다.
+                두 경우 다 «실패»가 아니라 답이므로 오류로 그리지 않는다. */}
+            {meta && !meta.goodwillSupportedUptae.includes(uptae) ? (
+              // 업태명을 조사 앞에 넣으면 «기타은(는)»이 된다. 받침 유무가
+              // 업태마다 다르고 「외국음식전문점(인도,태국등)」처럼 괄호로
+              // 끝나기도 해서 규칙으로 못 푼다. 업태는 이미 상단 배지에 있으니
+              // 조사 자리에서 뺀다.
+              <p className={s.gwNone}>
+                선택하신 업종은 비교할 서울 업종 평균이 없어서 참고가를 계산하지 않아요. 다른 업종의
+                평균을 대신 쓰면 근거 없는 숫자가 되거든요.
+              </p>
+            ) : d.sales.available ? (
               <button className={s.gwOpenBtn} onClick={() => setGwOpen(true)}>
                 권리금 계산해 보기
               </button>

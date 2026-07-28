@@ -66,6 +66,15 @@ export interface Meta {
   gradeArea: GradeArea | null;
   /** total scored grids — S2 funnel row 1 (never hardcode the count) */
   gridCount: number;
+  /**
+   * 권리금 참고가를 낼 수 있는 업태. 서울 상권분석 분류에 대응 코드가 없는
+   * 업태(「기타」·「외국음식전문점」)는 여기 없다 — 다른 업종 벤치마크를
+   * 빌려오지 않기로 한 결과다.
+   *
+   * 격자별 런타임 조건이 아니라 **업태의 정적 성질**이므로, 화면은 요청을
+   * 보내 실패를 보기 전에 이 목록으로 미리 막는다.
+   */
+  goodwillSupportedUptae: string[];
   gradeDirection: "1_is_best";
   /** mandatory caveat strings (AUC framing, ~26% failure line) — render, don't rewrite */
   caveats: string[];
