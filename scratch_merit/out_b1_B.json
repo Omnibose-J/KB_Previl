@@ -1,0 +1,902 @@
+{
+  "152": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "211": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "213": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "시원하니 맛있었어요."
+  },
+  "308": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": true,
+    "quote": "우 꽃등심맛에 반하다"
+  },
+  "477": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "578": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "580": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "이자카야 맛집 지난"
+  },
+  "1022": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "1232": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "1443": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "올 만큼 맛있다고 해요."
+  },
+  "1544": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "1704": {
+    "taste": false,
+    "portion": true,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "운지에서 푸짐한 키친팩"
+  },
+  "1776": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "1993": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "건대 맛집 여기"
+  },
+  "2117": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "독산역 맛집 용달통"
+  },
+  "2235": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "/에이드/힐링치노/시그"
+  },
+  "2243": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "조용해서 편하게 쉬었다"
+  },
+  "2356": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": true,
+    "fresh": false,
+    "quote": "다 엄청 친절하고 상냥한 직원분에 또"
+  },
+  "2398": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "게 매운 국물 닭발 작봄이네 갔다가 맛있는 걸"
+  },
+  "2458": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "2794": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ". 근데 맛은 제 취"
+  },
+  "3207": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "3553": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "3629": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "3702": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "3762": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "#치킨 #맛집 #청담"
+  },
+  "3917": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "구의맛집 , 구"
+  },
+  "3925": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "근처에도 맛집이..."
+  },
+  "3930": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "울터미널 맛집 줄서서"
+  },
+  "4313": {
+    "taste": false,
+    "portion": false,
+    "value": true,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "가격이 실화인가요? 공릉"
+  },
+  "4380": {
+    "taste": true,
+    "portion": true,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "연어를 무한리필로~ 영등"
+  },
+  "4402": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "4636": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "찜 #마산맛집 #창동"
+  },
+  "4810": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "간만에 분위기 좋고, 시각"
+  },
+  "4986": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "5308": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "5333": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "5553": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "5590": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": true,
+    "fresh": false,
+    "quote": "친절하고 분위기 좋은 대학로 스페인 요리 맛집"
+  },
+  "5722": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "5895": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "6080": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "동 일식 맛집] 호시"
+  },
+  "6106": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "6132": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "6248": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "6424": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "6475": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "기 좋은 맛있는 중국"
+  },
+  "6618": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "7289": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "7319": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "7534": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "이자카야 분위기를 한층 더 어울리게 하네요!!"
+  },
+  "7780": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "7800": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "피자 - 분위기있는 신촌데이트...  ~ 신촌"
+  },
+  "7836": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8064": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8112": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8217": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8649": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8700": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": true,
+    "fresh": false,
+    "quote": "치 1개 서비스는 주인 아저씨의 인심을 느낄 "
+  },
+  "8709": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "8899": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "9093": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "9134": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "9197": {
+    "taste": false,
+    "portion": true,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "주차장도 넉넉하다고 약"
+  },
+  "9369": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "대치동 맛집인 파스"
+  },
+  "9702": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "9711": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "9892": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "울 명동 맛집 아미소"
+  },
+  "9948": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "서울지역 맛집 리스트"
+  },
+  "10007": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "10089": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "명동 맛집 / 개"
+  },
+  "10295": {
+    "taste": true,
+    "portion": true,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": true,
+    "quote": "신선하구 메인메뉴들도 정말 맛있고 양도 많아서"
+  },
+  "10765": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "미를 국수맛이 하는"
+  },
+  "10824": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "11033": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "점 #건대맛집 #양꼬"
+  },
+  "11246": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "그렇게 맛있다길래 먹어"
+  },
+  "11346": {
+    "taste": true,
+    "portion": false,
+    "value": true,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "시장 - 저렴하고 맛있는 안주들 완소 귀엽. "
+  },
+  "11382": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "맛집 180"
+  },
+  "11510": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "12120": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "[가산역 맛집 추천]"
+  },
+  "12170": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "12239": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "12489": {
+    "taste": true,
+    "portion": true,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "메뉴는 다양하고 반찬! 많이 주는"
+  },
+  "12600": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "13066": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "파스타 맛집 이태원"
+  },
+  "13075": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "13779": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": true,
+    "fresh": false,
+    "quote": "속적이고 맛있어 보여요."
+  },
+  "13797": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "건대맛집 건대갈"
+  },
+  "13818": {
+    "taste": true,
+    "portion": true,
+    "value": true,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "회전초밥무한리필! 무제한"
+  },
+  "13968": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": true,
+    "kind": false,
+    "fresh": false,
+    "quote": "헤븐'~ 아늑했던 '오"
+  },
+  "14059": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "치즈퐁듀 맛집 같으니"
+  },
+  "14424": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "0 초파일맛집^^○삼"
+  },
+  "14498": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "14620": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "14751": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "14944": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "청담동 맛집으로도"
+  },
+  "15097": {
+    "taste": true,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": "청담동 맛집, 콜키"
+  },
+  "15221": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "15256": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  },
+  "15289": {
+    "taste": false,
+    "portion": false,
+    "value": false,
+    "mood": false,
+    "kind": false,
+    "fresh": false,
+    "quote": ""
+  }
+}

@@ -1,0 +1,902 @@
+{
+ "15338": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "15361": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "15446": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "15689": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "15880": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16038": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": true,
+  "quote": "커피빈과 신선설농탕사이에 위치하고 있어"
+ },
+ "16233": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16301": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16449": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16662": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16736": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16749": {
+  "taste": false,
+  "portion": true,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "16868": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17009": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17344": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17374": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17485": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17583": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17794": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17831": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17844": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17975": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "17978": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "18046": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "18063": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "18118": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "18839": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": true,
+  "quote": ""
+ },
+ "18844": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "18898": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "는 역시 맛있다 쌀국수가 맛있는 등촌동"
+ },
+ "18967": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "19158": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "19315": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "평해장국 맛있어요^^위치는 위 지도에"
+ },
+ "19352": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "19558": {
+  "taste": false,
+  "portion": true,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "19710": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": true,
+  "quote": "양념치킨 신풍역점☜신길동치킨맛집 추천~"
+ },
+ "19776": {
+  "taste": true,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "양념도 맛있고 식감도..."
+ },
+ "20088": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20136": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20182": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20382": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20546": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20581": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20622": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20784": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20811": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": false,
+  "quote": "경복궁 맛집◆ 후라토식당에서 특별한"
+ },
+ "20835": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "20952": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "21068": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "21126": {
+  "taste": true,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "젓갈이 맛나더라구요~ ^^ 오늘도 행"
+ },
+ "21182": {
+  "taste": true,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "음 진짜 맛있어요~ 후식으로 아이스크림"
+ },
+ "21250": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": false,
+  "quote": "도 보고 맛있는 음식도 먹고 상봉동 동"
+ },
+ "21545": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "21591": {
+  "taste": false,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "2 현대본가 주소 : 서울 용산구 한강"
+ },
+ "21596": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "21896": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "강동길동역맛집/조가네숯불삼겹살]편하게"
+ },
+ "22012": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "22155": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "[독산동 맛집] 족발이 맛있는 '동안포"
+ },
+ "22209": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "22360": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "[개봉동맛집]백년불고기 물갈비 도전"
+ },
+ "22387": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": true,
+  "quote": ""
+ },
+ "22743": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "반쎄오 맛집 맛있는 리얼 베트남 음식"
+ },
+ "22810": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23014": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23087": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23095": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23293": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23294": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23346": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23387": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23439": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23533": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23603": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23653": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "23886": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "티 좋고 맛있는 초밥인거 같다. 자주"
+ },
+ "23954": {
+  "taste": true,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "지막으로 맛집 없기로 유명한 정릉동에서"
+ },
+ "24208": {
+  "taste": false,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "의미에서 가성비 좋은 강남횟집을 찾았다"
+ },
+ "24217": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "24497": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "24591": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "24754": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "24803": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "24975": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "25138": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "25234": {
+  "taste": true,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "대 곱창 맛집 ! 외대,이문동,회기,경"
+ },
+ "25436": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "25522": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "25832": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "25880": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26008": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": true,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26031": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26141": {
+  "taste": true,
+  "portion": false,
+  "value": true,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": "전국 맛집리스트 청평매운탕 중화동"
+ },
+ "26685": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26718": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26829": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "26843": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "27212": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "27391": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "27619": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "27685": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ },
+ "27745": {
+  "taste": false,
+  "portion": false,
+  "value": false,
+  "mood": false,
+  "kind": false,
+  "fresh": false,
+  "quote": ""
+ }
+}

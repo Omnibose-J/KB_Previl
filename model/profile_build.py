@@ -22,6 +22,7 @@ from collections import defaultdict
 import numpy as np
 
 from model.gripe_run import CATS, CONSTRAINT
+from model.guest_run import PARTY as GUEST_PARTY, PURPOSE as GUEST_PURPOSE
 from pipeline.config import DB_PATH
 
 MIN_N = 10       # §I-3 규칙 3 — 미달이면 그 항목을 만들지 않는다. 0으로 안 채운다
@@ -57,7 +58,14 @@ def init_db(con):
         grid_id TEXT PRIMARY KEY,
         n_post INTEGER,
         price_med INTEGER, price_q1 INTEGER, price_q3 INTEGER, price_n INTEGER,
-        gripe_n INTEGER, gripe_share TEXT, gripe_shops TEXT)""")
+        gripe_n INTEGER, gripe_share TEXT, gripe_shops TEXT,
+        guest_party TEXT, guest_purpose TEXT, guest_n INTEGER)""")
+    # 기존 DB 에 컬럼을 더한다 (§I-14 통과분)
+    have = {r[1] for r in con.execute("PRAGMA table_info(text_profile)")}
+    for col, typ in (("guest_party", "TEXT"), ("guest_purpose", "TEXT"),
+                     ("guest_n", "INTEGER")):
+        if col not in have:
+            con.execute(f"ALTER TABLE text_profile ADD COLUMN {col} {typ}")
     con.commit()
 
 
@@ -103,6 +111,30 @@ def build(con):
     except sqlite3.OperationalError:
         print("gripe_label 없음 — 불만 항목 건너뜀")
 
+    # §I-14 통과분 — 손님 프로파일. 1차는 `demand_label`(gpt-4o-mini), 2차 검정은
+    # Claude 독립 판정으로 party 83.3% / purpose 72.7% (§I-17).
+    # `time` 은 넣지 않는다 — H-4 가 기각한 추론을 화면이 유도하게 된다(§I-14).
+    g_party = defaultdict(lambda: defaultdict(int))
+    g_purpose = defaultdict(lambda: defaultdict(int))
+    g_guest_n = defaultdict(int)
+    try:
+        for rid, pt, pu in con.execute(
+                "SELECT rowid_post, party, purpose FROM demand_label"):
+            g = post_grid.get(rid)
+            if not g:
+                continue
+            hit = False
+            if pt in GUEST_PARTY:
+                g_party[g][pt] += 1
+                hit = True
+            if pu in GUEST_PURPOSE:
+                g_purpose[g][pu] += 1
+                hit = True
+            if hit:
+                g_guest_n[g] += 1
+    except sqlite3.OperationalError:
+        print("demand_label 없음 — 손님 프로파일 건너뜀")
+
     # --- r1 집계
     init_db(con)
     con.execute("DELETE FROM text_profile")
@@ -136,9 +168,26 @@ def build(con):
             shops = ";".join(
                 f"{c}:{'|'.join(sorted(merged[c])[:MAX_SHOPS])}"
                 for c in CATS if merged.get(c))
-        rows.append((gid, n_post, pmed, pq1, pq3, pn, gn, share, shops))
 
-    con.executemany("INSERT INTO text_profile VALUES(?,?,?,?,?,?,?,?,?)", rows)
+        # §I-14 — 비율 + 표본 수. 미달이면 만들지 않는다(0으로 안 채운다)
+        guest_n = sum(g_guest_n.get(b, 0) for b in nb)
+        party = purpose = None
+        if guest_n >= MIN_N:
+            def share_of(acc, keys):
+                m = defaultdict(int)
+                for b in nb:
+                    for k, v in acc.get(b, {}).items():
+                        m[k] += v
+                t = sum(m.values())
+                return ("|".join(f"{k}:{m[k]/t:.3f}" for k in keys if m.get(k))
+                        if t else None)
+            party = share_of(g_party, GUEST_PARTY)
+            purpose = share_of(g_purpose, GUEST_PURPOSE)
+
+        rows.append((gid, n_post, pmed, pq1, pq3, pn, gn, share, shops,
+                     party, purpose, guest_n))
+
+    con.executemany("INSERT INTO text_profile VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     declare(con, len(rows))
     con.commit()
     print(f"text_profile {len(rows):,}격자 (r1 글 {MIN_N}건 이상)")
@@ -154,8 +203,15 @@ def declare(con, n_grid):
     """
     n_gripe, = con.execute(
         "SELECT count(*) FROM text_profile WHERE gripe_shops IS NOT NULL").fetchone()
+    n_guest, = con.execute(
+        "SELECT count(*) FROM text_profile WHERE guest_purpose IS NOT NULL").fetchone()
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
-        ("text_profile_exposed", "gripe"),
+        # §I-11 통과(0.996) · §I-14 통과(party 0.833 / purpose 0.727)
+        ("text_profile_exposed", "gripe,guest"),
+        ("text_profile_guest_grids", str(n_guest)),
+        # §I-14 — time 은 판정했지만 노출하지 않는다. H-4(§16)가 기각한
+        # "저녁 언급이 많다 = 저녁 장사가 되는 동네" 추론을 화면이 유도한다.
+        ("text_profile_guest_excluded", "time"),
         ("text_profile_grids", str(n_grid)),
         ("text_profile_gripe_grids", str(n_gripe)),
         ("text_profile_min_n", str(MIN_N)),
