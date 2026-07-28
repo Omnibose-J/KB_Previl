@@ -14,3 +14,6 @@ enter.ps1
 
 # lane A model split cache (rebuilt from kb.db, fingerprinted on feature source)
 model/.cache/
+
+# 실험 스크래치 (판정 표본·중간 산출물) — 결과는 docs/ 에 기록한다
+scratch_*
