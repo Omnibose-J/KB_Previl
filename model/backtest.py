@@ -3,8 +3,9 @@ have survived more often?
 
 evaluate.py reports AUC/Brier/lift, which are the right technical measures but
 do not answer the question a judge will ask. This restates the same held-out
-predictions as the decision they imply: rank every 2019-2022 opening by the
-model, then read off what actually happened to the top decile versus the bottom.
+predictions as the decision they imply: rank every held-out opening
+(train.CONFIRMED_TEST_YEARS) by the model, then read off what actually happened
+to the top decile versus the bottom.
 
 Nothing new is fitted here - it consumes the same time-split predictions - so it
 cannot be more optimistic than the headline numbers. It is a translation, not a
@@ -19,7 +20,6 @@ import numpy as np
 from pipeline.db import init
 
 from .cache import cached_split
-from .evaluate import TEST_YEARS
 from .robustness import FEATURE_SETS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
@@ -61,7 +61,11 @@ def main():
     p, _ = fit_predict(a.model, train, test, num=cols)
 
     overall = yte.mean()
-    print(f"검증 대상: {TEST_YEARS[0]}~{TEST_YEARS[-1]}년 개업 {len(yte):,}건 "
+    # 실제로 도는 것은 CONFIRMED_TEST_YEARS 다. evaluate.TEST_YEARS 는 폐기된
+    # 2019-2022 legacy 창이라 그걸 찍으면 출력이 코호트를 거짓말한다.
+    span = (f"{CONFIRMED_TEST_YEARS[0]}~{CONFIRMED_TEST_YEARS[-1]}"
+            if len(CONFIRMED_TEST_YEARS) > 1 else f"{CONFIRMED_TEST_YEARS[0]}")
+    print(f"검증 대상: {span}년 개업 {len(yte):,}건 "
           f"· 모델 {a.model} · 피처셋 {a.features}({len(cols)})")
     print(f"실제 3년 생존율(전체): {overall*100:.1f}%\n")
 

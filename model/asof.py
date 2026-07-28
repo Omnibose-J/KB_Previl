@@ -464,8 +464,8 @@ class RestIndex:
             "rest_cnt_r1": op,
             "rest_openings_36m": openings,
             "rest_closures_36m": closures,
-            "rest_churn_36m": (closures / denom) if denom else 0.0,
-            "rest_growth_36m": (op / op_past) if op_past else 1.0,
+            "rest_churn_36m": (closures / denom) if denom else None,
+            "rest_growth_36m": (op / op_past) if op_past else None,
         }
 
 
@@ -523,7 +523,11 @@ class AsOf:
             "same_uptae_cnt": sum(1 for s in op if s[1] == uptae) if uptae else 0,
             "openings_36m": len(openings),
             "closures_36m": len(closures),
-            "growth_36m": (len(op) / len(op_past)) if op_past else 1.0,
+            # 이력이 없으면 None. 1.0 을 넣으면 "변화 없음", 0.0 을 넣으면
+            # "이탈 최저" 라는 관측하지 않은 주장이 된다 — churn_36m 은 GBM 이
+            # 가장 크게 쓰는 피처라 빈 격자가 최유리 값을 받는다. Encoder 가
+            # None 을 학습셋 중앙값으로 대치하므로 ring_state 와 같은 규약이다.
+            "growth_36m": (len(op) / len(op_past)) if op_past else None,
             "median_area": areas[len(areas) // 2] if areas else None,
             # --- G2X: same events, finer time resolution -------------------
             "openings_6m": sum(1 for s in openings if s[2] > t - 6),
@@ -531,12 +535,12 @@ class AsOf:
             "closures_6m": sum(1 for s in closures if s[3] > t - 6),
             "closures_12m": sum(1 for s in closures if s[3] > t - 12),
             "closures_24m": sum(1 for s in closures if s[3] > t - 24),
-            "growth_12m": (len(op) / len(op_past12)) if op_past12 else 1.0,
+            "growth_12m": (len(op) / len(op_past12)) if op_past12 else None,
         }
         denom = d["open_cnt"] + d["closures_36m"]
-        d["churn_36m"] = d["closures_36m"] / denom if denom else 0.0
+        d["churn_36m"] = d["closures_36m"] / denom if denom else None
         d12 = d["open_cnt"] + d["closures_12m"]
-        d["churn_12m"] = d["closures_12m"] / d12 if d12 else 0.0
+        d["churn_12m"] = d["closures_12m"] / d12 if d12 else None
         # acceleration: last 12 months against the 36-month annual average. >1 =
         # the block is opening/closing faster now than it has been.
         op12 = sum(1 for s in openings if s[2] > t - 12)
