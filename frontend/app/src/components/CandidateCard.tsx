@@ -103,7 +103,29 @@ export default function CandidateCard({
           상세 리포트 →
         </button>
       </div>
+
+      <ConceptLine cell={cell} />
     </li>
+  );
+}
+
+// 주변에 많은 가게 종류 한 줄. 후보 사이 차이를 읽히게 하는 것이 목적이라
+// 상위 3종만 낸다 — 전체 구성은 S4 카드가 맡는다. 추천 순서에는 관여하지
+// 않는다(정렬은 score 그대로).
+const CONCEPT_TOP = 3;
+
+function ConceptLine({ cell }: { cell: GridDetail }) {
+  const mix = cell.conceptMix;
+  if (!mix?.available || mix.items.length === 0) return null;
+  return (
+    <p className={s.concepts}>
+      <span className={s.conceptsLabel}>주변에 많은 가게</span>
+      {mix.items.slice(0, CONCEPT_TOP).map((item) => (
+        <span key={item.concept} className={s.conceptChip}>
+          {item.concept} {int(item.shops)}
+        </span>
+      ))}
+    </p>
   );
 }
 

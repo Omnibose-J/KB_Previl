@@ -500,6 +500,13 @@ def recommend(uptae, districts=(), top=24):
             + " ORDER BY s.score DESC LIMIT ?",
             [uptae, *district_args, top],
         ).fetchall()
+        mix = _concept_mix_batch(con, [row["grid_id"] for row in rows])
+
+    items = []
+    for row in rows:
+        item = _grid_detail(row, uptae)
+        item["concept_mix"] = mix.get(row["grid_id"])
+        items.append(item)
 
     return {
         "uptae": uptae,
@@ -507,7 +514,7 @@ def recommend(uptae, districts=(), top=24):
         "total_grids": total_grids,
         "in_scope": in_scope,
         "count": len(rows),
-        "items": [_grid_detail(row, uptae) for row in rows],
+        "items": items,
         "resolutions": RESOLUTION,
     }
 
@@ -520,38 +527,57 @@ def grid_detail(grid_id, uptae):
         ).fetchone()
         if row is None:
             return None
-        mix = _concept_mix(con, grid_id)
+        mix = _concept_mix_batch(con, [grid_id])
     item = _grid_detail(row, uptae)
-    item["concept_mix"] = mix
+    item["concept_mix"] = mix.get(grid_id)
     return item
 
 
-def _concept_mix(con, grid_id):
-    """주변 3x3 링의 상호명 콘셉트 구성. 추론이 아니라 집계다(model/concept_mix.py).
+def _concept_mix_batch(con, grid_ids):
+    """격자별 주변 3x3 링의 상호명 콘셉트 구성. 추론이 아니라 집계다
+    (`model/concept_mix.py`).
+
+    S3 는 후보 20여 개를 한 번에 그리므로 격자마다 조회하면 N+1 이 된다.
+    한 번의 IN 조회로 모아서 돌려준다.
 
     배치가 아직 안 돌았으면 `available=False` 로 알린다. 빈 구성과 미실행은
     다른 상태이므로 빈 배열로 뭉개지 않는다.
     """
+    unavailable = {"available": False, "items": [], "shops": 0,
+                   "source": None, "claim": None}
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+    placeholders = ",".join("?" * len(ids))
     try:
         rows = con.execute(
-            "SELECT concept, n FROM grid_concept WHERE grid_id = ? "
-            "ORDER BY n DESC, concept",
-            (grid_id,),
+            f"SELECT grid_id, concept, n FROM grid_concept "
+            f"WHERE grid_id IN ({placeholders}) "
+            "ORDER BY grid_id, n DESC, concept",
+            ids,
         ).fetchall()
     except sqlite3.OperationalError:
-        return {"available": False, "items": [], "shops": 0,
-                "source": None, "claim": None}
+        return {gid: dict(unavailable) for gid in ids}
+
     meta = dict(
         con.execute(
             "SELECT k, v FROM score_meta WHERE k LIKE 'concept_mix\\_%' ESCAPE '\\'"
         ).fetchall()
     )
+    by_grid = {}
+    for row in rows:
+        by_grid.setdefault(row["grid_id"], []).append(
+            {"concept": row["concept"], "shops": row["n"]}
+        )
     return {
-        "available": True,
-        "items": [{"concept": r["concept"], "shops": r["n"]} for r in rows],
-        "shops": sum(r["n"] for r in rows),
-        "source": meta.get("concept_mix_source"),
-        "claim": meta.get("concept_mix_claim"),
+        gid: {
+            "available": True,
+            "items": by_grid.get(gid, []),
+            "shops": sum(item["shops"] for item in by_grid.get(gid, [])),
+            "source": meta.get("concept_mix_source"),
+            "claim": meta.get("concept_mix_claim"),
+        }
+        for gid in ids
     }
 
 

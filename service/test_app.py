@@ -1273,3 +1273,37 @@ def test_concept_mix_reports_unavailable_when_batch_missing(monkeypatch, tmp_pat
     mix = response.json()["conceptMix"]
     assert mix["available"] is False
     assert mix["items"] == []
+
+
+def test_recommend_carries_concept_mix_without_extra_round_trips():
+    """S3 는 후보 20여 개를 한 번에 그린다 — 격자마다 조회하면 N+1 이 된다."""
+    queries = []
+    original_connection = api.readonly_connection
+
+    class CountingConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, statement, parameters=()):
+            if "grid_concept" in statement:
+                queries.append(statement)
+            return self.connection.execute(statement, parameters)
+
+        def __getattr__(self, name):
+            return getattr(self.connection, name)
+
+    @contextmanager
+    def counting():
+        with original_connection() as connection:
+            yield CountingConnection(connection)
+
+    api.readonly_connection = counting
+    try:
+        body = api.recommend("한식", top=20)
+    finally:
+        api.readonly_connection = original_connection
+
+    assert len(queries) == 1, "콘셉트 구성은 한 번의 배치 조회여야 한다"
+    assert body["items"], "후보가 있어야 한다"
+    assert all(item["concept_mix"] is not None for item in body["items"])
+    assert any(item["concept_mix"]["items"] for item in body["items"])

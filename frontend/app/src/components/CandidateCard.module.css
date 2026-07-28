@@ -191,3 +191,28 @@
 .open:hover {
   text-decoration: underline;
 }
+
+/* 주변에 많은 가게 종류 한 줄. metric strip 아래에 붙되 같은 무게로 읽히지
+   않도록 색·크기를 낮춘다 — 이 값은 순위 근거가 아니라 참고 관측이다. */
+.concepts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--fg-t6);
+}
+
+.conceptsLabel {
+  color: var(--fg-t7);
+}
+
+.conceptChip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
