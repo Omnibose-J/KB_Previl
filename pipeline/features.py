@@ -8,6 +8,7 @@ one. Every NULL-vs-0 decision in this file is deliberate.
 import argparse
 import json
 import math
+import sqlite3
 from collections import Counter, defaultdict
 
 from .config import DEFAULT_QUARTER
@@ -31,7 +32,9 @@ def build_grid(con):
         try:
             rows = con.execute(
                 f"SELECT DISTINCT grid_id FROM {tbl} WHERE grid_id IS NOT NULL").fetchall()
-        except Exception:
+        except sqlite3.OperationalError:
+            # 테이블이 아직 없는 경우만 넘긴다. Exception 을 통째로 삼키면 SQL
+            # 오타·DB 손상까지 "데이터 없음" 으로 위장돼 피처가 조용히 빈다.
             continue
         for r in rows:
             cells.setdefault(r["grid_id"], None)

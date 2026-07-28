@@ -81,7 +81,7 @@ def build(con):
     out = []
     for c in cells:
         lon, lat = c["center_lon"], c["center_lat"]
-        mlon = 111_320.0 * math.cos(math.radians(lat))
+        mlon = M_PER_DEG_LAT * math.cos(math.radians(lat))
         best = bestn = None
         bestd = 1e18
         tr_d = 1e18

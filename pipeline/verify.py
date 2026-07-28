@@ -9,7 +9,7 @@ import argparse
 import sys
 
 from .config import (COVERAGE_CEIL, COVERAGE_FLOOR, EXPECT_COORD_PCT,
-                     EXPECT_COORD_TOL, FOOD_INDUTY)
+                     EXPECT_COORD_TOL, EXPECT_COVERAGE_PCT, FOOD_INDUTY)
 from .db import init
 
 CHECKS = {}
@@ -85,7 +85,8 @@ def c_coverage(con):
     p = _pct(inside, tot)
     ok = COVERAGE_FLOOR <= p <= COVERAGE_CEIL
     print(f"  restaurants in a commercial-area cell: {inside:,}/{tot:,} ({p:.1f}%)")
-    print(f"  probe measured 57.6%; accepted band [{COVERAGE_FLOOR}, {COVERAGE_CEIL}]")
+    print(f"  probe measured {EXPECT_COVERAGE_PCT}%; "
+          f"accepted band [{COVERAGE_FLOOR}, {COVERAGE_CEIL}]")
     return ok
 
 
