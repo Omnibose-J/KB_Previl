@@ -134,12 +134,17 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 - [x] 상권 밖 격자(매출 NULL)는 **실질비용은 내고 부담률은 `null`** + `missingAxes`에 명시.
       0으로 채우지 않는다
   → verify: `python -m pytest service/test_app.py -k "estimate_outside_trade_area" -q`
+- [x] 응답이 서버가 실제 적용한 `paramsUsed { opportunityRate, horizonMonths }`를 싣는다.
+      입력 생략 시에도 서버 기본값을 채운다
+  → verify: real `TestClient` default/override contract probe in the evidence below
 
 **W2 실행 증거 (2026-07-28)**
 
 - `python -m pytest service/test_app.py -k "estimate" -q` → exit 0 (`4 passed, 51 deselected`)
 - `python -m pytest service/test_app.py -k "estimate_not_evaluated" -q` → exit 0 (`1 passed, 54 deselected`)
 - `python -m pytest service/test_app.py -k "estimate_outside_trade_area" -q` → exit 0 (`1 passed, 54 deselected`)
+- work-copy `TestClient` probe → exit 0
+  (`default={0.04,36}`, `override={0.12,12}`)
 
 ### W3 — `POST /compare` 후보 1~3건 병렬 순위 · 0.5일
 
@@ -150,12 +155,20 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 - [x] **부담률은 상권이 다른 후보 간에만 비교 가능**하다는 사실이 응답에 실린다 —
       같은 상권 후보끼리는 `revenueTied: true`
   → verify: `python -m pytest service/test_app.py -k "compare_same_trade_area_ties" -q`
+- [x] caller의 optional `label`을 각 item에 되싣고, 같은 `gridId`의 다른 층 후보를
+      구분한다. 제공된 label은 비어 있지 않고 서로 고유해야 한다
+  → verify: real same-grid `TestClient` contract probe in the evidence below
+- [x] top-level `paramsUsed`가 비교 전체에 실제 적용된 값을 싣는다
+  → verify: real `TestClient` override contract probe in the evidence below
 
 **W3 실행 증거 (2026-07-28)**
 
 - `python -m pytest service/test_app.py -k "compare_returns_both_ranks" -q` → exit 0 (`1 passed, 54 deselected`)
 - `python -m pytest service/test_app.py -k "compare_tiebreak" -q` → exit 0 (`1 passed, 54 deselected`)
 - `python -m pytest service/test_app.py -k "compare_same_trade_area_ties" -q` → exit 0 (`1 passed, 54 deselected`)
+- work-copy same-grid `TestClient` probe → exit 0
+  (`labels=["same-building-floor-1","same-building-floor-2"]`,
+  `paramsUsed={0.07,24}`); `/estimate` OpenAPI에는 `label` 없음
 
 ### W4 — 호가 3분해 (기존 `goodwill.py` 확장) · 0.5일
 
@@ -177,16 +190,33 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 ### W5 — 승계 체인 + 레이블 확장 (레인 A · `kb.db` 쓰기) · 1일 · **도전 과제**
 
-- [ ] `addr_tenancy` 테이블 생성 — 주소별 `seq`·`tenure_months`·`vacancy_months_after`·`succeeded`
+- [x] `addr_tenancy` 테이블 생성 — 주소별 `seq`·`tenure_months`·`vacancy_months_after`·`succeeded`
   → verify: `python -m pipeline.addr_history --selftest`
-- [ ] 레이블 경계가 **월 단위 근사임이 코드 주석과 산출 메타에 명시**된다
+- [x] 레이블 경계가 **월 단위 근사임이 코드 주석과 산출 메타에 명시**된다
       (`<=3개월`=True / `>=6개월`=False / 4~5개월=제외 / 후속 없음=False)
   → verify: `grep -n "월 단위" pipeline/addr_history.py`
-- [ ] **층 결측 영향을 측정한다** — 층 토큰 보유 21.9% 부분집합에서 층 분리 유무에 따른
+- [x] **층 결측 영향을 측정한다** — 층 토큰 보유 21.9% 부분집합에서 층 분리 유무에 따른
       승계율 차이를 리포트. 차이가 크면 층 미상 건의 처리 방침을 기록
   → verify: `python -m pipeline.addr_history --floor-impact`
-- [ ] 기존 `flag_succession`(32,237건)과의 차이 건수가 리포트된다 (중복 구현 방지)
+- [x] 기존 `flag_succession`(32,237건)과의 차이 건수가 리포트된다 (중복 구현 방지)
   → verify: `python -m pipeline.addr_history --diff-legacy`
+
+**W5 실행 증거 — `KB_DB=...\kb-w5-work.db` (2026-07-28)**
+
+- `python -m pipeline.addr_history --selftest` → exit 0
+  (`535,375행`, chain 오류 0, label 오류 0)
+- `grep -n "월 단위" pipeline/addr_history.py` → exit 0
+  (산출 메타 1건 + label 경계 주석 1건)
+- `python -m pipeline.addr_history --floor-impact` → exit 0
+  (`117,433/535,603 = 21.925%`; 층 미분리 5.176% → 층 분리 3.828%,
+  `-1.348%p`). 관측 층 토큰은 보존하고 결측층은 추정·배분하지 않는다
+- `python -m pipeline.addr_history --diff-legacy` → exit 0
+  (`new=34,845`, `legacy=32,237`, `both=32,237`, `new_only=2,608`,
+  `legacy_only=0`)
+- gated work copy 이후 `KB_DB=...\kb.db; python -m pipeline.addr_history --build`
+  → exit 0 (`535,375행`). 원본과 작업본 내용 지문 일치
+  (`dd22fcb...9a06d`), 복구본 지문 유지 (`a10ff8a8...d3de1`),
+  세 DB 모두 `quick_check=ok`
 
 ### W6 — M2 학습 + 캘리브레이션 · 1일 · **도전 과제**
 

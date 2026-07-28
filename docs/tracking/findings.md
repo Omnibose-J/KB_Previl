@@ -135,6 +135,119 @@ database.
 **Blast radius** — any lane B/C agent following the documented full-gate
 command can violate the shared-DB immutability boundary before W5. This run
 found no `addr_tenancy` table and `PRAGMA quick_check` returned `ok`, so there
-is no evidence of W5 data landing; the byte-level baseline is nevertheless
-lost. The smallest durable fix is a read-only gate connection that never calls
-schema initialization, followed by a fresh-copy hash regression.
+is no evidence of W5 data landing. Byte hashes are not a valid invariant for a
+WAL database and are retired as a baseline criterion. The smallest durable fix
+for F-A2 remains a read-only gate connection that never calls schema
+initialization; that fix is outside W5.
+
+## W5 recovery baseline (2026-07-28)
+
+Before W5, the approved recovery database was created from the current
+`kb.db` with SQLite's online compaction path, not by copying the file:
+
+```text
+sqlite3 kb.db "VACUUM INTO 'kb-baseline-20260728.db'"
+exit 0
+```
+
+The source and backup have the same content fingerprint. The fingerprint is
+defined as all non-internal table row counts, the four ranking metadata values,
+and `PRAGMA quick_check`; it does not include database-file bytes. The
+SHA-256 below is over the sorted canonical JSON of those fields.
+
+```text
+content_fingerprint_sha256=a10ff8a8e64fcc83c4ffc1e9a7d6475e0488ad1c43be13b4c84670a475bd3de1
+quick_check=ok
+rank_model=gbm
+rank_features=open_cnt,open_cnt_r1,same_uptae_cnt,same_uptae_r1,openings_36m,closures_36m,churn_36m,growth_36m,prior_surv_3y,prior_surv_n,median_area,open_month,prior_surv_1y,same_group_r1,other_group_r1,group_share_r1,median_tenure_r1,veteran_share_r1,uptae_entropy_r1,close_accel_r1
+rank_train_years=2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022
+rank_test_years=2023
+```
+
+| table | rows | table | rows |
+|---|---:|---|---:|
+| absa_label | 6,004 | absa_post | 40,665 |
+| api_log | 5 | cohort_survival | 44 |
+| demand_label | 5,332 | grid | 21,544 |
+| grid_access | 21,544 | grid_concept | 142,402 |
+| grid_feature | 21,544 | grid_place | 21,529 |
+| grid_score | 229,356 | grid_sgis | 21,529 |
+| gripe_label | 24,704 | guest_label | 0 |
+| licence | 535,603 | licence_rest | 146,184 |
+| lvpop_profile | 10,176 | mention | 297,850 |
+| mention_shop | 17,056 | merit_label | 0 |
+| price_label | 21,552 | realprice | 178,095 |
+| realprice_done | 3,600 | score_meta | 47 |
+| sgis_dong | 426 | sgis_jipgyegu | 19,097 |
+| shop_concept | 477,361 | station | 784 |
+| station_ride | 48,313 | store | 138,558 |
+| text_profile | 8,122 | trdar_area | 1,650 |
+| trdar_flpop | 1,649 | trdar_sales | 6,573 |
+| trdar_store | 12,204 | trend | 27,848 |
+| uptae_label | 16,276 |  |  |
+
+Recomputed independently against `kb.db` and
+`kb-baseline-20260728.db`: `fingerprints_equal=true`, exit 0. This backup is
+the recovery point for W5; development must use a separate database selected
+through `KB_DB`.
+
+## W5 address-history result (2026-07-28)
+
+All development and the full regression gate used
+`KB_DB=...\kb-w5-work.db`. The work database differs from the recovery
+baseline only by `addr_tenancy` (+535,375 rows) and four `score_meta` rows;
+the four ranking metadata values are unchanged and both databases return
+`quick_check=ok`.
+
+The floor-marker subset contains 117,433 of 535,603 licence rows
+(21.925%). On that same subset, the observed succession rate is 5.176% when
+floor is ignored and 3.828% when the observed floor token is retained, a
+change of -1.348 percentage points. Because the effect is material relative
+to the rate, the active policy is:
+
+- preserve a floor token when the source address contains one;
+- never infer, distribute, or allocate a missing floor;
+- keep floor-missing rows at their observed address grain and expose the
+  missingness to later modelling.
+
+The month-grain positive label contains all 32,237 legacy
+`succession_suspect` rows. It adds 2,608 rows at exactly three months:
+
+```text
+new_positive=34,845
+legacy_positive=32,237
+both_positive=32,237
+new_only=2,608
+legacy_only=0
+```
+
+Current work-copy proof:
+
+```text
+python -m pipeline.addr_history --selftest
+exit 0 — 535,375 rows, chain errors 0, label errors 0
+
+grep -n "월 단위" pipeline/addr_history.py
+exit 0 — persistent metadata and code comment both present
+
+python -m pipeline.addr_history --floor-impact
+exit 0 — 117,433/535,603, rate difference -1.348 percentage points
+
+python -m pipeline.addr_history --diff-legacy
+exit 0 — 34,845/32,237/32,237/2,608/0
+```
+
+After the work-copy gates and independent review passed, W5 was rebuilt on the
+original database with an explicit `KB_DB=...\kb.db`:
+
+```text
+python -m pipeline.addr_history --build
+exit 0 — 535,375 rows
+```
+
+The post-apply source and gated work copy have the same content fingerprint:
+`dd22fcb380d697f38c9e4c1a05210b3b0309eac7631b36505c5eab15c859a06d`.
+The recovery database remains at
+`a10ff8a8e64fcc83c4ffc1e9a7d6475e0488ad1c43be13b4c84670a475bd3de1`.
+All three return `quick_check=ok`; the ranking metadata values remain
+unchanged.

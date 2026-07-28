@@ -260,7 +260,7 @@ class CostParamsInput(ApiModel):
     horizon_months: Annotated[int, Field(ge=1, le=120)] = 36
 
 
-class CandidateInput(ApiModel):
+class CandidateValues(ApiModel):
     grid_id: Annotated[str | None, Field(pattern=r"^\d+_\d+$")] = None
     lon: Annotated[float | None, Field(ge=-180, le=180)] = None
     lat: Annotated[float | None, Field(ge=-90, le=90)] = None
@@ -281,7 +281,11 @@ class CandidateInput(ApiModel):
         return self
 
 
-class EstimateInput(CandidateInput):
+class CandidateInput(CandidateValues):
+    label: Annotated[str | None, Field(min_length=1, max_length=80)] = None
+
+
+class EstimateInput(CandidateValues):
     uptae: UptaeName
     cost_params: CostParamsInput = Field(default_factory=CostParamsInput)
 
@@ -293,6 +297,17 @@ class CompareInput(ApiModel):
         Field(min_length=1, max_length=3),
     ]
     cost_params: CostParamsInput = Field(default_factory=CostParamsInput)
+
+    @model_validator(mode="after")
+    def validate_labels(self):
+        labels = [
+            candidate.label
+            for candidate in self.candidates
+            if candidate.label is not None
+        ]
+        if len(labels) != len(set(labels)):
+            raise ValueError("후보 label은 서로 달라야 합니다.")
+        return self
 
 
 class CostBreakdownResponse(ApiModel):
@@ -320,10 +335,12 @@ class EstimateResponse(ApiModel):
     revenue_resolution: Literal["trade_area"]
     burden_rate: float | None
     missing_axes: list[str]
+    params_used: CostParamsInput
     notice: str
 
 
 class CompareItemResponse(EstimateResponse):
+    label: str | None
     rent_rank: int
     teo_rank: int
     revenue_tied: bool
@@ -332,6 +349,7 @@ class CompareItemResponse(EstimateResponse):
 class CompareResponse(ApiModel):
     uptae: UptaeName
     revenue_resolution: Literal["trade_area"]
+    params_used: CostParamsInput
     items: list[CompareItemResponse]
 
 
@@ -606,11 +624,15 @@ def compare(payload: CompareInput) -> dict:
     evaluated = []
     for candidate in payload.candidates:
         values = candidate.model_dump()
+        label = values.pop("label")
         values.update(uptae=payload.uptae, cost_params=cost_params)
-        evaluated.append(estimation_service.estimate_candidate(**values))
+        result, trade_area_code = estimation_service.estimate_candidate(**values)
+        result["label"] = label
+        evaluated.append((result, trade_area_code))
     return {
         "uptae": payload.uptae,
         "revenue_resolution": estimation_service.REVENUE_RESOLUTION,
+        "params_used": cost_params,
         "items": estimation_service.rank_candidates(evaluated),
     }
 

@@ -140,6 +140,7 @@ def estimate_candidate(
         "revenue_resolution": REVENUE_RESOLUTION,
         "burden_rate": burden_rate,
         "missing_axes": missing_axes,
+        "params_used": cost_params,
         "notice": ESTIMATE_NOTICE,
     }
     return result, trade_area_code

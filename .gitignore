@@ -3,6 +3,10 @@
 kb.db
 kb.db-wal
 kb.db-shm
+kb-baseline-20260728.db
+kb-w5-work.db
+kb-w5-work.db-wal
+kb-w5-work.db-shm
 pipeline/cache/
 probe/results/
 __pycache__/

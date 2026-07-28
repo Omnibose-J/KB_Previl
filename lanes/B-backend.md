@@ -403,7 +403,7 @@ interface CostParamsInput {
   horizonMonths?: number;   // 기본 36
 }
 
-interface CandidateInput {
+interface CandidateValues {
   gridId?: string;
   lon?: number;
   lat?: number;
@@ -414,12 +414,16 @@ interface CandidateInput {
   floor: number;
 }
 
-interface EstimateInput extends CandidateInput {
+interface CandidateInput extends CandidateValues {
+  label?: string; // 비교 화면이 소유하며 응답 item에 그대로 돌아온다
+}
+
+interface EstimateInput extends CandidateValues {
   uptae: string;
   costParams?: CostParamsInput;
 }
 
-interface EstimateResponse extends CandidateInput {
+interface EstimateResponse extends CandidateValues {
   gridId: string;
   uptae: string;
   grade: Grade;
@@ -437,6 +441,10 @@ interface EstimateResponse extends CandidateInput {
   revenueResolution: "trade_area";
   burdenRate: number | null;
   missingAxes: string[];
+  paramsUsed: {
+    opportunityRate: number;
+    horizonMonths: number;
+  }; // 생략한 입력도 서버 기본값을 채운 실제 계산값
   notice: string;
 }
 
@@ -447,9 +455,20 @@ interface CompareInput {
 }
 
 interface CompareItem extends EstimateResponse {
+  label: string | null;
   rentRank: number;
   teoRank: number;
   revenueTied: boolean;
+}
+
+interface CompareResponse {
+  uptae: string;
+  revenueResolution: "trade_area";
+  paramsUsed: {
+    opportunityRate: number;
+    horizonMonths: number;
+  };
+  items: CompareItem[];
 }
 ```
 
@@ -459,7 +478,9 @@ interface CompareItem extends EstimateResponse {
 `missingAxes`에 `revenue`와 `burdenRate`가 남는다. 동일 업종 원천이 없으면
 다른 업종이나 서울 평균으로 바꾸지 않고 `503`이다.
 
-`/compare`는 입력 순서의 후보마다 `rentRank`와 `teoRank`를 함께 싣는다.
+`/compare`는 입력 순서의 후보마다 caller가 보낸 `label`을 그대로 되싣고
+`rentRank`와 `teoRank`를 함께 싣는다. 같은 `gridId`의 다른 층 후보도
+`label`로 구분하며, label을 서버가 주소·층에서 추정하지 않는다.
 TEO 순위는 `burdenRate` → `effectiveCost` → `recoveryProb` 순이며, 부담률
 결측 후보는 관측 후보 뒤에 둔다. 같은 상권×업종 값을 공유하는 후보는
 `revenueTied: true`라서 개별 매출 추정으로 오해하지 않게 한다.
