@@ -1297,13 +1297,19 @@ def test_recommend_carries_concept_mix_without_extra_round_trips():
         with original_connection() as connection:
             yield CountingConnection(connection)
 
-    api.readonly_connection = counting
-    try:
-        body = api.recommend("한식", top=20)
-    finally:
-        api.readonly_connection = original_connection
+    def count_for(top):
+        queries.clear()
+        api.readonly_connection = counting
+        try:
+            return api.recommend("한식", top=top), len(queries)
+        finally:
+            api.readonly_connection = original_connection
 
-    assert len(queries) == 1, "콘셉트 구성은 한 번의 배치 조회여야 한다"
-    assert body["items"], "후보가 있어야 한다"
+    _, few = count_for(3)
+    body, many = count_for(20)
+
+    # 후보가 늘어도 조회 수가 그대로여야 한다 — 격자마다 도는 순간 여기서 깨진다.
+    assert few == many, f"후보 수에 비례해 조회가 늘었다: {few} -> {many}"
+    assert body["count"] == 20
     assert all(item["concept_mix"] is not None for item in body["items"])
     assert any(item["concept_mix"]["items"] for item in body["items"])

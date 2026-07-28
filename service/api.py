@@ -543,21 +543,29 @@ def _concept_mix_batch(con, grid_ids):
     배치가 아직 안 돌았으면 `available=False` 로 알린다. 빈 구성과 미실행은
     다른 상태이므로 빈 배열로 뭉개지 않는다.
     """
-    unavailable = {"available": False, "items": [], "shops": 0,
-                   "source": None, "claim": None}
     ids = list(dict.fromkeys(grid_ids))
     if not ids:
         return {}
+
+    # 테이블 유무를 직접 묻는다. 조회를 try 로 감싸면 SQL 오류·DB 손상까지
+    # "배치 미실행" 으로 위장되고, readonly_connection 이 503 으로 올릴 실패가
+    # 200 으로 내려간다.
+    if not con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'grid_concept'"
+    ).fetchone():
+        return {
+            gid: {"available": False, "items": [], "shops": 0,
+                  "source": None, "claim": None}
+            for gid in ids
+        }
+
     placeholders = ",".join("?" * len(ids))
-    try:
-        rows = con.execute(
-            f"SELECT grid_id, concept, n FROM grid_concept "
-            f"WHERE grid_id IN ({placeholders}) "
-            "ORDER BY grid_id, n DESC, concept",
-            ids,
-        ).fetchall()
-    except sqlite3.OperationalError:
-        return {gid: dict(unavailable) for gid in ids}
+    rows = con.execute(
+        f"SELECT grid_id, concept, n FROM grid_concept "
+        f"WHERE grid_id IN ({placeholders}) "
+        "ORDER BY grid_id, n DESC, concept",
+        ids,
+    ).fetchall()
 
     meta = dict(
         con.execute(
