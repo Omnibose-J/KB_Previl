@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from service import api
 from service import economics as economics_service
 from service import estimation as estimation_service
+from service import goodwill as goodwill_service
 from service import precompute
 from service import reporting
 from service.app import app
@@ -126,6 +127,17 @@ def test_meta_contract_uses_observed_rates_and_current_caveat():
     )
     assert all("상위 10%" not in caveat for caveat in payload["caveats"])
     _assert_score_hidden(payload)
+
+
+def test_meta_exposes_goodwill_supported_uptae_from_mapping():
+    response = client.get("/api/meta")
+
+    assert response.status_code == 200
+    supported = response.json()["goodwillSupportedUptae"]
+    assert supported == list(goodwill_service.UPTAE_INDUTY)
+    assert len(supported) == len(goodwill_service.UPTAE_INDUTY)
+    assert "기타" not in supported
+    assert "외국음식전문점(인도,태국등)" not in supported
 
 
 def test_meta_exposes_period_and_grade_area_values_from_score_meta():

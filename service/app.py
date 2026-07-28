@@ -92,6 +92,7 @@ class GradeArea(ApiModel):
 class MetaResponse(ApiModel):
     as_of: str | None
     uptae: list[str]
+    goodwill_supported_uptae: list[str]
     districts: list[str]
     observed_by_grade: list[ObservedGrade]
     overall_survival: Annotated[float | None, Field(ge=0, le=1)]
@@ -525,7 +526,10 @@ NOT_FOUND_DATABASE_ERRORS = {
     responses=DATABASE_ERROR,
 )
 def meta() -> dict:
-    return api.meta()
+    return {
+        **api.meta(),
+        "goodwill_supported_uptae": list(goodwill_service.UPTAE_INDUTY),
+    }
 
 
 @app.get(
