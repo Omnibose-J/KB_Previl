@@ -201,10 +201,27 @@ def declare(con, n_grid):
     있어야 한다. 검정을 통과한 것만 `exposed` 에 들어간다 — §I-9 는 기각이라
     가격이 빠져 있고, 그 사실도 함께 적는다(통과한 것만 적으면 기록이 아니다).
     """
-    n_gripe, = con.execute(
+    # `gripe_shops` 는 세 상태가 다르다. 하나로 세면 안 된다.
+    #   NULL  = r1 판정 글이 MIN_N 미만 — 못 본 것
+    #   ""    = 충분히 봤는데 불만이 없음 — 본 것
+    #   "..." = 목록 있음
+    # 셋을 합쳐 "약점 목록 5,065격자"로 인용해 왔는데, 실제로 점포가 실린 곳은
+    # 3,056이고 화면 게이트(한 범주 독립 점포 2곳)를 넘는 곳은 601이다.
+    n_gripe_judged, = con.execute(
         "SELECT count(*) FROM text_profile WHERE gripe_shops IS NOT NULL").fetchone()
+    n_gripe_listed, = con.execute(
+        "SELECT count(*) FROM text_profile "
+        "WHERE gripe_shops IS NOT NULL AND gripe_shops <> ''").fetchone()
+    n_gate2 = 0
+    for (s,) in con.execute("SELECT gripe_shops FROM text_profile "
+                            "WHERE gripe_shops IS NOT NULL AND gripe_shops <> ''"):
+        if any(":" in ch and len(set(ch.split(":", 1)[1].split("|"))) >= 2
+               for ch in s.split(";")):
+            n_gate2 += 1
     n_guest, = con.execute(
         "SELECT count(*) FROM text_profile WHERE guest_purpose IS NOT NULL").fetchone()
+    # 세 값으로 쪼개면서 폐기 — 남겨 두면 옛 키를 읽는 쪽이 계속 5,065를 쓴다
+    con.execute("DELETE FROM score_meta WHERE k = 'text_profile_gripe_grids'")
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
         # §I-11 통과(0.996) · §I-14 통과(party 0.833 / purpose 0.727)
         ("text_profile_exposed", "gripe,guest"),
@@ -213,7 +230,10 @@ def declare(con, n_grid):
         # "저녁 언급이 많다 = 저녁 장사가 되는 동네" 추론을 화면이 유도한다.
         ("text_profile_guest_excluded", "time"),
         ("text_profile_grids", str(n_grid)),
-        ("text_profile_gripe_grids", str(n_gripe)),
+        # 세 값을 따로 적는다 — 하나로 적으면 인용하는 쪽이 가장 큰 값을 쓴다
+        ("text_profile_gripe_judged_grids", str(n_gripe_judged)),
+        ("text_profile_gripe_listed_grids", str(n_gripe_listed)),
+        ("text_profile_gripe_gate2_grids", str(n_gate2)),
         ("text_profile_min_n", str(MIN_N)),
         # §I-11 — parking 은 창업자가 고칠 수 없는 입지 제약이다. 고칠 수 있는
         # 것과 한 목록에 두면 못 고칠 것을 고칠 것처럼 읽힌다. 화면에서 분리한다.
@@ -256,9 +276,15 @@ def coverage(con):
     print(f"  └ 가격 추정 가능   {price_out:,} ({price_out/max(out,1):.1%})")
     n_price, = con.execute(
         "SELECT count(*) FROM text_profile WHERE price_med IS NOT NULL").fetchone()
-    n_gripe, = con.execute(
+    n_judged, = con.execute(
         "SELECT count(*) FROM text_profile WHERE gripe_shops IS NOT NULL").fetchone()
-    print(f"\ntext_profile 중 가격 {n_price:,}격자 · 불만 목록 {n_gripe:,}격자")
+    n_listed, = con.execute(
+        "SELECT count(*) FROM text_profile "
+        "WHERE gripe_shops IS NOT NULL AND gripe_shops <> ''").fetchone()
+    print(f"\ntext_profile 중 가격 {n_price:,}격자")
+    # cp949 콘솔에 em-dash(U+2014)를 쓰면 UnicodeEncodeError 로 죽는다
+    print(f"불만: 판정 충분 {n_judged:,}격자 · 그중 목록 보유 {n_listed:,}격자 "
+          f"(나머지 {n_judged - n_listed:,}은 봤는데 불만 없음)")
     fix = " · ".join(c for c in CATS if c not in CONSTRAINT)
     print(f"불만 범주 — 고칠 수 있는 것: {fix}   / 입지 제약: {' · '.join(CONSTRAINT)}")
 

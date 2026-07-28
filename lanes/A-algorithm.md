@@ -76,23 +76,38 @@ python -m model.profile_build                # text_profile 재집계 + 커버�
 
 ```
 text_profile(grid_id PK, n_post, price_med, price_q1, price_q3, price_n,
-             gripe_n, gripe_share, gripe_shops)
+             gripe_n, gripe_share, gripe_shops,
+             guest_party, guest_purpose, guest_n)
 ```
 
 - **격자 단위 조회.** 값은 반경 r1(3×3, 약 300m) 집계다
-- `gripe_shops` 형식 `"<범주>:<상호1>|<상호2>;<범주>:..."` — 5,065격자
+- `gripe_shops` 형식 `"<범주>:<상호1>|<상호2>;<범주>:..."`
 - `price_*` 는 **전부 NULL이다.** §I-9가 기각돼(ρ +0.138) 집계하지 않는다. 컬럼은 스키마 호환을 위해 남겨뒀을 뿐이니 **읽지 말 것**
 - 행이 없는 격자는 표본 미달(r1 글 10건 미만)이다. **0으로 채우지 말 것**
+
+**`gripe_shops` 는 세 상태가 다르다. 하나로 세지 말 것** — 합쳐 세는 바람에 "약점 목록 5,065격자"라고 인용해 왔는데 실제로 점포가 실린 곳은 3,056이다.
+
+| 값 | 뜻 | 화면 |
+|---|---|---|
+| `NULL` | r1 판정 글이 10건 미만 — **못 본 것** | `근거 부족` |
+| `""` | 충분히 봤는데 불만이 없음 — **본 것** | `관측된 문제 없음` |
+| `"wait:A\|B;..."` | 목록 있음 | 목록 |
 
 노출 규칙은 `score_meta`에 선언돼 있다. 코드에 하드코딩하지 말고 이 값을 읽어라.
 
 ```
-text_profile_exposed            gripe               ← 승인된 것은 이것뿐
-text_profile_gripe_fixable      wait|seat|service|clean|price|noise
-text_profile_gripe_constraint   parking             ← 화면에서 분리할 것
-text_profile_claim              observation_only:not_predictive
-text_profile_verdicts           I-11:pass · I-13:pass · I-9:reject
+text_profile_exposed             gripe,guest    ← 검정을 통과한 신호
+text_profile_gripe_fixable       wait|seat|service|clean|price|noise
+text_profile_gripe_constraint    parking        ← 화면에서 분리할 것
+text_profile_gripe_judged_grids  5065           ← 판정 충분
+text_profile_gripe_listed_grids  3056           ← 실제 목록 보유
+text_profile_gripe_gate2_grids   601            ← 한 범주에 독립 점포 2곳 이상
+text_profile_guest_grids         557
+text_profile_claim               observation_only:not_predictive
+text_profile_verdicts            I-11:pass · I-13:pass · I-9:reject
 ```
+
+**`exposed` 는 "검정을 통과했다"는 뜻이지 "이 형태로 화면에 내라"가 아니다.** 무엇을 어떤 단위로 낼지는 `docs/unstructured-product-design.md` 가 정한다 — 격자 r1 게이트를 넘는 곳이 601개뿐이라 표시 단위가 바뀐다.
 
 **지켜야 할 것 둘.**
 
