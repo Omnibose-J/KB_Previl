@@ -63,8 +63,38 @@ python -m model.backtest                     # 십분위 실측
 python -m model.robustness                   # 상식규칙·연도·업태·지역
 python -m model.stratified                   # 면적 통제
 python -m service.precompute                 # grid_score 재계산 (84초)
+python -m model.profile_build                # text_profile 재집계 + 커버리지 실측
 ```
 
 ## 레인 B와의 계약
 
 `grid_score(uptae, grid_id, score, grade, observed)` + `score_meta`. **스키마를 바꾸려면 B에 먼저 알린다.** 모델 내부는 자유롭게 바꿔도 된다.
+
+### `text_profile` — 신규 (2026-07-28, §17)
+
+비정형에서 나온 유일한 제품 산출물. **등급과 무관한 별도 영역이다.**
+
+```
+text_profile(grid_id PK, n_post, price_med, price_q1, price_q3, price_n,
+             gripe_n, gripe_share, gripe_shops)
+```
+
+- **격자 단위 조회.** 값은 반경 r1(3×3, 약 300m) 집계다
+- `gripe_shops` 형식 `"<범주>:<상호1>|<상호2>;<범주>:..."` — 5,065격자
+- `price_*` 는 **전부 NULL이다.** §I-9가 기각돼(ρ +0.138) 집계하지 않는다. 컬럼은 스키마 호환을 위해 남겨뒀을 뿐이니 **읽지 말 것**
+- 행이 없는 격자는 표본 미달(r1 글 10건 미만)이다. **0으로 채우지 말 것**
+
+노출 규칙은 `score_meta`에 선언돼 있다. 코드에 하드코딩하지 말고 이 값을 읽어라.
+
+```
+text_profile_exposed            gripe               ← 승인된 것은 이것뿐
+text_profile_gripe_fixable      wait|seat|service|clean|price|noise
+text_profile_gripe_constraint   parking             ← 화면에서 분리할 것
+text_profile_claim              observation_only:not_predictive
+text_profile_verdicts           I-11:pass · I-13:pass · I-9:reject
+```
+
+**지켜야 할 것 둘.**
+
+1. **생존율·등급과 연결짓지 말 것.** 예측력은 아홉 번 기각됐다. "대기 불만이 많으면 생존율이 높다"류의 문장은 근거가 없다
+2. **`parking`을 나머지와 한 목록에 두지 말 것.** 창업자가 고칠 수 없는 입지 제약이라, 섞으면 못 고칠 것을 고칠 것처럼 읽힌다
