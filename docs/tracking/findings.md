@@ -89,3 +89,24 @@ retry inside the goodwill dialog; valuation itself is unaffected.
   years regardless of lease — a consequence of design §2 reusing the economics
   curves, stated nowhere in doc or UI.
 
+
+---
+
+## `score_meta.text_profile_exposure_note` 가 §I-23 이후 사실과 다르다 (2026-07-28)
+
+현재 값은 `I-20:gripe reject(precision 0.087-0.167) · guest:precision untested`.
+§I-23 이 `guest.purpose` positive precision 을 실제로 쟀고 3클래스 전부 기각했다
+(meal 0.583 · cafe 0.600 · drink 0.533, κ 0.48~0.76). `untested` 는 더 이상
+맞지 않는다.
+
+**여기서 못 고치는 이유** — 이 키는 `model/profile_build.py` 가 쓰고, 그 모듈은
+`text_profile` 을 삭제·재생성하며 공유 `kb.db` 쓰기는 레인 A 전용이다. 문서 갱신
+목적으로 공유 DB에 profile_build 를 돌리는 것은 §9.1 이 금지한 동작이다.
+
+**영향 범위** — 노출 판정에는 영향이 없다(`text_profile_exposed` 는 빈 값이고
+`guest` 는 어차피 비노출). 잘못된 방향은 한 가지뿐이다: 이 note 만 읽은 사람이
+"guest 는 아직 기회가 있다"고 오해할 수 있다. 정확한 상태는
+`docs/unstructured-plan.md` §I-23 과 `docs/model-findings.md` 에 있다.
+
+**가장 작은 수정** — 레인 A 가 다음 `profile_build` 실행 시 note 를
+`guest.purpose:reject(0.533-0.600)` 로 갱신한다.
