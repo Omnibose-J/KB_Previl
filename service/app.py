@@ -12,12 +12,13 @@ from typing import Annotated, Literal
 from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from service import api
 from service import buildings as buildings_service
 from service import economics as economics_service
+from service import estimation as estimation_service
 from service import goodwill as goodwill_service
 from service import reporting
 
@@ -254,6 +255,86 @@ class EconomicsResponse(ApiModel):
     grade_comparison: list[GradeComparison]
 
 
+class CostParamsInput(ApiModel):
+    opportunity_rate: Annotated[float, Field(ge=0, le=1)] = 0.04
+    horizon_months: Annotated[int, Field(ge=1, le=120)] = 36
+
+
+class CandidateInput(ApiModel):
+    grid_id: Annotated[str | None, Field(pattern=r"^\d+_\d+$")] = None
+    lon: Annotated[float | None, Field(ge=-180, le=180)] = None
+    lat: Annotated[float | None, Field(ge=-90, le=90)] = None
+    deposit: Annotated[float, Field(ge=0)]
+    monthly_rent: Annotated[float, Field(ge=0)]
+    asking_goodwill: Annotated[float, Field(ge=0)]
+    area_m2: Annotated[float, Field(gt=0)]
+    floor: Annotated[int, Field(ge=-20, le=200)]
+
+    @model_validator(mode="after")
+    def validate_location(self):
+        has_grid = self.grid_id is not None
+        coordinate_count = sum(value is not None for value in (self.lon, self.lat))
+        if has_grid and coordinate_count:
+            raise ValueError("gridId와 좌표 중 하나만 입력해 주세요.")
+        if not has_grid and coordinate_count != 2:
+            raise ValueError("gridId 또는 lon과 lat를 함께 입력해 주세요.")
+        return self
+
+
+class EstimateInput(CandidateInput):
+    uptae: UptaeName
+    cost_params: CostParamsInput = Field(default_factory=CostParamsInput)
+
+
+class CompareInput(ApiModel):
+    uptae: UptaeName
+    candidates: Annotated[
+        list[CandidateInput],
+        Field(min_length=1, max_length=3),
+    ]
+    cost_params: CostParamsInput = Field(default_factory=CostParamsInput)
+
+
+class CostBreakdownResponse(ApiModel):
+    rent: float
+    maintenance: float
+    deposit_opportunity: float
+    premium_amortized: float
+    effective_monthly_cost: float
+
+
+class EstimateResponse(ApiModel):
+    grid_id: str
+    uptae: UptaeName
+    grade: Grade
+    deposit: float
+    monthly_rent: float
+    asking_goodwill: float
+    area_m2: float
+    floor: int
+    recovery_prob: Annotated[float, Field(ge=0, le=1)]
+    effective_cost: float
+    cost_breakdown: CostBreakdownResponse
+    monthly_revenue: float | None
+    revenue_as_of_quarter: str | None
+    revenue_resolution: Literal["trade_area"]
+    burden_rate: float | None
+    missing_axes: list[str]
+    notice: str
+
+
+class CompareItemResponse(EstimateResponse):
+    rent_rank: int
+    teo_rank: int
+    revenue_tied: bool
+
+
+class CompareResponse(ApiModel):
+    uptae: UptaeName
+    revenue_resolution: Literal["trade_area"]
+    items: list[CompareItemResponse]
+
+
 class TangibleAssetInput(ApiModel):
     name: Annotated[str, Field(min_length=1, max_length=80)]
     acquisition_cost: Annotated[float, Field(ge=0)]
@@ -281,6 +362,12 @@ class SensitivityRow(ApiModel):
     estimated_goodwill: float
 
 
+class GoodwillDecomposition(ApiModel):
+    facility: float
+    business: float
+    floor_key: float
+
+
 class GoodwillResponse(ApiModel):
     grid_id: str
     uptae: UptaeName
@@ -303,6 +390,7 @@ class GoodwillResponse(ApiModel):
     intangible_value: float
     tangible_value: float
     tangible_assets: list[TangibleAssetResult]
+    decomposition: GoodwillDecomposition
     adjustment_factor: float
     adjustment_reasons: list[str]
     estimated_goodwill: float
@@ -358,6 +446,13 @@ async def database_unavailable(
 @app.exception_handler(economics_service.EconomicsUnavailableError)
 async def economics_unavailable(
     _request: Request, exc: economics_service.EconomicsUnavailableError
+) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+@app.exception_handler(estimation_service.EstimationUnavailableError)
+async def estimation_unavailable(
+    _request: Request, exc: estimation_service.EstimationUnavailableError
 ) -> JSONResponse:
     return JSONResponse(status_code=503, content={"detail": str(exc)})
 
@@ -487,6 +582,37 @@ def at_point(
 )
 def economics(payload: EconomicsInput) -> dict:
     return economics_service.calculate(**payload.model_dump())
+
+
+@app.post(
+    "/api/estimate",
+    response_model=EstimateResponse,
+    responses=NOT_FOUND_DATABASE_ERRORS,
+)
+def estimate(payload: EstimateInput) -> dict:
+    values = payload.model_dump()
+    values["cost_params"] = payload.cost_params.model_dump()
+    result, _trade_area_code = estimation_service.estimate_candidate(**values)
+    return result
+
+
+@app.post(
+    "/api/compare",
+    response_model=CompareResponse,
+    responses=NOT_FOUND_DATABASE_ERRORS,
+)
+def compare(payload: CompareInput) -> dict:
+    cost_params = payload.cost_params.model_dump()
+    evaluated = []
+    for candidate in payload.candidates:
+        values = candidate.model_dump()
+        values.update(uptae=payload.uptae, cost_params=cost_params)
+        evaluated.append(estimation_service.estimate_candidate(**values))
+    return {
+        "uptae": payload.uptae,
+        "revenue_resolution": estimation_service.REVENUE_RESOLUTION,
+        "items": estimation_service.rank_candidates(evaluated),
+    }
 
 
 @app.post(

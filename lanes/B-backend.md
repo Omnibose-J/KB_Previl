@@ -391,6 +391,79 @@ interface BuildingsResponse {
 `gridId` 자체가 없을 때만 `404`다. v1에는 `uptae` 필터 파라미터가 없고,
 NULL을 0이나 다른 업태로 바꾸지 않는다.
 
+### `POST /api/estimate` · `POST /api/compare`
+
+사용자가 이미 확보한 후보를 매물 인벤토리 없이 계산한다. 후보 위치는
+`gridId` 또는 `lon`+`lat` 중 하나이며 주소를 받지 않는다. 금액은 기존 계약과
+같이 만원, `areaM2`는 ㎡, `floor`는 정수 층이다.
+
+```ts
+interface CostParamsInput {
+  opportunityRate?: number; // 기본 0.04
+  horizonMonths?: number;   // 기본 36
+}
+
+interface CandidateInput {
+  gridId?: string;
+  lon?: number;
+  lat?: number;
+  deposit: number;
+  monthlyRent: number;
+  askingGoodwill: number;
+  areaM2: number;
+  floor: number;
+}
+
+interface EstimateInput extends CandidateInput {
+  uptae: string;
+  costParams?: CostParamsInput;
+}
+
+interface EstimateResponse extends CandidateInput {
+  gridId: string;
+  uptae: string;
+  grade: Grade;
+  recoveryProb: number; // W1~W4 고정 0.4, W7에서 출처 배선
+  effectiveCost: number;
+  costBreakdown: {
+    rent: number;
+    maintenance: number;
+    depositOpportunity: number;
+    premiumAmortized: number;
+    effectiveMonthlyCost: number;
+  };
+  monthlyRevenue: number | null;
+  revenueAsOfQuarter: string | null;
+  revenueResolution: "trade_area";
+  burdenRate: number | null;
+  missingAxes: string[];
+  notice: string;
+}
+
+interface CompareInput {
+  uptae: string;
+  candidates: CandidateInput[]; // 1~3건
+  costParams?: CostParamsInput;
+}
+
+interface CompareItem extends EstimateResponse {
+  rentRank: number;
+  teoRank: number;
+  revenueTied: boolean;
+}
+```
+
+`monthlyRevenue`는 최신 공통 분기의 상권×동일 업종
+`sales_amt / stor_co / 3 / 10,000`만 사용한다. 층·면적 배수로 후보에
+분배하지 않는다. 상권 밖이면 비용은 계산하되 매출·부담률은 `null`이고
+`missingAxes`에 `revenue`와 `burdenRate`가 남는다. 동일 업종 원천이 없으면
+다른 업종이나 서울 평균으로 바꾸지 않고 `503`이다.
+
+`/compare`는 입력 순서의 후보마다 `rentRank`와 `teoRank`를 함께 싣는다.
+TEO 순위는 `burdenRate` → `effectiveCost` → `recoveryProb` 순이며, 부담률
+결측 후보는 관측 후보 뒤에 둔다. 같은 상권×업종 값을 공유하는 후보는
+`revenueTied: true`라서 개별 매출 추정으로 오해하지 않게 한다.
+
 ### `POST /api/economics`
 
 ```ts
@@ -499,6 +572,11 @@ interface GoodwillResponse {
     residualRate: number;
     value: number;
   }>;
+  decomposition: {
+    facility: number; // tangibleValue
+    business: number; // intangibleValue
+    floorKey: number; // askingGoodwill - facility - business, 음수 보존
+  };
   adjustmentFactor: number;
   adjustmentReasons: string[];
   estimatedGoodwill: number;
@@ -570,6 +648,11 @@ interface GoodwillResponse {
       "value": 600.0
     }
   ],
+  "decomposition": {
+    "facility": 600.0,
+    "business": 2481.671510772679,
+    "floorKey": 1918.328489227321
+  },
   "adjustmentFactor": 1.0,
   "adjustmentReasons": ["v1 미적용 — 데이터 기반 조정 항은 로드맵"],
   "estimatedGoodwill": 3081.671510772679,
@@ -685,5 +768,27 @@ type ReportResponse = {
 **Rejected:** `기타`·`외국음식전문점`을 양식이나 전체 음식점 평균에 임의
 매핑하면 "동일 업종" 주장을 어긴다. 값 누락 시 다른 업종·0·전체 평균으로
 대체하는 경로는 원천 실패를 숨기므로 배제한다.
+
+**Status:** Active
+
+### [[B-004-shared-candidate-estimation-boundary]]
+
+**Decision:** 2026-07-28 — Candidate source lookup, effective-cost calculation,
+and deterministic ranking live in `service/estimation.py`; FastAPI models and
+routes remain thin adapters in `service/app.py`.
+
+**Context:** `/api/estimate` and `/api/compare` must use the same trade-area
+revenue grain and cost formula, while W7 must later replace the fixed
+succession proxy without changing route behavior.
+
+**Why:** One shared decision point prevents the two endpoints from drifting on
+NULL handling, source failures, tie-break order, or future recovery-source
+selection. The module reads SQLite through the enforced read-only connection
+and delegates deterministic arithmetic to `service/cost.py`.
+
+**Rejected:** Duplicating calculations in both routes would create two public
+contracts. Importing `model.*` would cross the serving boundary. Applying
+floor, area, or location multipliers to trade-area revenue would invent
+candidate-level data.
 
 **Status:** Active

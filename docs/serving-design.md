@@ -188,12 +188,13 @@ gradeArea: {
 
 ## 8. 지금 상태
 
-- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report`
+- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report` · `estimate` · `compare`
 - ~~삭제 대상: `district_summary`~~ — **삭제 완료** (2026-07-27, goodwill 슬림다운 작업에 포함. 참조 0건 확인)
 - **배선 완료**(레인 A): `grid_score` 229,356행 · `score_meta` 24키 · API가 읽는 6키 정렬 확인
-- **미노출**: §2의 기간별 곡선·등급×면적 교차표 — 값은 DB에 있고 엔드포인트가 없다
+- **노출 완료**: §2의 기간별 곡선·등급×면적 교차표는 `meta` 응답이 NULL을 보존해 제공
+- **TEO 예선 완료**: 실질 월 점유비용 · 단일 후보 계산 · 후보 비교 · 권리금 3분해. 상권 매출은 후보에 배분하지 않고 같은 상권×업종 후보가 공유한다
 
-다음 작업의 자연스러운 순서는 미노출 키를 `meta` 응답에 얹는 것이다. 새 계산은 없고 파싱과 스키마만 늘어난다.
+다음 단계는 소유자 승인 후 W5 승계 체인을 시작하는 것이다. 이 단계부터 `kb.db` 쓰기가 생기므로 레인 B가 임의로 진행하면 안 된다.
 
 ---
 

@@ -213,6 +213,11 @@ def calculate(
     )
     tangible_assets = _tangible_values(assets)
     tangible = sum(asset["value"] for asset in tangible_assets)
+    decomposition = {
+        "facility": tangible,
+        "business": intangible,
+        "floor_key": asking_goodwill - tangible - intangible,
+    }
     estimated = (intangible + tangible) * adjustment_factor
 
     year_cap = math.floor(lease_remaining_years)
@@ -294,6 +299,7 @@ def calculate(
         "intangible_value": intangible,
         "tangible_value": tangible,
         "tangible_assets": tangible_assets,
+        "decomposition": decomposition,
         "adjustment_factor": adjustment_factor,
         "adjustment_reasons": adjustment_reasons,
         "estimated_goodwill": estimated,

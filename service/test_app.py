@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 from service import api
 from service import economics as economics_service
+from service import estimation as estimation_service
 from service import precompute
 from service import reporting
 from service.app import app
@@ -1313,3 +1314,355 @@ def test_recommend_carries_concept_mix_without_extra_round_trips():
     assert body["count"] == 20
     assert all(item["concept_mix"] is not None for item in body["items"])
     assert any(item["concept_mix"]["items"] for item in body["items"])
+
+
+def _estimate_payload(sample, **overrides):
+    payload = {
+        "gridId": sample["grid_id"],
+        "uptae": sample["uptae"],
+        "deposit": 5_000,
+        "monthlyRent": 250,
+        "askingGoodwill": 12_000,
+        "areaM2": 45,
+        "floor": 1,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_estimate_returns_cost_for_grid_and_coordinates():
+    sample = _sample_goodwill_grid()
+
+    by_grid = client.post("/api/estimate", json=_estimate_payload(sample))
+
+    assert by_grid.status_code == 200
+    body = by_grid.json()
+    assert body["gridId"] == sample["grid_id"]
+    assert body["effectiveCost"] == pytest.approx(466.6666666667)
+    assert body["recoveryProb"] == 0.4
+    assert body["monthlyRevenue"] > 0
+    assert body["revenueResolution"] == "trade_area"
+    assert body["burdenRate"] == pytest.approx(
+        body["effectiveCost"] / body["monthlyRevenue"]
+    )
+    assert "burdenRate" not in body["missingAxes"]
+
+    detail = client.get(
+        f"/api/grid/{sample['grid_id']}",
+        params={"uptae": sample["uptae"]},
+    ).json()
+    by_coordinates = client.post(
+        "/api/estimate",
+        json=_estimate_payload(
+            sample,
+            gridId=None,
+            lon=detail["center"][0],
+            lat=detail["center"][1],
+            costParams={"opportunityRate": 0.12, "horizonMonths": 12},
+        ),
+    )
+
+    assert by_coordinates.status_code == 200
+    coordinate_body = by_coordinates.json()
+    assert coordinate_body["gridId"] == sample["grid_id"]
+    assert coordinate_body["effectiveCost"] == pytest.approx(900)
+
+
+def test_estimate_not_evaluated():
+    sample = _sample_goodwill_grid()
+
+    response = client.post(
+        "/api/estimate",
+        json=_estimate_payload(sample, gridId="0_0"),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"].startswith(
+        "이웃 이력 부족으로 평가하지 않음"
+    )
+
+
+def test_estimate_outside_trade_area():
+    sample = _sample_grid(sales_available=False)
+
+    response = client.post("/api/estimate", json=_estimate_payload(sample))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["effectiveCost"] == pytest.approx(466.6666666667)
+    assert body["monthlyRevenue"] is None
+    assert body["burdenRate"] is None
+    assert body["revenueAsOfQuarter"] is None
+    assert body["revenueResolution"] == "trade_area"
+    assert {"revenue", "burdenRate"} <= set(body["missingAxes"])
+
+
+def test_estimate_rejects_non_finite_calculation():
+    sample = _sample_goodwill_grid()
+
+    response = client.post(
+        "/api/estimate",
+        json=_estimate_payload(
+            sample,
+            deposit=1.79e308,
+            monthlyRent=1.79e308,
+            askingGoodwill=1.79e308,
+        ),
+    )
+
+    assert response.status_code == 422
+    assert "유한 범위" in response.json()["detail"]
+
+
+def _compare_candidate(sample, **overrides):
+    candidate = _estimate_payload(sample, **overrides)
+    candidate.pop("uptae")
+    return candidate
+
+
+def _two_goodwill_trade_areas():
+    with api.readonly_connection() as con:
+        rows = con.execute(
+            "SELECT MIN(f.grid_id) grid_id, '한식' uptae, f.trdar_cd, "
+            "s.sales_amt / t.stor_co / 3.0 / 10000.0 monthly_revenue "
+            "FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
+            "JOIN trdar_sales s ON s.trdar_cd = f.trdar_cd "
+            "AND s.induty_cd = 'CS100001' "
+            "JOIN trdar_store t ON t.trdar_cd = s.trdar_cd "
+            "AND t.induty_cd = s.induty_cd AND t.quarter = s.quarter "
+            "WHERE t.stor_co > 0 AND s.sales_amt > 0 "
+            "AND s.quarter = (SELECT MAX(quarter) FROM trdar_sales) "
+            "GROUP BY f.trdar_cd, s.sales_amt, t.stor_co "
+            "ORDER BY monthly_revenue LIMIT 2"
+        ).fetchall()
+    assert len(rows) == 2
+    return [dict(row) for row in rows]
+
+
+def test_compare_returns_both_ranks():
+    sample = _sample_goodwill_grid()
+    candidates = [
+        _compare_candidate(
+            sample,
+            deposit=5_000,
+            monthlyRent=250,
+            askingGoodwill=12_000,
+        ),
+        _compare_candidate(
+            sample,
+            deposit=3_000,
+            monthlyRent=380,
+            askingGoodwill=2_000,
+        ),
+        _compare_candidate(
+            sample,
+            deposit=4_000,
+            monthlyRent=310,
+            askingGoodwill=6_000,
+        ),
+    ]
+
+    response = client.post(
+        "/api/compare",
+        json={"uptae": sample["uptae"], "candidates": candidates},
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert sorted(item["rentRank"] for item in items) == [1, 2, 3]
+    assert sorted(item["teoRank"] for item in items) == [1, 2, 3]
+
+
+def test_compare_tiebreak():
+    low, high = _two_goodwill_trade_areas()
+    assert low["monthly_revenue"] < high["monthly_revenue"]
+    candidates = [
+        _compare_candidate(
+            high,
+            deposit=0,
+            monthlyRent=high["monthly_revenue"],
+            askingGoodwill=0,
+        ),
+        _compare_candidate(
+            low,
+            deposit=0,
+            monthlyRent=low["monthly_revenue"],
+            askingGoodwill=0,
+        ),
+    ]
+
+    response = client.post(
+        "/api/compare",
+        json={"uptae": "한식", "candidates": candidates},
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert all(item["burdenRate"] == pytest.approx(1) for item in items)
+    by_grid = {item["gridId"]: item for item in items}
+    assert by_grid[low["grid_id"]]["teoRank"] == 1
+    assert by_grid[high["grid_id"]]["teoRank"] == 2
+
+    crafted = [
+        (
+            {
+                "grid_id": "burden-first",
+                "uptae": "한식",
+                "monthly_rent": 1,
+                "burden_rate": 0.2,
+                "effective_cost": 1,
+                "recovery_prob": 1,
+                "monthly_revenue": 5,
+            },
+            "trade-a",
+        ),
+        (
+            {
+                "grid_id": "lower-recovery",
+                "uptae": "한식",
+                "monthly_rent": 100,
+                "burden_rate": 0.1,
+                "effective_cost": 100,
+                "recovery_prob": 0.1,
+                "monthly_revenue": 1_000,
+            },
+            "trade-b",
+        ),
+        (
+            {
+                "grid_id": "higher-recovery",
+                "uptae": "한식",
+                "monthly_rent": 100,
+                "burden_rate": 0.1,
+                "effective_cost": 100,
+                "recovery_prob": 0.9,
+                "monthly_revenue": 1_000,
+            },
+            "trade-c",
+        ),
+    ]
+    ranked = estimation_service.rank_candidates(crafted)
+    assert [
+        item["grid_id"] for item in sorted(ranked, key=lambda item: item["teo_rank"])
+    ] == ["higher-recovery", "lower-recovery", "burden-first"]
+
+    missing_burden = estimation_service.rank_candidates(
+        [
+            (
+                {
+                    "grid_id": "missing",
+                    "uptae": "한식",
+                    "monthly_rent": 0,
+                    "burden_rate": None,
+                    "effective_cost": 0,
+                    "recovery_prob": 1,
+                    "monthly_revenue": None,
+                },
+                None,
+            ),
+            (
+                {
+                    "grid_id": "observed",
+                    "uptae": "한식",
+                    "monthly_rent": 100,
+                    "burden_rate": 0.9,
+                    "effective_cost": 100,
+                    "recovery_prob": 0,
+                    "monthly_revenue": 111,
+                },
+                "trade-d",
+            ),
+        ]
+    )
+    by_grid = {item["grid_id"]: item for item in missing_burden}
+    assert by_grid["observed"]["teo_rank"] == 1
+    assert by_grid["missing"]["teo_rank"] == 2
+
+
+def test_compare_same_trade_area_ties():
+    sample = _sample_goodwill_grid()
+
+    response = client.post(
+        "/api/compare",
+        json={
+            "uptae": sample["uptae"],
+            "candidates": [
+                _compare_candidate(sample, monthlyRent=250),
+                _compare_candidate(sample, monthlyRent=300),
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert all(item["revenueTied"] is True for item in items)
+    assert len({item["monthlyRevenue"] for item in items}) == 1
+
+
+def test_goodwill_decomposition():
+    sample = _sample_goodwill_grid()
+    monkeypatch_target = "service.goodwill.grade_survival_curves"
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(monkeypatch_target, _constant_curves)
+        response = client.post(
+            "/api/goodwill",
+            json={
+                "gridId": sample["grid_id"],
+                "uptae": sample["uptae"],
+                "askingGoodwill": 500,
+                "leaseRemainingYears": 5,
+                "assets": [
+                    {
+                        "name": "주방설비",
+                        "acquisitionCost": 100,
+                        "ageYears": 2,
+                        "usefulLifeYears": 5,
+                    }
+                ],
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    decomposition = body["decomposition"]
+    assert decomposition["facility"] == body["tangibleValue"]
+    assert decomposition["business"] == body["intangibleValue"]
+    assert decomposition["floorKey"] == pytest.approx(
+        body["askingGoodwill"]
+        - decomposition["facility"]
+        - decomposition["business"]
+    )
+
+
+def test_floor_key_negative():
+    sample = _sample_goodwill_grid()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "service.goodwill.grade_survival_curves",
+            _constant_curves,
+        )
+        response = client.post(
+            "/api/goodwill",
+            json={
+                "gridId": sample["grid_id"],
+                "uptae": sample["uptae"],
+                "askingGoodwill": 0,
+                "leaseRemainingYears": 5,
+                "assets": [
+                    {
+                        "name": "신규설비",
+                        "acquisitionCost": 1_000,
+                        "ageYears": 0,
+                        "usefulLifeYears": 5,
+                    }
+                ],
+            },
+        )
+
+    assert response.status_code == 200
+    floor_key = response.json()["decomposition"]["floorKey"]
+    assert floor_key < 0
+    assert floor_key <= -1_000

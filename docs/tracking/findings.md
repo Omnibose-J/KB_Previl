@@ -110,3 +110,31 @@ retry inside the goodwill dialog; valuation itself is unaffected.
 
 **가장 작은 수정** — 레인 A 가 다음 `profile_build` 실행 시 note 를
 `guest.purpose:reject(0.533-0.600)` 로 갱신한다.
+
+## F-A2. Read-only gates mutate the shared `kb.db` (2026-07-28)
+
+**Symptom** — running the canonical gate chain changed the shared DB SHA-256
+from `69747C235957C0BA4C2387E1A39E0D0ECFD39C0160E4ED09DAE48C6F96BA6705`
+to `32C651A81F320C11A9318E328DFBC88BA668148815678C88D1799A7C4E6BF6DB`
+and created `kb.db-wal` / `kb.db-shm`, despite W1-W4 being read-only work.
+An independent repeat of the same gate changed the hash again to
+`0D0BBB8E3259B73F911B228E7B76CF04FE73B680F632199B10E9CC5E31F9AA8B`,
+which reproduces the mutation.
+
+**Cause** — `pipeline.verify`, `pipeline.consistency`, `model.test_leakage`,
+and `model.asof --selftest-cut` call `pipeline.db.init()`.
+`pipeline/db.py:192-195` executes the full `SCHEMA` and commits, while
+`SCHEMA` starts with `PRAGMA journal_mode=WAL`. The verification entrypoint is
+therefore a writer even when every predicate only reads data.
+
+**Why it cannot be solved here** — `pipeline/` and shared DB writes belong to
+lane A and require owner approval. Reverting journal mode or deleting WAL/SHM
+would be another unapproved write while a live read-only API process holds the
+database.
+
+**Blast radius** — any lane B/C agent following the documented full-gate
+command can violate the shared-DB immutability boundary before W5. This run
+found no `addr_tenancy` table and `PRAGMA quick_check` returned `ok`, so there
+is no evidence of W5 data landing; the byte-level baseline is nevertheless
+lost. The smallest durable fix is a read-only gate connection that never calls
+schema initialization, followed by a fresh-copy hash regression.

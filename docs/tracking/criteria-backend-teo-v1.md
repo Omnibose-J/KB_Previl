@@ -98,7 +98,7 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 ### W1 — `service/cost.py` 실질 월 점유비용 (순수 함수) · 0.5일
 
-- [ ] 명세서 §4.1 검증 케이스 3건이 정확히 재현된다 (관리비 0 · `opportunity_rate=0.04` · `horizon_months=36`)
+- [x] 명세서 §4.1 검증 케이스 3건이 정확히 재현된다 (관리비 0 · `opportunity_rate=0.04` · `horizon_months=36`)
 
   | 케이스 | 보증금 | 월세 | 권리금 | 회수확률 | 기대 실질비용 |
   |---|---|---|---|---|---|
@@ -107,45 +107,71 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
   | C | 4,000만 | 310만 | 6,000만 | 0.40 | **4,233,333** |
 
   → verify: `python -m pytest service/test_cost.py -k "spec_case" -q`
-- [ ] **순위 역전이 회귀 테스트로 잠긴다** — 월세순 `A<C<B`, 실질비용순 `B<C<A`
+- [x] **순위 역전이 회귀 테스트로 잠긴다** — 월세순 `A<C<B`, 실질비용순 `B<C<A`
   → verify: `python -m pytest service/test_cost.py -k "rank_reversal" -q`
-- [ ] 경계값: 권리금 0 · 회수확률 0 · 회수확률 1 · 보증금 0에서 예외 없이 정의된 값
+- [x] 경계값: 권리금 0 · 회수확률 0 · 회수확률 1 · 보증금 0에서 예외 없이 정의된 값
   → verify: `python -m pytest service/test_cost.py -k "boundary" -q`
-- [ ] 파라미터가 하드코딩이 아니라 `CostParams` 기본값이며 요청에서 덮어쓸 수 있다
+- [x] 파라미터가 하드코딩이 아니라 `CostParams` 기본값이며 요청에서 덮어쓸 수 있다
   → verify: `grep -n "0.04\|36" service/cost.py` — 리터럴이 `CostParams` 정의 안에만 등장
-- [ ] `service/cost.py`에 `model.*` import도 DB 접근도 없다 (순수 함수)
+- [x] `service/cost.py`에 `model.*` import도 DB 접근도 없다 (순수 함수)
   → verify: `grep -nE "^(from|import) (model|sqlite3)" service/cost.py` → 0건
+
+**W1 실행 증거 (2026-07-28)**
+
+- `python -m pytest service/test_cost.py -k "spec_case" -q` → exit 0 (`3 passed, 7 deselected`)
+- `python -m pytest service/test_cost.py -k "rank_reversal" -q` → exit 0 (`1 passed, 9 deselected`)
+- `python -m pytest service/test_cost.py -k "boundary" -q` → exit 0 (`5 passed, 5 deselected`)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -n "0.04\|36" service/cost.py` → exit 0 (리터럴은 `CostParams` 정의 2건)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -nE "^(from|import) (model|sqlite3)" service/cost.py` → exit 1 (일치 0건)
 
 ### W2 — `POST /estimate` 단일 후보 계산 · 0.5일
 
-- [ ] 주소 대신 **좌표 또는 grid_id + 업태 + 보증금/월세/권리금/면적/층**을 받아 단일 결과를 낸다
+- [x] 주소 대신 **좌표 또는 grid_id + 업태 + 보증금/월세/권리금/면적/층**을 받아 단일 결과를 낸다
   → verify: `python -m pytest service/test_app.py -k "estimate" -q`
-- [ ] 평가 대상 밖 격자는 **404 + `"이웃 이력 부족으로 평가하지 않음"`** 으로 시작하는 detail
+- [x] 평가 대상 밖 격자는 **404 + `"이웃 이력 부족으로 평가하지 않음"`** 으로 시작하는 detail
   (기존 계약 그대로, 프론트가 이 문자열로 분기)
   → verify: `python -m pytest service/test_app.py -k "estimate_not_evaluated" -q`
-- [ ] 상권 밖 격자(매출 NULL)는 **실질비용은 내고 부담률은 `null`** + `missingAxes`에 명시.
+- [x] 상권 밖 격자(매출 NULL)는 **실질비용은 내고 부담률은 `null`** + `missingAxes`에 명시.
       0으로 채우지 않는다
   → verify: `python -m pytest service/test_app.py -k "estimate_outside_trade_area" -q`
 
+**W2 실행 증거 (2026-07-28)**
+
+- `python -m pytest service/test_app.py -k "estimate" -q` → exit 0 (`4 passed, 51 deselected`)
+- `python -m pytest service/test_app.py -k "estimate_not_evaluated" -q` → exit 0 (`1 passed, 54 deselected`)
+- `python -m pytest service/test_app.py -k "estimate_outside_trade_area" -q` → exit 0 (`1 passed, 54 deselected`)
+
 ### W3 — `POST /compare` 후보 1~3건 병렬 순위 · 0.5일
 
-- [ ] 응답이 `rentRank`와 `teoRank`를 **둘 다** 싣는다 (명세서 §6.1 — 하나라도 빠지면 실패)
+- [x] 응답이 `rentRank`와 `teoRank`를 **둘 다** 싣는다 (명세서 §6.1 — 하나라도 빠지면 실패)
   → verify: `python -m pytest service/test_app.py -k "compare_returns_both_ranks" -q`
-- [ ] 동률 tie-break가 `burdenRate → effectiveCost → recoveryProb` 순으로 결정적이다
+- [x] 동률 tie-break가 `burdenRate → effectiveCost → recoveryProb` 순으로 결정적이다
   → verify: `python -m pytest service/test_app.py -k "compare_tiebreak" -q`
-- [ ] **부담률은 상권이 다른 후보 간에만 비교 가능**하다는 사실이 응답에 실린다 —
+- [x] **부담률은 상권이 다른 후보 간에만 비교 가능**하다는 사실이 응답에 실린다 —
       같은 상권 후보끼리는 `revenueTied: true`
   → verify: `python -m pytest service/test_app.py -k "compare_same_trade_area_ties" -q`
 
+**W3 실행 증거 (2026-07-28)**
+
+- `python -m pytest service/test_app.py -k "compare_returns_both_ranks" -q` → exit 0 (`1 passed, 54 deselected`)
+- `python -m pytest service/test_app.py -k "compare_tiebreak" -q` → exit 0 (`1 passed, 54 deselected`)
+- `python -m pytest service/test_app.py -k "compare_same_trade_area_ties" -q` → exit 0 (`1 passed, 54 deselected`)
+
 ### W4 — 호가 3분해 (기존 `goodwill.py` 확장) · 0.5일
 
-- [ ] 기존 무형/유형 축을 **시설 / 영업 / 바닥(잔차)** 으로 리라벨해 함께 낸다
+- [x] 기존 무형/유형 축을 **시설 / 영업 / 바닥(잔차)** 으로 리라벨해 함께 낸다
       (시설 ← `tangible`, 영업 ← `intangible`, 바닥 ← `asking − 시설 − 영업`)
   → verify: `python -m pytest service/test_app.py -k "goodwill_decomposition" -q`
-- [ ] 바닥권리금이 **음수면 음수 그대로** 낸다 (0으로 깎지 않는다 — 호가가 산정근거보다 낮다는 사실)
+- [x] 바닥권리금이 **음수면 음수 그대로** 낸다 (0으로 깎지 않는다 — 호가가 산정근거보다 낮다는 사실)
   → verify: `python -m pytest service/test_app.py -k "floor_key_negative" -q`
-- [ ] 벤치마크 레벨 표기(`benchmarkLevel: 4` + 경고 문구)가 유지된다
+- [x] 벤치마크 레벨 표기(`benchmarkLevel: 4` + 경고 문구)가 유지된다
   → verify: `python -m pytest service/test_app.py -k "goodwill_slim_input" -q` (기존 테스트 무회귀)
+
+**W4 실행 증거 (2026-07-28)**
+
+- `python -m pytest service/test_app.py -k "goodwill_decomposition" -q` → exit 0 (`1 passed, 54 deselected`)
+- `python -m pytest service/test_app.py -k "floor_key_negative" -q` → exit 0 (`1 passed, 54 deselected`)
+- `python -m pytest service/test_app.py -k "goodwill_slim_input" -q` → exit 0 (`1 passed, 54 deselected`)
 
 **W1~W4 = 2일. 여기까지가 예선 확정분이며, 이 넷만으로 기획서의 데모 두 장(순위 역전·호가 분해)이 선다.**
 
@@ -186,14 +212,31 @@ addr에 층 토큰 보유 21.9% (200,000행 표본)
 
 ### 전 구간 무회귀
 
-- [ ] 기존 게이트 4종이 전부 통과 상태를 유지한다
+- [x] 기존 게이트 4종이 전부 통과 상태를 유지한다
   → verify: `python -m pipeline.verify && python -m pipeline.consistency && python -m model.test_leakage && python -m model.asof --selftest-cut`
-- [ ] 기존 API 테스트 40여 건 무회귀
+- [x] 기존 API 테스트 40여 건 무회귀
   → verify: `python -m pytest service/test_app.py -q`
-- [ ] 요청 경로에 모델이 새지 않았다
+- [x] 요청 경로에 모델이 새지 않았다
   → verify: `grep -rn "^from model\|^import model" service/*.py` → `precompute.py` 외 0건
-- [ ] 트립와이어 유지
+- [x] 트립와이어 유지
   → verify: `grep -rn "trend\|mention" service/*.py` → 0건
+
+**전 구간 실행 증거 (2026-07-28)**
+
+- PowerShell 5.1이 `&&`를 파싱하지 못해
+  `$env:PYTHONUTF8=1; $env:PYTHONIOENCODING='utf-8'; cmd /d /c "python -m pipeline.verify && python -m pipeline.consistency && python -m model.test_leakage && python -m model.asof --selftest-cut"`
+  로 같은 fail-fast 체인을 실행 → exit 0 (`8/8`, `17/17`, 누수 가드 PASS, `≤T` 불변성 PASS)
+- 위 게이트는 `pipeline.db.init()`의 숨은 schema commit 때문에 공유 DB를 변경했다.
+  기능 게이트 결과는 유효하지만 읽기 전용 증거로는 무효다. 원인과 영향은
+  `docs/tracking/findings.md` F-A2에 기록했다
+- `python -m pytest service/test_app.py -q` → exit 0 (`55 passed`)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -rn "^from model\|^import model" service/*.py`
+  → exit 0 (`service/precompute.py`만 일치)
+- `$env:Path='C:\Program Files\Git\usr\bin;'+$env:Path; grep -rn "trend\|mention" service/*.py`
+  → exit 1 (일치 0건)
+- `python -m pytest service/test_cost.py service/test_app.py -q -p no:cacheprovider`
+  → exit 0 (`65 passed`)
+- `ruff check service` → exit 0
 
 ---
 
