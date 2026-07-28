@@ -7,6 +7,7 @@ import { useSearch } from "../state/search";
 import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
 import { int, pct0 } from "../lib/format";
 import s from "./S1Landing.module.css";
+import markUrl from "../assets/previl-mark.png";
 
 // S1 landing, rebuilt 1:1 against figma-snapshot S1 (2026-07-27 direction:
 // match the mockup layout first, carve details later). Structure = mockup;
@@ -33,8 +34,10 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <nav className={s.nav}>
         <div className={s.logo}>
-          <span className={s.mark}>P</span>
-          <span className={s.wordmark}>KB Previl</span>
+          <img className={s.mark} src={markUrl} alt="" />
+          <span className={s.wordmark}>
+            <span className={s.wordmarkKb}>KB</span> Previl
+          </span>
         </div>
         <div className={s.menu}>
           <button onClick={() => scrollTo(why)}>상권 찾기</button>

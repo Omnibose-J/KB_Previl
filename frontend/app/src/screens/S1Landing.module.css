@@ -21,22 +21,18 @@
 }
 
 .mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--fg-y);
-  color: var(--fg-ink);
-  font-family: var(--fg-font-kb);
-  font-size: 15px;
-  font-weight: 500;
+  height: 26px;
+  width: auto;
 }
 
 .wordmark {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--fg-ink);
+}
+
+.wordmarkKb {
+  color: var(--fg-y);
 }
 
 .menu {
