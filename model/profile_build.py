@@ -27,6 +27,12 @@ from pipeline.config import DB_PATH
 MIN_N = 10       # §I-3 규칙 3 — 미달이면 그 항목을 만들지 않는다. 0으로 안 채운다
 MAX_SHOPS = 8    # 목록에 싣는 점포 수 상한 (화면용)
 
+# §I-9는 기각됐다 (rho +0.138, CI [-0.201,+0.420], 47지명 — §17).
+# 등록 문구는 "이 키를 만들지 않는다" 였다. 집계값을 테이블에 남겨 두면 누군가
+# 배선해서 기각된 신호가 제품에 실린다. 원천(`price_label`)은 그대로 두고
+# 집계만 하지 않는다.
+EXPOSE_PRICE = False
+
 
 def r1_of(gid):
     x, y = map(int, gid.split("_"))
@@ -109,13 +115,13 @@ def build(con):
             continue                       # §I-3 — 미달이면 만들지 않는다
 
         pv = [v for b in nb for v in g_price.get(b, ())]
-        if len(pv) >= MIN_N:
+        if EXPOSE_PRICE and len(pv) >= MIN_N:
             a = np.array(pv)
             pmed, pq1, pq3, pn = (int(np.median(a)), int(np.percentile(a, 25)),
                                   int(np.percentile(a, 75)), len(pv))
         else:
             pmed = pq1 = pq3 = None
-            pn = len(pv)
+            pn = len(pv)       # 표본 수만 남긴다 — 왜 비었는지 추적용
 
         gn = sum(g_gripe_n.get(b, 0) for b in nb)
         share = shops = None
@@ -133,9 +139,37 @@ def build(con):
         rows.append((gid, n_post, pmed, pq1, pq3, pn, gn, share, shops))
 
     con.executemany("INSERT INTO text_profile VALUES(?,?,?,?,?,?,?,?,?)", rows)
+    declare(con, len(rows))
     con.commit()
     print(f"text_profile {len(rows):,}격자 (r1 글 {MIN_N}건 이상)")
     return len(rows)
+
+
+def declare(con, n_grid):
+    """무엇이 노출 승인됐는지 `score_meta` 에 적는다.
+
+    표를 읽는 쪽이 "이 값이 무엇을 근거로 화면에 나가는가"를 코드 밖에서 알 수
+    있어야 한다. 검정을 통과한 것만 `exposed` 에 들어간다 — §I-9 는 기각이라
+    가격이 빠져 있고, 그 사실도 함께 적는다(통과한 것만 적으면 기록이 아니다).
+    """
+    n_gripe, = con.execute(
+        "SELECT count(*) FROM text_profile WHERE gripe_shops IS NOT NULL").fetchone()
+    con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
+        ("text_profile_exposed", "gripe"),
+        ("text_profile_grids", str(n_grid)),
+        ("text_profile_gripe_grids", str(n_gripe)),
+        ("text_profile_min_n", str(MIN_N)),
+        # §I-11 — parking 은 창업자가 고칠 수 없는 입지 제약이다. 고칠 수 있는
+        # 것과 한 목록에 두면 못 고칠 것을 고칠 것처럼 읽힌다. 화면에서 분리한다.
+        ("text_profile_gripe_fixable",
+         "|".join(c for c in CATS if c not in CONSTRAINT)),
+        ("text_profile_gripe_constraint", "|".join(CONSTRAINT)),
+        ("text_profile_source", "blog:naver · 2018-01~2018-12 · 지명 150"),
+        # 예측이 아니라 관측 사실이다 (§I-3 규칙 2). 생존·등급과 연결짓지 않는다.
+        ("text_profile_claim", "observation_only:not_predictive"),
+        ("text_profile_verdicts",
+         "I-11:pass(agree=0.996) · I-13:pass(macroF1=0.4701) · I-9:reject(rho=0.138)"),
+    ])
 
 
 def coverage(con):
