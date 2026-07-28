@@ -27,6 +27,10 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focus, setFocus] = useState<Point | null>(null);
+  // 항상 새 배열로 넘긴다. 같은 좌표를 같은 참조로 다시 넣으면 React 가 상태
+  // 갱신을 건너뛰고 GridMap 의 flyTo 이펙트가 돌지 않는다 — 지도를 손으로
+  // 옮긴 뒤 같은 후보를 다시 눌러도 되돌아오지 않는 상태가 된다.
+  const focusOn = (center: Point) => setFocus([center[0], center[1]]);
 
   // What-if 초기화 restores the conditions this screen was entered with.
   const entry = useRef({ uptae, districts, rentMonthly });
@@ -47,7 +51,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
   const topId = top?.gridId;
   useEffect(() => {
     if (top) {
-      setFocus(top.center);
+      focusOn(top.center);
       setSelectedId((cur) => cur ?? top.gridId);
     }
     // Key on the id, not the object: a refetch returning the same top grid
@@ -73,7 +77,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const select = (cell: { gridId: string; center: Point }) => {
     setSelectedId(cell.gridId);
-    setFocus(cell.center);
+    focusOn(cell.center);
   };
 
   if (!uptae) {
