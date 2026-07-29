@@ -154,14 +154,54 @@ said 서울 중간 월매출, which reads as the median Seoul *store*. It is now
 paired row is 이 상권 점포당 월매출, so both sides of the comparison name the
 same unit.
 
-**(1) single operating margin — kept for v1, with the reason recorded.** A
-per-uptae rate from 소상공인실태조사 is not obtainable here: the survey is not in
-`docs/data-inventory.md` and no per-uptae rate exists anywhere in the repo, so
-closing this is a data-acquisition task, not a code change. The 0.15 constant is
-labelled `v1 고정` in `operatingMarginSource` and surfaced verbatim in the
-report, and the sensitivity table already brackets the assumption at
-12% / 15% / 18%, so the uncertainty is on screen rather than hidden. Whether the
-source even publishes a rate at 한식 / 중국식 / 일식 granularity is unverified.
+**(1) single operating margin — RESOLVED, but not the way the audit expected.**
+The data acquisition was carried out on 2026-07-29 and turned up two defects
+larger than the missing per-uptae split.
+
+First, the cited source does not publish the cited figure. 소상공인실태조사
+reports operating profit across eleven industry divisions only, with
+숙박·음식점업 as one bucket; there is no 음식점업 rate in it to quote. Second,
+15.0% is the 2019 level — the KREI series runs 2019 15.0 → 2020 12.1 → 2021 11.2
+→ 2022 11.6 → 2023 8.9 → 2024 8.7. The report was multiplying 2026 Q1 trade-area
+revenue by a pre-COVID margin.
+
+The constant is now 0.0701, from the Seoul subsample (n=491, weighted by `WT`)
+of the 2025 외식업체 경영실태조사 microdata: revenue 31,062.8만, operating profit
+2,177.1만. Validation before use: the weighted aggregation reproduces all
+sixteen published industry rows of 표 95 and 표 104 to a maximum relative error
+of 0.0030% (unweighted is off by 68%), the four 한식 subclass rows reproduce
+exactly, and the Seoul row matches the published 31,062.8 / 2,177.1 to the
+decimal. 임차료 sits inside 영업비용 (표 99), so `after_rent` still holds.
+
+**The per-uptae split the audit asked for was rejected on measurement.**
+Bootstrap 95% intervals for Seoul × uptae cells are 3.05%p to 8.60%p wide while
+the entire between-uptae spread nationally is 2.96%p — even the narrowest cell
+(까페, n=52) is wider than the whole signal. 호프/통닭 has n=13 and an interval
+reaching −1.65%. Rescaling national per-uptae rates to the Seoul level assumes no
+region-by-uptae interaction, which the data contradicts: 한식 is lower in Seoul
+than nationally (6.21 vs 8.83) while 식육 is higher (10.67 vs 9.31).
+
+```text
+uptae              Seoul n   Seoul     95% CI          width   national
+한식                   134    6.21%   3.83 ~  9.02    5.19%p    8.83%
+까페                    52    7.13%   5.67 ~  8.72    3.05%p    8.88%
+정종/대포집/소주방          45    7.74%   5.04 ~  9.83    4.80%p    9.01%
+식육(숯불구이)             34   10.67%   7.44 ~ 14.12    6.67%p    9.31%
+분식                    33    9.33%   6.24 ~ 12.15    5.91%p    9.30%
+경양식                   26    6.73%   2.95 ~ 10.44    7.48%p    7.56%
+중국식                   25    8.59%   3.72 ~ 12.12    8.39%p   10.52%
+통닭(치킨)                20   10.26%   6.18 ~ 14.78    8.60%p    9.25%
+일식                    18    8.77%   4.22 ~ 12.27    8.05%p    8.12%
+호프/통닭                 13    2.55%  -1.65 ~  6.35    8.00%p    8.33%
+Seoul, all uptae       491    7.01%   5.73 ~  8.25    2.52%p    8.74%
+```
+
+Reference values fall 53.3% uniformly; 여의동 한식 at 4,095만 goes from 9,754만
+to 4,559만. The sensitivity margin axis narrowed from ±0.03 to ±0.015. See
+`docs/decisions/2026-07-29-goodwill-operating-margin-seoul.md`.
+
+The average-margin-on-marginal-revenue approximation is unchanged and still
+understates excess profit at a site whose fixed costs are already covered.
 
 
 ---
