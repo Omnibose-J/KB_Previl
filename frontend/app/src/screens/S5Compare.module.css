@@ -2,10 +2,7 @@
    위쪽은 흰 카드 설정면, 아래쪽 결과는 지면을 통째로 쓰는 증명면이다. */
 
 .page {
-  /* 1440 프레임은 이제 #root 가 아니라 각 화면이 건다. 이 화면들은 지도·목록
-     비율과 글줄 길이가 1440 기준으로 짜여 있어 그 폭을 유지한다. */
-  max-width: 1440px;
-  margin: 0 auto;
+  --edge-gutter: 40px;
   display: flex;
   flex-direction: column;
   background: var(--fg-paper);
@@ -18,7 +15,8 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 14px 40px;
+  padding-block: 14px;
+  padding-inline: var(--edge);
   border-bottom: 1px solid var(--fg-line);
   background: var(--fg-card);
 }
@@ -47,7 +45,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 46px 40px 34px;
+  padding-block: 46px 34px;
+  padding-inline: var(--edge);
   background: var(--fg-dark);
 }
 
@@ -77,7 +76,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
-  padding: 28px 40px 36px;
+  padding-block: 28px 36px;
+  padding-inline: var(--edge);
   align-items: start;
 }
 

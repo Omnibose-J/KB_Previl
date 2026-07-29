@@ -11,9 +11,13 @@ from pipeline.config import load_env
 from service import api
 
 
-REPORT_MODEL = "gpt-5.6"
+REPORT_MODEL = "gpt-5.4-mini"
 
 _PLACEHOLDER = re.compile(r"\{\{([A-Za-z][A-Za-z0-9]*)\}\}")
+# 한국어 문장에 섞이면 안 되는 글자 — 라틴 문자와 한자. 추론 흔적이 새면
+# 이 둘 중 하나로 나타난다("Need final exact schema", "重新").
+_NON_KOREAN = re.compile(r"[A-Za-z㐀-䶿一-鿿]")
+_HANGUL = re.compile(r"[가-힣]")
 _NUMBER_TOKEN = re.compile(
     r"(?<![0-9A-Za-z.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
     r"(?:[eE][+-]?\d+)?"
@@ -27,6 +31,14 @@ class ReportUnavailableError(RuntimeError):
 
 class ReportGenerationError(RuntimeError):
     """The LLM response did not satisfy the public report contract."""
+
+
+class NonKoreanSentenceError(ReportGenerationError):
+    def __init__(self, sentence):
+        self.sentence = sentence
+        super().__init__(
+            "LLM 응답이 한국어 근거 문장이 아닙니다: " + sentence[:80]
+        )
 
 
 class UnapprovedNumberError(ReportGenerationError):
@@ -183,6 +195,23 @@ def render_evidence_placeholders(sentences, evidence):
     return rendered
 
 
+def reject_non_korean(sentences):
+    """모델의 사고 흔적이 문장 칸으로 새는 것을 형태로 막는다.
+
+    Structured Outputs 는 JSON 의 «모양»만 보장한다 — sentences 가 문자열
+    2~4개이기만 하면 그 안에 무엇이 들어 있든 파싱은 통과한다. 숫자 화이트
+    리스트도 숫자가 없는 텍스트는 잡지 못해서, 실제로 «Need final exact
+    schema ... 重新» 이 화면까지 나갔다.
+
+    placeholder 를 걷어낸 나머지는 한국어여야 한다. 라틴 문자나 한자가 있거나
+    한글이 하나도 없으면 거부한다 — 계약이 «짧은 한국어 근거 문장»이다.
+    """
+    for sentence in sentences:
+        body = _PLACEHOLDER.sub("", sentence)
+        if _NON_KOREAN.search(body) or not _HANGUL.search(body):
+            raise NonKoreanSentenceError(sentence)
+
+
 def _generate_sentences(evidence):
     try:
         api_key = load_env().get("OPENAI_API_KEY")
@@ -234,6 +263,7 @@ def _generate_sentences(evidence):
         raise ReportGenerationError("OpenAI가 보고서 생성을 거부했습니다.")
     if message.parsed is None:
         raise ReportGenerationError("구조화된 보고서 응답을 받지 못했습니다.")
+    reject_non_korean(message.parsed.sentences)
     return message.parsed.sentences
 
 

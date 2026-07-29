@@ -6,6 +6,7 @@ import Dropdown from "../components/Dropdown";
 import { useSearch } from "../state/search";
 import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
 import { int, pct0, splitUnit } from "../lib/format";
+import { useReveal } from "../lib/reveal";
 import s from "./S1Landing.module.css";
 import markUrl from "../assets/previl-mark.png";
 
@@ -30,6 +31,7 @@ function Metric({ v }: { v: string }) {
 export default function S1Landing({ go }: { go: (s: Screen) => void }) {
   const search = useSearch();
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
+  useReveal();
 
   const features = useRef<HTMLElement>(null);
   const differs = useRef<HTMLElement>(null);
@@ -159,7 +161,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       </header>
 
       {/* ── WHY NOW ──────────────────────────────────────────────────── */}
-      <section className={s.why} ref={why}>
+      <section className={s.why} ref={why} data-reveal>
         <div className={s.secHead}>
           <h2 className={s.h2}>입지 판단은 아직도 감(勘)에 의존합니다</h2>
           <p className={s.secSub}>자리마다 기록은 쌓여 있는데, 볼 방법이 없었어요.</p>
@@ -179,7 +181,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       </section>
 
       {/* ── WHAT IT DOES ─────────────────────────────────────────────── */}
-      <section className={s.what} ref={features}>
+      <section className={s.what} ref={features} data-reveal>
         <div className={s.secHead}>
           <h2 className={s.h2}>이 자리에서 몇 집이 버텼는지, 전부 세어봤어요</h2>
         </div>
@@ -200,7 +202,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       </section>
 
       {/* ── HOW IT DIFFERS (dark) ────────────────────────────────────── */}
-      <section className={s.differs} ref={differs}>
+      <section className={s.differs} ref={differs} data-reveal>
         <div className={s.secHead}>
           <h2 className={s.h2Dark}>동네 설명이 아니라, 자리 추천이에요</h2>
         </div>
@@ -221,7 +223,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       </section>
 
       {/* ── CTA (yellow) ─────────────────────────────────────────────── */}
-      <section className={s.cta}>
+      <section className={s.cta} data-reveal>
         <h2 className={s.ctaH}>업종 하나만 준비하세요</h2>
         <button className={s.ctaBtn} onClick={start}>
           무료로 자리 찾기 →
@@ -231,7 +233,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Footer (dark) ────────────────────────────────────────────── */}
       <footer className={s.footer}>
         <span>
-          KB Previl · AI 상권·입지 참모&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
+          KB Previl&nbsp;&nbsp;|&nbsp;&nbsp;{TEAM.join(" · ")}
         </span>
         <span className={s.footNote}>
           본 서비스의 등급은 과거 데이터 기반 참고 정보이며 최종 판단은 사용자에게 있습니다.

@@ -91,8 +91,11 @@
 
   /* 전면 배경 + 안쪽 내용만 1440 으로 묶는 여백. 좁을 때는 화면 여백이고,
      1440 을 넘으면 남는 폭의 절반이라 글줄이 더 늘어나지 않는다. 100% 는
-     쓰는 쪽 요소 기준으로 풀리므로 각 절이 자기 폭으로 계산한다. */
-  --edge: max(clamp(20px, 4.4vw, 64px), (100% - 1440px) / 2);
+     쓰는 쪽 요소 기준으로 풀리므로 각 절이 자기 폭으로 계산한다.
+     화면마다 설계 거터가 달라(랜딩 64 / 결과 32 / 리포트 48) --edge-gutter
+     만 덮어쓰면 된다. */
+  --edge-gutter: clamp(20px, 4.4vw, 64px);
+  --edge: max(var(--edge-gutter), (100% - 1440px) / 2);
 
   /* grade ramp: amber sequential, hue + alpha stepped so adjacent grades are
      actually distinguishable on the map (single-alpha yellow read as one tone
@@ -114,12 +117,10 @@
   box-sizing: border-box;
 }
 
-/* 앵커 이동·scrollIntoView 가 뚝 끊기지 않고 흐른다. 휠 입력을 가로채는
-   스크롤 라이브러리는 쓰지 않는다 — 네이티브 스크롤 속도·관성·접근성 도구가
-   전부 그 위에서 깨진다. */
-html {
-  scroll-behavior: smooth;
-}
+/* scroll-behavior 는 두지 않는다. 휠 관성은 lib/smoothScroll.ts(Lenis)가
+   맡는데, 둘을 같이 켜면 브라우저의 부드러운 이동과 Lenis 의 보간이 같은
+   스크롤 위치를 서로 다른 속도로 밀어 떨린다. reduced-motion 에서는 Lenis
+   자체가 안 켜지고 네이티브 즉시 이동으로 남는다. */
 
 /* ── 화면 전환 ────────────────────────────────────────
    View Transitions 가 지원되면 화면 교체가 교차 페이드로 이어진다. 미지원
@@ -256,10 +257,23 @@ ul {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
 
-  html {
-    scroll-behavior: auto;
-  }
+/* ── 스크롤 진입 ─────────────────────────────────────
+   lib/reveal.ts 가 붙이는 상태. «숨김»은 JS 가 켠 것만 적용된다 — 스크립트가
+   죽으면 아무것도 off 가 되지 않아 내용이 그냥 보인다. 연출 하나가 내용을
+   삼키지 않게 하는 것이 이 방향의 전부다. */
+[data-reveal="off"] {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s var(--ease-out),
+    transform 0.7s var(--ease-out);
 }
 
 /* Screen-reader-only text for tooltip targets and badge explanations. */

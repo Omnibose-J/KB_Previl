@@ -1,13 +1,10 @@
 /* S3 — figma metrics: 600px ranking + flexible map panel, gap 24, pad 24/32. */
 
 .page {
-  /* 1440 프레임은 이제 #root 가 아니라 각 화면이 건다. 이 화면들은 지도·목록
-     비율과 글줄 길이가 1440 기준으로 짜여 있어 그 폭을 유지한다. */
-  max-width: 1440px;
-  margin: 0 auto;
+  --edge-gutter: 32px;
   background: var(--fg-paper);
   min-height: 100vh;
-  animation: var(--kf-fade-up) 0.3s var(--ease-out) both;
+  animation: var(--kf-fade-up) 0.3s var(--ease-out) backwards;
 }
 
 .condPill {
@@ -40,7 +37,8 @@
   display: grid;
   grid-template-columns: 600px 1fr;
   gap: 24px;
-  padding: 24px 32px 32px;
+  padding-block: 24px 32px;
+  padding-inline: var(--edge);
   align-items: start;
 }
 

@@ -2,17 +2,20 @@
    «KB» 옐로)은 S1Landing.module.css 의 .mark/.wordmark 와 같아야 한다 —
    랜딩에서 넘어올 때 로고가 바뀌면 다른 서비스로 읽힌다.
 
-   세로 여백만 랜딩(20px)에 맞추고 가로는 32px 로 둔다. 랜딩은 64px 거터를
-   쓰지만 S3 결과 화면은 32px 라, 가로까지 맞추면 바 안의 로고가 아래 본문과
-   어긋난다. 하단 hairline 도 남긴다 — 랜딩은 바로 아래가 어두운 히어로라
-   경계가 저절로 생기지만, 여기는 흰 본문 위라 선이 없으면 바가 뜬다. */
+   세로 여백은 랜딩(20px)에 맞추고, 가로는 --edge 를 쓴다. 바탕은 화면 끝까지
+   칠하고 안쪽만 1440 에 묶는 값이라, 넓은 화면에서 바가 가운데만 칠해지고
+   양옆이 끊기지 않는다. 거터 자체는 화면이 정한다(--edge-gutter: S2 64 /
+   S3 32) — 그래야 바 안의 로고가 아래 본문 왼쪽 끝과 맞는다.
+
+   하단 hairline 은 남긴다 — 랜딩은 바로 아래가 어두운 히어로라 경계가 저절로
+   생기지만, 여기는 흰 본문 위라 선이 없으면 바가 뜬다. */
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 32px;
+  padding: 20px var(--edge);
   background: var(--fg-card);
   border-bottom: 1px solid var(--fg-line);
 }

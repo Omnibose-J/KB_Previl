@@ -6,6 +6,7 @@ import S3Results from "./screens/S3Results";
 import S4Detail from "./screens/S4Detail";
 import S5Compare from "./screens/S5Compare";
 import { SearchProvider } from "./state/search";
+import { useSmoothScroll } from "./lib/smoothScroll";
 
 // Flow contract: frontend/design/ui-spec.md §2
 //   A(탐색): S1 -> S2 -> S3 -> S4
@@ -22,6 +23,7 @@ export type Screen =
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "landing" });
+  useSmoothScroll();
 
   // 화면 교체를 교차 페이드로 잇는다. startViewTransition 은 «콜백 실행 전후의
   // DOM»을 비교하므로 setState 를 flushSync 로 동기 커밋해야 한다 — 안 그러면

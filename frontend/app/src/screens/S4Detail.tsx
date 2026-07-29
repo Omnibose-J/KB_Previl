@@ -11,6 +11,7 @@ import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
 import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
 import { isRecommendable } from "../lib/grade";
+import { useReveal } from "../lib/reveal";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
@@ -41,6 +42,8 @@ export default function S4Detail({
     enabled: uptae !== null,
   });
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
+  // 절은 detail 이 온 뒤에 붙으므로 그때 다시 관찰을 건다.
+  useReveal([detail.data]);
   const rec = useQuery({
     queryKey: ["recommend", uptae, search.districts],
     queryFn: () => api.recommend(uptae!, search.districts),
@@ -235,7 +238,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           {/* ── why this grid: honest comparisons ────────────────── */}
-          <section className={s.card}>
+          <section className={s.card} data-reveal>
             <div className={s.cardHead}>
               <h2>이 자리의 기록</h2>
               <p>주변과 서울 전체에 비해 어떤지 봤어요.</p>
@@ -267,7 +270,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <ConceptMixCard mix={d.conceptMix} />
 
           {/* ── AI report (real LLM call, whitelist-guarded server-side) ── */}
-          <section className={s.card}>
+          <section className={s.card} data-reveal>
             <div className={s.cardHeadRow}>
               <div className={s.cardHead}>
                 <h2>AI가 정리한 이 자리</h2>
@@ -289,7 +292,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
           {/* ── 경쟁 + 위험 pair ─────────────────────────────────── */}
           <div className={s.pair}>
-            <section className={s.card}>
+            <section className={s.card} data-reveal>
               <div className={s.cardHead}>
                 <h2>경쟁이 걱정되세요?</h2>
                 <p>같은 업종 가게가 오래 버티고 있는 곳은 그만큼 검증된 자리예요.</p>
@@ -319,7 +322,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               ) : null}
             </section>
 
-            <section className={s.card}>
+            <section className={s.card} data-reveal>
               <div className={s.cardHead}>
                 <h2>미리 알아두세요</h2>
               </div>
@@ -365,7 +368,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           />
 
           {/* ── 권리금 진입 카드 — 리포트 본체는 다이얼로그로 ────── */}
-          <section className={s.card}>
+          <section className={s.card} data-reveal>
             <div className={s.cardHead}>
               <h2>부르는 권리금, 적당한가요?</h2>
               <p>이 자리 기록으로 참고가를 계산해 드려요. 감정평가는 아니에요.</p>
@@ -400,7 +403,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <BuildingsSection gridId={d.gridId} uptae={uptae} />
 
           {/* ── observed by grade (figma 매물 slot → real table) ──── */}
-          <section className={s.card}>
+          <section className={s.card} data-reveal>
             <div className={s.cardHead}>
               <h2>등급별 실제 3년 생존율</h2>
               <p>자리 등급만 달랐을 때 실제 결과예요.</p>
@@ -447,7 +450,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
           {/* ── survival by period (new /meta fields, 2026-07-27) ──── */}
           {meta && meta.survivalByPeriod.length > 0 ? (
-            <section className={s.card}>
+            <section className={s.card} data-reveal>
               <div className={s.cardHead}>
                 <h2>1년, 3년, 5년 뒤에는</h2>
                 <p>시간이 지날수록 얼마나 남았는지예요.</p>
@@ -462,7 +465,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
           {/* ── grade × area (observed, not causal — §5-6) ─────────── */}
           {meta?.gradeArea ? (
-            <section className={s.card}>
+            <section className={s.card} data-reveal>
               <div className={s.cardHead}>
                 <h2>가게 크기별 기록</h2>
                 <p>넓은 가게가 더 버텼다는 기록이지, 넓히면 잘된다는 뜻은 아니에요. 추천 순위와도 무관해요.</p>
@@ -576,7 +579,7 @@ function BuildingsSection({ gridId, uptae }: { gridId: string; uptae: string }) 
   });
 
   return (
-    <section className={s.card}>
+    <section className={s.card} data-reveal>
       <div className={s.cardHead}>
         <h2>이 자리의 건물 기록</h2>
         <p>이 자리 안 건물들에서 실제로 있었던 일이에요 · 영업 중인 가게가 많은 순</p>
