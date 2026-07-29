@@ -14,10 +14,17 @@ from service import api
 REPORT_MODEL = "gpt-5.4-mini"
 
 _PLACEHOLDER = re.compile(r"\{\{([A-Za-z][A-Za-z0-9]*)\}\}")
-# 한국어 문장에 섞이면 안 되는 글자 — 라틴 문자와 한자. 추론 흔적이 새면
-# 이 둘 중 하나로 나타난다("Need final exact schema", "重新").
-_NON_KOREAN = re.compile(r"[A-Za-z㐀-䶿一-鿿]")
+# 한국어 문장에 한자는 섞이지 않는다. 추론 흔적이 새면 여기로 나타난다("重新").
+_HANJA = re.compile(r"[㐀-䶿一-鿿]")
 _HANGUL = re.compile(r"[가-힣]")
+# 라틴 문자는 통째로 막을 수 없다 — evidence 값이 맨 숫자라 단위(m, km)는
+# 모델이 붙여야 하고, 그건 정상 문장이다. 대신 «영어 낱말»의 길이로 가른다.
+# 단위·약어는 3자 이하(m, km, AI, LLM)이고, 새어 나온 영어는 그보다 길다
+# (Need, schema, Station, because). 총량도 함께 본다 — 짧은 낱말을 여러 개
+# 늘어놓는 경우가 있다.
+_LATIN_RUN = re.compile(r"[A-Za-z]+")
+_MAX_LATIN_RUN = 3
+_MAX_LATIN_TOTAL = 8
 _NUMBER_TOKEN = re.compile(
     r"(?<![0-9A-Za-z.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
     r"(?:[eE][+-]?\d+)?"
@@ -133,6 +140,27 @@ def _risk_caveat(observed_survival):
     )
 
 
+# 값이 내부 enum 이라 문장에 그대로 실리면 뜻이 통하지 않는 키. confidence 는
+# "full"/"partial" 로 오는데, 모델이 «분석 기준은 full 로 제시되었습니다» 처럼
+# 인용해 영어 낱말이 화면까지 나갔다. 화면은 이 값을 따로 자기 방식으로 쓴다.
+_NOT_QUOTABLE = frozenset({"confidence"})
+
+
+def quotable_evidence(evidence):
+    """placeholder 로 인용할 수 있는 항목만 남긴다.
+
+    인용은 문자열 값에만 성립한다 — 리스트를 문장 가운데 넣을 방법이 없다.
+    모델에게 주는 payload 와 인용 허용 집합이 같아야 한다. 다르면 모델은
+    자기가 본 키를 정직하게 인용했는데 «알 수 없는 placeholder» 로 거부당한다
+    (실제로 missingAxes 가 리스트라 그렇게 502 가 났다).
+    """
+    return {
+        key: value
+        for key, value in evidence.items()
+        if isinstance(value, str) and key not in _NOT_QUOTABLE
+    }
+
+
 def render_evidence_placeholders(sentences, evidence):
     generated_text = "\n".join(sentences)
     numeric_glyphs = {
@@ -141,9 +169,7 @@ def render_evidence_placeholders(sentences, evidence):
     if numeric_glyphs:
         raise UnapprovedNumberError(numeric_glyphs)
 
-    scalar_evidence = {
-        key: value for key, value in evidence.items() if isinstance(value, str)
-    }
+    scalar_evidence = quotable_evidence(evidence)
     placeholders = set(_PLACEHOLDER.findall(generated_text))
     unknown = placeholders - set(scalar_evidence)
     if unknown:
@@ -203,12 +229,19 @@ def reject_non_korean(sentences):
     리스트도 숫자가 없는 텍스트는 잡지 못해서, 실제로 «Need final exact
     schema ... 重新» 이 화면까지 나갔다.
 
-    placeholder 를 걷어낸 나머지는 한국어여야 한다. 라틴 문자나 한자가 있거나
-    한글이 하나도 없으면 거부한다 — 계약이 «짧은 한국어 근거 문장»이다.
+    placeholder 를 걷어낸 나머지는 한국어여야 한다. 단위(m, km)는 evidence 가
+    맨 숫자로 오기 때문에 모델이 붙이는 것이 맞으므로, 라틴 문자를 통째로
+    막지 않고 낱말 길이와 총량으로 가른다.
     """
     for sentence in sentences:
         body = _PLACEHOLDER.sub("", sentence)
-        if _NON_KOREAN.search(body) or not _HANGUL.search(body):
+        runs = _LATIN_RUN.findall(body)
+        if (
+            not _HANGUL.search(body)
+            or _HANJA.search(body)
+            or any(len(run) > _MAX_LATIN_RUN for run in runs)
+            or sum(len(run) for run in runs) > _MAX_LATIN_TOTAL
+        ):
             raise NonKoreanSentenceError(sentence)
 
 
@@ -244,8 +277,10 @@ def _generate_sentences(evidence):
                 },
                 {
                     "role": "user",
+                    # 인용 가능한 항목만 보낸다. 인용 못 하는 키를 보여 주면
+                    # 모델은 그것도 근거로 알고 인용하고, 그 순간 거부당한다.
                     "content": json.dumps(
-                        evidence,
+                        quotable_evidence(evidence),
                         ensure_ascii=False,
                         sort_keys=True,
                     ),
@@ -267,10 +302,34 @@ def _generate_sentences(evidence):
     return message.parsed.sentences
 
 
+REPORT_ATTEMPTS = 2
+
+
+def _generate_verified(evidence):
+    """가드에 걸리면 한 번 더 받아 본다.
+
+    모델 출력은 확률적이라 같은 입력에도 다음 시도가 통과하는 경우가 많다
+    (실측: 후보 3곳 중 1곳이 «3년»의 3 을 placeholder 없이 직접 써서 숫자
+    가드에 걸렸다). 두 번 다 실패하면 그대로 올린다 — 가드를 느슨하게 풀어
+    통과시키는 것보다 502 가 낫다. 화면은 근거 없는 문장을 실을 바에야
+    아무것도 안 싣는 쪽이다.
+
+    ReportUnavailableError(키 없음·API 장애)는 잡지 않는다. 다시 물어봐야
+    같은 답이고, 재시도는 장애를 늦게 알리는 것 말고는 하는 일이 없다.
+    """
+    failure = None
+    for _ in range(REPORT_ATTEMPTS):
+        try:
+            generated = _generate_sentences(evidence)
+            return render_evidence_placeholders(generated, evidence)
+        except ReportGenerationError as exc:
+            failure = exc
+    raise failure
+
+
 def generate(grid_id, uptae):
     evidence, observed_survival = _report_context(grid_id, uptae)
-    generated = _generate_sentences(evidence)
-    sentences = render_evidence_placeholders(generated, evidence)
+    sentences = _generate_verified(evidence)
     return {
         "grid_id": grid_id,
         "uptae": uptae,
