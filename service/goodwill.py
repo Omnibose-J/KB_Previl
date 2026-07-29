@@ -236,9 +236,14 @@ def calculate(
     estimated = (intangible + tangible) * adjustment_factor
 
     year_cap = min(lease_remaining_years, curve_horizon_years)
+    candidate_years = {
+        min(year_cap, years + offset) for offset in (-1, 0, 1)
+    }
     sensitivity_years = sorted(
-        {max(0.0, min(year_cap, years + offset)) for offset in (-1, 0, 1)}
+        candidate_year for candidate_year in candidate_years if candidate_year > 0
     )
+    if not sensitivity_years:
+        sensitivity_years = [years]
     sensitivity = []
     estimates = []
     for margin in (

@@ -880,6 +880,15 @@ def test_goodwill_preserves_partial_valuation_years(monkeypatch, tmp_path):
     assert short_body["estimatedGoodwill"] == pytest.approx(expected_short)
     assert max(row["years"] for row in short_body["sensitivity"]) == 1.5
 
+    for lease_years in (0.5, 1):
+        response = post(lease_years)
+        assert response.status_code == 200
+        body = response.json()
+        sensitivity_years = {row["years"] for row in body["sensitivity"]}
+        assert body["valuationYears"] == lease_years
+        assert sensitivity_years == {lease_years}
+        assert all(year > 0 for year in sensitivity_years)
+
 
 def test_goodwill_rejects_removed_caller_owned_inputs():
     sample = _sample_goodwill_grid()
