@@ -75,20 +75,79 @@
   justify-content: center;
   min-height: calc(100dvh - var(--nav-h));
   gap: clamp(14px, 1.8vh, 20px);
-  background: var(--fg-dark);
   padding-block: clamp(32px, 5vh, 72px);
   padding-inline: var(--edge);
   text-align: center;
+
+  /* 배경색은 사진 뒤 맨 아래 도색층 — 로딩 중 흰 번쩍임을 막는다(폴백 아님).
+     사진과 스크림은 의사요소로 분리한다. 한 declaration 에 겹쳐 쓰면 사진에만
+     필터를 걸 수 없고, 화면폭별로 그라디언트까지 통째로 다시 써야 한다. */
+  background-color: var(--fg-dark);
+  isolation: isolate;
 }
 
-/* 헤드라인 위 한 줄. hero 의 20px gap 을 그대로 받으면 제목과 떨어져 떠 보여서
-   음수 마진으로 제목 쪽에 붙인다 — 별개 요소가 아니라 제목의 머리다. */
-.eyebrow {
-  margin-bottom: clamp(-12px, -0.9vh, -8px);
-  font-size: clamp(13px, 1.1vw, 15px);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--fg-y);
+/* 사진 층. 받은 에셋의 전체 휘도가 0.0222 로 거의 검은 프레임이라 그대로
+   깔면 스크림을 다 걷어내도 아무것도 안 보인다(의뢰문에 상한 0.25 만 주고
+   하한을 안 준 탓). 여기서 끌어올려 쓴다 — 밝은 에셋을 다시 받으면 이
+   필터를 줄이는 것이 순서다. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url("../assets/hero-seoul@1x.webp");
+  background-position: center;
+  background-size: cover;
+  filter: brightness(1.7) contrast(1.05) saturate(1.1);
+}
+
+/* 스크림. 가운데를 얇게 둬 검색 카드 주변에 사진이 보이고, 위아래는 눌러
+   텍스트 대비를 지킨다. 바닥이 두꺼운 것은 그 자리의 작은 회색 출처 줄 때문. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(20 20 20 / 62%) 0%,
+    rgb(20 20 20 / 30%) 38%,
+    rgb(20 20 20 / 34%) 66%,
+    rgb(20 20 20 / 84%) 100%
+  );
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 사진 위의 글자는 배경이 화소마다 달라서, 평균 대비가 통과해도 밝은 창문
+   하나에 획이 묻힌다. 그림자를 깔아 글자 주변만 눌러 준다 — 사진 밝기를
+   희생하지 않고 획을 세우는 쪽이다(대비 판정은 그림자 없이 잰 값 기준). */
+.hero > .h1,
+.hero > .altEntry,
+.hero > .stats,
+.hero > .sources {
+  text-shadow: 0 2px 16px rgb(0 0 0 / 55%);
+}
+
+/* 작은 회색 글자들만 색을 올린다. --fg-dt3/--fg-dt4 는 단색 어두운 면 기준
+   이라 사진 위에서는 각각 3.82 / 1.90 까지 떨어졌다(기준 4.5). 토큰을 바꾸면
+   단색 화면들이 같이 밝아지므로 이 화면에서만 덮어쓴다. */
+.hero > .sources {
+  color: #c8c3bb;
+}
+
+.hero .stat span {
+  color: #b5afa6;
+}
+
+/* 넓은 화면에서만 2880 판을 받는다(114KB). 폰은 47KB 짜리로 충분하다. */
+@media (min-width: 900px) {
+  .hero::before {
+    background-image: url("../assets/hero-seoul.webp");
+  }
 }
 
 /* line-height 는 단위 없이 — px 로 두면 폰트만 줄고 행간이 안 줄어 좁은

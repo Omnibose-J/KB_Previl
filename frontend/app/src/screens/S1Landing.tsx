@@ -61,9 +61,6 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
       {/* ── Hero (dark) ──────────────────────────────────────────────── */}
       <header className={s.hero}>
-        {/* 첫 방문자는 헤드라인을 읽기 전까지 이게 «무엇인지» 를 알 데가 없다.
-            상단 nav 는 이름만 말하고, 제품 범주는 푸터까지 내려가야 나온다. */}
-        <p className={s.eyebrow}>AI 상권·입지 참모</p>
         <h1 className={s.h1}>
           어디에 낼지,
           <br />
