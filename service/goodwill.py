@@ -4,6 +4,7 @@ import math
 import statistics
 
 from service import api
+from service.bands import _percentile
 from service.economics import grade_survival_curves
 
 
@@ -172,17 +173,6 @@ def _tangible_values(assets):
             }
         )
     return values
-
-
-def _percentile(values, quantile):
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * quantile
-    lower = math.floor(position)
-    upper = math.ceil(position)
-    if lower == upper:
-        return ordered[lower]
-    weight = position - lower
-    return ordered[lower] * (1 - weight) + ordered[upper] * weight
 
 
 def calculate(

@@ -1447,15 +1447,29 @@ def test_estimate_returns_cost_for_grid_and_coordinates(monkeypatch):
     assert by_grid.status_code == 200
     body = by_grid.json()
     assert body["gridId"] == sample["grid_id"]
-    assert body["effectiveCost"] == pytest.approx(466.6666666667)
+    assert body["effectiveCost"] == pytest.approx(600)
+    assert (
+        body["effectiveCostBand"]["low"]
+        <= body["effectiveCost"]
+        <= body["effectiveCostBand"]["high"]
+    )
     assert body["successionProb"] == 0.4
     assert body["recoverySource"] == "constant"
     assert "recoveryProb" not in body
+    assert "recoveryRange" not in body
     assert body["monthlyRevenue"] > 0
     assert body["revenueResolution"] == "trade_area"
     assert body["burdenRate"] == pytest.approx(
         body["effectiveCost"] / body["monthlyRevenue"]
     )
+    assert body["burdenRateBand"] == {
+        "low": pytest.approx(
+            body["effectiveCostBand"]["low"] / body["monthlyRevenue"]
+        ),
+        "high": pytest.approx(
+            body["effectiveCostBand"]["high"] / body["monthlyRevenue"]
+        ),
+    }
     assert "burdenRate" not in body["missingAxes"]
 
     detail = client.get(
@@ -1476,7 +1490,7 @@ def test_estimate_returns_cost_for_grid_and_coordinates(monkeypatch):
     assert by_coordinates.status_code == 200
     coordinate_body = by_coordinates.json()
     assert coordinate_body["gridId"] == sample["grid_id"]
-    assert coordinate_body["effectiveCost"] == pytest.approx(900)
+    assert coordinate_body["effectiveCost"] == pytest.approx(1_300)
 
 
 def test_recovery_source_defaults_to_m2_and_constant_rolls_back(monkeypatch):
@@ -1525,7 +1539,6 @@ def test_recovery_source_defaults_to_m2_and_constant_rolls_back(monkeypatch):
         ((1,), {"recovery_source": "constant"}, "계보"),
         ((1,), {"model_version": "wrong-version"}, "모델 버전 또는 관측시점"),
         ((1,), {"as_of_ym": 202606}, "모델 버전 또는 관측시점"),
-        ((1,), {"succession_prob": None}, "원천값"),
     ],
 )
 def test_m2_source_failures_return_503_without_constant_fallback(
@@ -1576,6 +1589,63 @@ def test_m2_source_failures_return_503_without_constant_fallback(
     assert "successionProb" not in response.json()
 
 
+def test_missing_succession_probability_serves_conservative_band(
+    monkeypatch,
+):
+    sample = _sample_goodwill_grid()
+    payload = _estimate_payload(sample)
+    original_connection = api.readonly_connection
+    row = {
+        "succession_prob": None,
+        "recovery_source": "m2",
+        "as_of_ym": estimation_service.M2_AS_OF_YM,
+        "model_version": estimation_service.M2_MODEL_VERSION,
+    }
+
+    class Cursor:
+        def fetchone(self):
+            return row
+
+    class RecoveryConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, query, params=()):
+            if "name='succession_score'" in query:
+                return Cursor()
+            if "FROM succession_score" in query:
+                return Cursor()
+            return self.connection.execute(query, params)
+
+    @contextmanager
+    def recovery_connection():
+        with original_connection() as connection:
+            yield RecoveryConnection(connection)
+
+    monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
+    monkeypatch.setattr(api, "readonly_connection", recovery_connection)
+    response = client.post("/api/estimate", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["successionProb"] is None
+    assert body["recoverySource"] == "m2"
+    assert body["costBreakdown"]["premiumAmortized"] == pytest.approx(
+        payload["askingGoodwill"] / body["paramsUsed"]["horizonMonths"]
+    )
+    assert (
+        body["effectiveCostBand"]["low"]
+        <= body["effectiveCost"]
+        <= body["effectiveCostBand"]["high"]
+    )
+    assert (
+        body["effectiveCostBand"]["low"]
+        < body["effectiveCostBand"]["high"]
+    )
+    assert "recoveryProb" not in body
+    assert "recoveryRange" not in body
+
+
 def test_estimate_not_evaluated():
     sample = _sample_goodwill_grid()
 
@@ -1606,12 +1676,12 @@ def test_estimate_outside_trade_area(monkeypatch):
         payload["monthlyRent"]
         + payload["deposit"] * params["opportunityRate"] / 12
         + payload["askingGoodwill"]
-        * (1 - body["successionProb"])
         / params["horizonMonths"]
     )
     assert body["effectiveCost"] == pytest.approx(expected_cost)
     assert body["monthlyRevenue"] is None
     assert body["burdenRate"] is None
+    assert body["burdenRateBand"] is None
     assert body["revenueAsOfQuarter"] is None
     assert body["revenueResolution"] == "trade_area"
     assert {"revenue", "burdenRate"} <= set(body["missingAxes"])

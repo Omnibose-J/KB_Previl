@@ -320,6 +320,11 @@ class CostBreakdownResponse(ApiModel):
     effective_monthly_cost: float
 
 
+class ValueBandResponse(ApiModel):
+    low: float
+    high: float
+
+
 class EstimateResponse(ApiModel):
     grid_id: str
     uptae: UptaeName
@@ -330,7 +335,7 @@ class EstimateResponse(ApiModel):
     area_m2: float
     floor: int
     succession_prob: Annotated[
-        float,
+        float | None,
         Field(
             ge=0,
             le=1,
@@ -345,11 +350,13 @@ class EstimateResponse(ApiModel):
         Field(description="승계 확률에 실제 사용한 원천"),
     ]
     effective_cost: float
+    effective_cost_band: ValueBandResponse
     cost_breakdown: CostBreakdownResponse
     monthly_revenue: float | None
     revenue_as_of_quarter: str | None
     revenue_resolution: Literal["trade_area"]
     burden_rate: float | None
+    burden_rate_band: ValueBandResponse | None
     missing_axes: list[str]
     params_used: CostParamsInput
     notice: str

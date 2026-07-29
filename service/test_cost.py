@@ -2,7 +2,8 @@
 
 import pytest
 
-from service.cost import CostParams, effective_monthly_cost
+from service.cost import (CostParams, effective_monthly_cost,
+                          effective_monthly_cost_band)
 
 
 SPEC_CASES = {
@@ -115,3 +116,59 @@ def test_cost_params_can_be_overridden():
     assert result.premium_amortized == 1_000_000
     assert result.maintenance == 0
     assert result.effective_monthly_cost == 2_120_000
+
+
+def test_cost_band_uses_approved_uncertainty_grid():
+    params = CostParams(opportunity_rate=0.04, horizon_months=36)
+    band = effective_monthly_cost_band(
+        deposit=12_000_000,
+        monthly_rent=1_000_000,
+        maintenance_fee=100_000,
+        premium=12_000_000,
+        succession_prob=0.4,
+        params=params,
+    )
+    representative = effective_monthly_cost(
+        deposit=12_000_000,
+        monthly_rent=1_000_000,
+        maintenance_fee=100_000,
+        premium=12_000_000,
+        recovery_prob=0,
+        params=params,
+    )
+
+    assert band.low == pytest.approx(1_293_000)
+    assert band.high == pytest.approx(1_637_000)
+    assert (
+        band.low
+        <= representative.effective_monthly_cost
+        <= band.high
+    )
+
+
+def test_cost_band_without_succession_source_has_no_invented_recovery():
+    params = CostParams(opportunity_rate=0.04, horizon_months=36)
+    band = effective_monthly_cost_band(
+        deposit=12_000_000,
+        monthly_rent=1_000_000,
+        maintenance_fee=100_000,
+        premium=12_000_000,
+        succession_prob=None,
+        params=params,
+    )
+    representative = effective_monthly_cost(
+        deposit=12_000_000,
+        monthly_rent=1_000_000,
+        maintenance_fee=100_000,
+        premium=12_000_000,
+        recovery_prob=0,
+        params=params,
+    )
+
+    assert band.low == pytest.approx(1_384_000)
+    assert band.high == pytest.approx(1_646_000)
+    assert (
+        band.low
+        <= representative.effective_monthly_cost
+        <= band.high
+    )

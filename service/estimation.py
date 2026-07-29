@@ -5,7 +5,8 @@ import math
 import os
 
 from service import api
-from service.cost import CostParams, effective_monthly_cost
+from service.cost import (CostParams, effective_monthly_cost,
+                          effective_monthly_cost_band)
 from service.goodwill import UPTAE_INDUTY
 
 
@@ -19,7 +20,8 @@ ESTIMATE_NOTICE = (
     "상권×동일 업종의 최신 분기 점포당 추정매출을 사용한 참고용 계산이며, "
     "개별 매물의 매출을 예측하거나 배분한 값이 아닙니다. 승계 확률은 "
     "권리금 지불비율이 아니며, 지불비율 원천은 확보되지 않았습니다. "
-    "권리금 상각은 승계 시 전액 회수를 가정한 민감도 계산입니다."
+    "대표 점유비용은 권리금 회수율 0의 보수적 기준선이며, 비용 밴드는 "
+    "승계 확률을 회수율 상한으로만 사용합니다."
 )
 
 
@@ -75,11 +77,9 @@ def _succession_probability(detail, uptae):
             )
         probability = row["succession_prob"]
 
-    if (
-        probability is None
-        or not math.isfinite(probability)
-        or not 0 <= probability <= 1
-    ):
+    if probability is None:
+        return None, source
+    if not math.isfinite(probability) or not 0 <= probability <= 1:
         raise EstimationUnavailableError(
             f"{source} 승계 확률 원천값이 유효하지 않습니다."
         )
@@ -165,13 +165,22 @@ def estimate_candidate(
     )
     succession_prob, recovery_source = _succession_probability(detail, uptae)
     try:
+        params = CostParams(**cost_params)
         breakdown = effective_monthly_cost(
             deposit=deposit,
             monthly_rent=monthly_rent,
             maintenance_fee=0,
             premium=asking_goodwill,
-            recovery_prob=succession_prob,
-            params=CostParams(**cost_params),
+            recovery_prob=0.0,
+            params=params,
+        )
+        effective_cost_band = effective_monthly_cost_band(
+            deposit=deposit,
+            monthly_rent=monthly_rent,
+            maintenance_fee=0,
+            premium=asking_goodwill,
+            succession_prob=succession_prob,
+            params=params,
         )
     except ValueError as exc:
         raise api.ApiInputError(
@@ -182,7 +191,20 @@ def estimate_candidate(
         if monthly_revenue is not None
         else None
     )
-    if burden_rate is not None and not math.isfinite(burden_rate):
+    burden_rate_band = (
+        {
+            "low": effective_cost_band.low / monthly_revenue,
+            "high": effective_cost_band.high / monthly_revenue,
+        }
+        if monthly_revenue is not None
+        else None
+    )
+    burden_values = (
+        [burden_rate, *burden_rate_band.values()]
+        if burden_rate_band is not None
+        else []
+    )
+    if not all(math.isfinite(value) for value in burden_values):
         raise api.ApiInputError(
             "부담률 계산 결과가 유한 범위를 벗어납니다."
         )
@@ -201,11 +223,13 @@ def estimate_candidate(
         "succession_prob": succession_prob,
         "recovery_source": recovery_source,
         "effective_cost": breakdown.effective_monthly_cost,
+        "effective_cost_band": asdict(effective_cost_band),
         "cost_breakdown": asdict(breakdown),
         "monthly_revenue": monthly_revenue,
         "revenue_as_of_quarter": quarter,
         "revenue_resolution": REVENUE_RESOLUTION,
         "burden_rate": burden_rate,
+        "burden_rate_band": burden_rate_band,
         "missing_axes": missing_axes,
         "params_used": cost_params,
         "notice": ESTIMATE_NOTICE,
@@ -231,11 +255,13 @@ def rank_candidates(evaluated):
     def teo_key(index):
         result = results[index]
         burden = result["burden_rate"]
+        succession = result["succession_prob"]
         return (
             burden is None,
             burden if burden is not None else 0,
             result["effective_cost"],
-            -result["succession_prob"],
+            succession is None,
+            -(succession if succession is not None else 0),
             index,
         )
 

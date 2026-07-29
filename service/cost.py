@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 import math
 
+from service.bands import _percentile
+
 
 @dataclass(frozen=True)
 class CostParams:
@@ -24,6 +26,12 @@ class CostBreakdown:
     deposit_opportunity: float
     premium_amortized: float
     effective_monthly_cost: float
+
+
+@dataclass(frozen=True)
+class CostBand:
+    low: float
+    high: float
 
 
 def effective_monthly_cost(
@@ -69,4 +77,56 @@ def effective_monthly_cost(
         deposit_opportunity=deposit_opportunity,
         premium_amortized=premium_amortized,
         effective_monthly_cost=total,
+    )
+
+
+def effective_monthly_cost_band(
+    deposit: float,
+    monthly_rent: float,
+    maintenance_fee: float,
+    premium: float,
+    succession_prob: float | None,
+    params: CostParams = CostParams(),
+) -> CostBand:
+    """Return the 5th/95th percentile across the approved uncertainty grid."""
+
+    if succession_prob is None:
+        recovery_grid = {0.0}
+    else:
+        if not math.isfinite(succession_prob) or not 0 <= succession_prob <= 1:
+            raise ValueError("succession_prob must be between 0 and 1")
+        recovery_grid = {0.0, succession_prob / 2, succession_prob}
+    horizon_grid = {
+        max(1, params.horizon_months - 12),
+        params.horizon_months,
+        params.horizon_months + 12,
+    }
+    opportunity_grid = {
+        max(0.0, params.opportunity_rate - 0.01),
+        params.opportunity_rate,
+        params.opportunity_rate + 0.01,
+    }
+
+    costs = []
+    for recovery_prob in sorted(recovery_grid):
+        for horizon_months in sorted(horizon_grid):
+            for opportunity_rate in sorted(opportunity_grid):
+                varied_params = CostParams(
+                    opportunity_rate=opportunity_rate,
+                    horizon_months=horizon_months,
+                    include_maintenance=params.include_maintenance,
+                )
+                costs.append(
+                    effective_monthly_cost(
+                        deposit=deposit,
+                        monthly_rent=monthly_rent,
+                        maintenance_fee=maintenance_fee,
+                        premium=premium,
+                        recovery_prob=recovery_prob,
+                        params=varied_params,
+                    ).effective_monthly_cost
+                )
+    return CostBand(
+        low=_percentile(costs, 0.05),
+        high=_percentile(costs, 0.95),
     )
