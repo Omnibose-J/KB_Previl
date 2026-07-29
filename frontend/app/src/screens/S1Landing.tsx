@@ -64,9 +64,11 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Hero (dark) ──────────────────────────────────────────────── */}
       <header className={s.hero}>
         <h1 className={s.h1}>
-          어디에 낼지,
+          데이터로 성공을 만듭니다
           <br />
-          <em>그 자리의 기록을 보고 정하세요</em>
+          {/* 좁은 폭에서 «KB / Previl» 로 갈라진다 — 한글은 keep-all 이 잡아주지만
+              라틴 사이의 공백은 그대로 끊기는 자리라 브랜드명만 묶어준다. */}
+          <em>새로운 창업의 시작, KB&nbsp;Previl</em>
         </h1>
 
         {/* search pill — real inputs feeding the S2 form */}
