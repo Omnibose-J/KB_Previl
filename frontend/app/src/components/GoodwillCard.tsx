@@ -22,13 +22,19 @@ const REFERENCE_LABEL = {
   above_band: { text: "참고 범위보다 높아요, 깎아볼 만해요", cls: "refOrange" },
 } as const;
 
+/** 생존곡선이 36개월치라 서버는 어떤 잔여 계약이 와도 3년 안에서 멈춘다.
+ *  숫자로 10년을 받아놓고 조용히 깎느니, 컨트롤이 상한을 먼저 말하게 한다. */
+const LEASE_MIN = 0.5;
+const LEASE_MAX = 3;
+const LEASE_STEP = 0.5;
+
 export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: string }) {
   const [asking, setAsking] = useState<number | null>(null);
-  const [leaseYears, setLeaseYears] = useState<number | null>(null);
+  const [leaseYears, setLeaseYears] = useState(LEASE_MAX);
   const [assets, setAssets] = useState<GoodwillAssetInput[]>([]);
   const [debounced, setDebounced] = useState<GoodwillInput | null>(null);
 
-  const ready = asking !== null && leaseYears !== null;
+  const ready = asking !== null;
 
   useEffect(() => {
     if (!ready) {
@@ -44,7 +50,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       gridId: d.gridId,
       uptae,
       askingGoodwill: asking!,
-      leaseRemainingYears: leaseYears!,
+      leaseRemainingYears: leaseYears,
       ...(complete.length > 0 ? { assets: complete } : {}),
     };
     const t = setTimeout(() => setDebounced(input), DEBOUNCE_MS);
@@ -77,7 +83,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       {/* 입력 행 */}
       <div className={s.inputs}>
         <NumField label="부르는 권리금" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
-        <NumField label="계약 남은 기간" required value={leaseYears} onChange={setLeaseYears} unit="년" placeholder="예: 3" />
+        <LeaseSlider value={leaseYears} onChange={setLeaseYears} />
         <button
           className={s.addAsset}
           onClick={() =>
@@ -112,7 +118,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       ) : null}
 
       {!ready ? (
-        <p className={s.prompt}>부르는 권리금과 남은 계약 기간을 넣으면 계산해 드려요.</p>
+        <p className={s.prompt}>부르는 권리금을 넣으면 계산해 드려요.</p>
       ) : q.isPending ? (
         <Loading label="추정 참고가 계산 중…" />
       ) : q.isError ? (
@@ -121,6 +127,32 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
         <Result r={q.data} />
       )}
     </section>
+  );
+}
+
+function LeaseSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className={s.leaseField}>
+      <div className={s.leaseHead}>
+        <span className={s.fieldLabel}>계약 남은 기간</span>
+        <strong>{yearsLabel(value)}</strong>
+      </div>
+      <input
+        className={s.leaseRange}
+        type="range"
+        min={LEASE_MIN}
+        max={LEASE_MAX}
+        step={LEASE_STEP}
+        value={value}
+        aria-label="계약 남은 기간"
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      <div className={s.leaseTicks}>
+        <span>{yearsLabel(LEASE_MIN)}</span>
+        <span>{yearsLabel(LEASE_MAX)}</span>
+      </div>
+      <p className={s.leaseCap}>기록이 3년치라 3년까지만 셀 수 있어요.</p>
+    </div>
   );
 }
 
@@ -254,8 +286,8 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
           참고가가 왜 안 오르는지 사용자가 알 방법이 없다. */}
       {r.leaseRemainingYears >= r.expectedSurvivalYears ? (
         <p className={s.capNote}>
-          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. 계약이 더 길어도 참고가는
-          그 이상 오르지 않으니, <b>오래 갈 자리라면 실제 가치는 이보다 높다</b>고 보셔야 해요.
+          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. <b>실제 계약이 더 길어도</b>{" "}
+          참고가는 그 이상 오르지 않으니, <b>오래 갈 자리라면 실제 가치는 이보다 높다</b>고 보셔야 해요.
         </p>
       ) : null}
 

@@ -102,6 +102,80 @@
   flex: none;
 }
 
+/* 계약 남은 기간 — 상한 3년을 «컨트롤 자체»로 드러낸다. 숫자 입력으로 10년을
+   받아놓고 서버가 조용히 2.7년으로 깎던 것을 대체한다. */
+.leaseField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+  min-width: 232px;
+}
+
+.leaseHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.leaseHead strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.leaseRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 3px 0 0;
+  border-radius: 100px;
+  background: var(--fg-line2);
+  outline: none;
+}
+
+.leaseRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--fg-dark);
+  border: 3px solid var(--fg-y);
+  cursor: pointer;
+}
+
+.leaseRange::-moz-range-thumb {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--fg-dark);
+  border: 3px solid var(--fg-y);
+  cursor: pointer;
+}
+
+.leaseRange:focus-visible {
+  box-shadow: 0 0 0 3px var(--fg-y-bg);
+}
+
+.leaseTicks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--fg-t8);
+}
+
+.leaseCap {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t6);
+}
+
 .addAsset {
   align-self: center;
   padding: 10px 16px;
@@ -589,6 +663,7 @@
 @media (max-width: 1024px) {
   .inputs { flex-wrap: wrap; }
   .field { flex: 1 1 160px; min-width: 0; }
+  .leaseField { flex: 1 1 232px; min-width: 0; }
 }
 
 @media (max-width: 680px) {
