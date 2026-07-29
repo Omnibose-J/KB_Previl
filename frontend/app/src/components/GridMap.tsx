@@ -102,6 +102,9 @@ export default function GridMap({
   const holder = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const [bbox, setBbox] = useState<Bbox | null>(null);
+  /** 지도 위에서 마우스가 짚은 칸. 목록 호버(hoveredId)와 별개로 둔다 —
+   *  한 상태로 합치면 목록에서 손을 떼는 순간 지도 쪽 테두리까지 사라진다. */
+  const [mapHoverId, setMapHoverId] = useState<string | null>(null);
   /* The style loads asynchronously, so the source does not exist yet when the
      component mounts. Cached query data can therefore arrive BEFORE the map is
      ready; without this flag that data is dropped and the map stays empty on
@@ -134,71 +137,21 @@ export default function GridMap({
 
     m.on("load", () => {
       m.addSource("grids", { type: "geojson", data: emptyFc() });
-      // 셀 중심에 깔리는 번짐층. 격자가 체스판처럼 각져 보이는 것을 눅인다 —
-      // 같은 등급끼리는 서로 번져 하나의 면으로 읽히고, 바깥으로는 색이 서서히
-      // 빠진다. fill 레이어에는 blur 가 없어서 circle-blur 로 만든다.
+      // 색은 셀 «안에서만» 칠한다. 번지는 층(heatmap·circle-blur)을 두 번
+      // 만들어 봤는데 둘 다 색이 칸 밖으로 나간다 — 그건 점수가 없는 칸까지
+      // «여기도 평가됐다»로 칠하는 것이고, 이 프로젝트가 금지한 종류의 거짓이다.
+      // 칸을 넘지 않는 스무딩은 성립하지 않으므로 번짐층은 두지 않는다.
       //
-      // 이 층은 «장식»이고 판정 근거가 아니다. 그래서 아래에 깔고 위에 원래
-      // fill 을 그대로 얹는다 — 어느 100m 칸이 실제로 채점됐는지는 여전히
-      // fill 의 또렷한 경계가 말한다. 번짐만 남기면 점수가 없는 칸까지 색이
-      // 번져 «여기도 평가됐다»로 읽힌다.
-      //
-      // circle-blur 1 은 «반지름 안에서» 중심 불투명 -> 가장자리 0 으로 떨어진다.
-      // 바깥으로 번지는 것이 아니다. 그래서 반지름을 셀 반폭에 맞추면 번짐이
-      // 통째로 fill 밑에 깔려 아무것도 안 보인다(처음에 그렇게 만들어 확인했다).
-      // 셀 반폭의 1.8배로 잡아야 1.0~1.8 구간이 셀 밖으로 나와 후광이 된다.
-      //
-      // 반폭 픽셀값: 위도 37.5 에서 1픽셀 = 156543·cos(37.5)/2^z 미터이므로
-      // 100m 의 절반은 z13 에서 3.3px, z17 에서 53px 이고 줌 1당 정확히 두 배다
-      // — exponential base 2 가 그 관계 그대로다. 여기에 1.8 을 곱한다.
-      // circle 레이어는 Point 만 그린다 — 폴리곤 소스로는 아무것도 안 나온다.
-      // 그래서 셀 중심점을 별도 소스로 둔다(B 가 center 를 이미 준다).
-      m.addSource("grid-centres", { type: "geojson", data: emptyFc() });
-      m.addLayer({
-        id: "grid-glow",
-        type: "heatmap",
-        source: "grid-centres",
-        paint: {
-          // 등급을 무게로 준다. 1등급이 1.0, 10등급이 0.1 — 밀도가 아니라
-          // «등급의 면»을 그리는 것이 목적이다. 셀 간격이 100m 로 일정해서
-          // 밀도항은 거의 상수이고, 결과는 등급을 부드럽게 이어붙인 면이 된다.
-          "heatmap-weight": ["/", ["-", 11, ["get", "grade"]], 10],
-          // 셀 간격(100m)의 약 2.5배. 화면상 간격은 z13 에서 6.6px, z17 에서
-          // 105.6px 이고, 커널이 그보다 작으면 칸마다 점이 찍혀 물방울무늬가
-          // 된다(9px 로 만들어 확인했다). 커널끼리 충분히 겹쳐야 면이 된다.
-          "heatmap-radius": [
-            "interpolate",
-            ["exponential", 2],
-            ["zoom"],
-            13, 17,
-            17, 270,
-          ],
-          "heatmap-intensity": 1,
-          "heatmap-opacity": 0.85,
-          // 0 은 완전 투명이어야 한다 — 점수가 없는 곳까지 색이 깔리면
-          // «여기도 평가됐다»로 읽힌다.
-          "heatmap-color": [
-            "interpolate",
-            ["linear"],
-            ["heatmap-density"],
-            0, "rgba(0,0,0,0)",
-            0.15, "rgba(255,236,190,0.55)",
-            0.4, "rgba(255,205,90,0.75)",
-            0.7, "rgba(247,163,26,0.85)",
-            1, "rgba(226,121,0,0.92)",
-          ],
-        },
-      });
+      // 대신 각져 보이던 진짜 원인을 없앤다: 셀마다 그어져 있던 흰 실선이다.
+      // 선을 빼면 같은 등급끼리는 이음매 없이 한 덩어리로 읽히고, 색이 바뀌는
+      // 자리에만 경계가 보인다 — 그 경계는 실제로 등급이 다른 자리다.
       m.addLayer({
         id: "grid-fill",
         type: "fill",
         source: "grids",
         // Ramp colors carry their own alpha; the extra fill-opacity keeps
         // roads/labels legible under dense grade-1 areas (UX critique).
-        // 아래 heatmap 이 면을 만들고, fill 은 «어느 100m 칸이 실제로 채점됐나»
-        // 를 표시하는 얇은 층으로 남는다. 예전 0.85 를 유지하면 heatmap 이
-        // 통째로 가려져 다시 모자이크가 된다.
-        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.45 },
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.8 },
       });
       // Ranked candidates get a dark outline: the ramp itself is now brand
       // yellow (figma heatmap), so yellow outlines would vanish into it.
@@ -221,6 +174,15 @@ export default function GridMap({
         const raw = e.features?.[0]?.properties?.cell;
         if (typeof raw === "string") onSelect(JSON.parse(raw) as GridCell);
       });
+      // 셀 경계는 평소에 안 그린다. 지도 위에서 짚은 칸에만 테두리를 얹어
+      // «지금 이 칸» 을 알려준다 — 격자 전체에 선을 그으면 체스판이 된다.
+      // 목록 호버(hoveredId)와 같은 레이어를 쓰되, 목록 쪽이 이기게 둔다.
+      m.on("mousemove", "grid-fill", (e: MapLayerMouseEvent) => {
+        m.getCanvas().style.cursor = "pointer";
+        const id = e.features?.[0]?.properties?.gridId;
+        if (typeof id === "string") setMapHoverId(id);
+      });
+      m.on("mouseleave", "grid-fill", () => setMapHoverId(null));
       m.on("mouseenter", "grid-fill", () => (m.getCanvas().style.cursor = "pointer"));
       m.on("mouseleave", "grid-fill", () => (m.getCanvas().style.cursor = ""));
       // No syncBbox() here: the map opens on all of Seoul (zoom 12), where a
@@ -245,19 +207,20 @@ export default function GridMap({
   // --- data ---------------------------------------------------------------
   useEffect(() => {
     const src = map.current?.getSource("grids") as GeoJSONSource | undefined;
-    const centres = map.current?.getSource("grid-centres") as GeoJSONSource | undefined;
-    if (!src || !centres) return;
-    const cells = q.data?.items;
-    src.setData(cells ? toFc(cells) : emptyFc());
-    centres.setData(cells ? toCentreFc(cells) : emptyFc());
+    if (!src) return;
+    src.setData(q.data ? toFc(q.data.items) : emptyFc());
   }, [q.data, ready]);
 
   useEffect(() => {
     const m = map.current;
     if (!m?.getLayer("grid-active")) return;
-    m.setFilter("grid-active", ["==", ["get", "gridId"], hoveredId ?? selectedId ?? ""]);
+    m.setFilter("grid-active", [
+      "==",
+      ["get", "gridId"],
+      hoveredId ?? mapHoverId ?? selectedId ?? "",
+    ]);
     // `ready` matters: cached selection can land before the style loads.
-  }, [hoveredId, selectedId, ready]);
+  }, [hoveredId, mapHoverId, selectedId, ready]);
 
   useEffect(() => {
     const m = map.current;
@@ -350,21 +313,18 @@ function Legend() {
 
 const emptyFc = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
 
-/** 등급 -> 램프 색. One style lookup per grade, not one per cell. */
-const RAMP = new Map<number, string>();
-function colorOfGrade(g: number): string {
-  let c = RAMP.get(g);
-  if (!c) {
-    c = getComputedStyle(document.documentElement)
-      .getPropertyValue(`--color-heatmap-${g}`)
-      .trim();
-    RAMP.set(g, c);
-  }
-  return c;
-}
-
 function toFc(cells: GridCell[]): FeatureCollection {
-  const colorOf = colorOfGrade;
+  // One style lookup per update, not one per cell.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const ramp = new Map<number, string>();
+  const colorOf = (g: number) => {
+    let c = ramp.get(g);
+    if (!c) {
+      c = rootStyle.getPropertyValue(`--color-heatmap-${g}`).trim();
+      ramp.set(g, c);
+    }
+    return c;
+  };
   return {
     type: "FeatureCollection",
     features: cells.map((c) => ({
@@ -377,20 +337,6 @@ function toFc(cells: GridCell[]): FeatureCollection {
         color: colorOf(c.grade),
         cell: JSON.stringify(c),
       },
-    })),
-  };
-}
-
-/** heatmap 용 셀 중심점. 등급만 있으면 되므로 cell 원본은 싣지 않는다 — 같은
- *  데이터를 두 소스에 복사하면 클릭이 어느 쪽을 집었는지 모호해진다.
- *  클릭·호버는 전부 grid-fill 이 받는다. */
-function toCentreFc(cells: GridCell[]): FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: cells.map((c) => ({
-      type: "Feature" as const,
-      geometry: { type: "Point" as const, coordinates: c.center },
-      properties: { grade: c.grade },
     })),
   };
 }
