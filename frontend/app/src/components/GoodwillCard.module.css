@@ -423,6 +423,23 @@
   color: var(--fg-t6);
 }
 
+/* 데이터 상한 공시 — 근거 행렬(.basis)에 붙는 각주라 카드 톤을 쓰되,
+   «참고가가 낮게 나오는 이유»라서 그냥 회색 각주로 흘리면 안 읽힌다. */
+.capNote {
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: var(--fg-wash);
+  border-left: 3px solid var(--fg-y);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg-t4);
+}
+
+.capNote b {
+  font-weight: 500;
+  color: var(--fg-t2);
+}
+
 /* ---- 호가 3분해 (기획서 §4.3.1) ----
    바닥권리금만 다른 색을 준다 — 시설·영업은 산정 관행이 있고 바닥은 없어서,
    «근거를 물어볼 수 있는 구간»이 어디인지가 색으로 먼저 읽혀야 한다. */

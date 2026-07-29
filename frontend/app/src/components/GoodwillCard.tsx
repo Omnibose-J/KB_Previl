@@ -237,13 +237,27 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
           <dt>계산 기간</dt>
           <dd>
             {int(r.valuationYears)}년{" "}
+            {/* «둘 중 짧은 쪽»만 말하면 어느 쪽이 물렸는지가 안 보인다. 계약이
+                짧아서 짧은 것과, 기록이 3년치뿐이라 더 못 세는 것은 사용자가
+                할 수 있는 일이 다르다(전자는 협상, 후자는 판단 보정). */}
             <em>
-              버틸 것으로 보는 기간 {r.expectedSurvivalYears.toFixed(1)}년과 남은 계약{" "}
-              {int(r.leaseRemainingYears)}년 중 짧은 쪽
+              {r.leaseRemainingYears < r.expectedSurvivalYears
+                ? `남은 계약 ${int(r.leaseRemainingYears)}년이 더 짧아서 그만큼만 셌어요`
+                : `이런 자리가 버티는 기간이 ${r.expectedSurvivalYears.toFixed(1)}년이라 거기서 멈췄어요`}
             </em>
           </dd>
         </div>
       </dl>
+
+      {/* 상한이 «3년치 기록»이라는 데이터 사정에서 온다는 것과, 그래서 값이
+          어느 방향으로 치우치는지를 밝힌다. 이걸 숨기면 잔여 계약이 긴 매물의
+          참고가가 왜 안 오르는지 사용자가 알 방법이 없다. */}
+      {r.leaseRemainingYears >= r.expectedSurvivalYears ? (
+        <p className={s.capNote}>
+          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. 계약이 더 길어도 참고가는
+          그 이상 오르지 않으니, <b>오래 갈 자리라면 실제 가치는 이보다 높다</b>고 보셔야 해요.
+        </p>
+      ) : null}
 
       <SensitivityPivot r={r} />
 
