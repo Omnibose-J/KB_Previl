@@ -1,9 +1,13 @@
 /* S3 — figma metrics: 600px ranking + flexible map panel, gap 24, pad 24/32. */
 
 .page {
+  /* 1440 프레임은 이제 #root 가 아니라 각 화면이 건다. 이 화면들은 지도·목록
+     비율과 글줄 길이가 1440 기준으로 짜여 있어 그 폭을 유지한다. */
+  max-width: 1440px;
+  margin: 0 auto;
   background: var(--fg-paper);
   min-height: 100vh;
-  animation: fadeUp 0.3s ease-out both;
+  animation: var(--kf-fade-up) 0.3s var(--ease-out) both;
 }
 
 .condPill {
@@ -175,7 +179,7 @@ button.wCtl:disabled {
    `both`: a `both` fill keeps applying the final transform forever and would
    block the hover lift on these same elements. */
 .list > li {
-  animation: fadeUp 0.3s ease-out backwards;
+  animation: var(--kf-fade-up) 0.3s var(--ease-out) backwards;
 }
 
 .list > li:nth-child(1) { animation-delay: 0.03s; }

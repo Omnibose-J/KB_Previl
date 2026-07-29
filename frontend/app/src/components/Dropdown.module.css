@@ -73,7 +73,7 @@
   background: var(--fg-card);
   border: 1px solid var(--fg-line);
   box-shadow: 0 12px 32px rgb(20 20 20 / 14%);
-  animation: drop 0.12s ease-out;
+  animation: drop 0.12s var(--ease-out);
 }
 
 @keyframes drop {

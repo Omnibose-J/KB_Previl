@@ -112,7 +112,7 @@
   border-radius: 12px;
   background: var(--fg-y-bg);
   border: 1px solid var(--fg-y);
-  animation: fadeUp 0.2s ease-out;
+  animation: var(--kf-fade-up) 0.2s var(--ease-out);
 }
 
 .headlineMain {

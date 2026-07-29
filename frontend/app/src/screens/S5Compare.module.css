@@ -2,6 +2,10 @@
    위쪽은 흰 카드 설정면, 아래쪽 결과는 지면을 통째로 쓰는 증명면이다. */
 
 .page {
+  /* 1440 프레임은 이제 #root 가 아니라 각 화면이 건다. 이 화면들은 지도·목록
+     비율과 글줄 길이가 1440 기준으로 짜여 있어 그 폭을 유지한다. */
+  max-width: 1440px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   background: var(--fg-paper);
@@ -166,7 +170,7 @@
   border: 1px solid var(--fg-line2);
   background: var(--fg-card-warm);
   cursor: pointer;
-  animation: fadeUp 0.18s ease-out;
+  animation: var(--kf-fade-up) 0.18s var(--ease-out);
 }
 
 .slotOn {
@@ -377,7 +381,7 @@
   border-radius: 16px;
   background: var(--fg-card);
   border: 1px solid var(--fg-line);
-  animation: fadeUp 0.24s ease-out;
+  animation: var(--kf-fade-up) 0.24s var(--ease-out);
 }
 
 .resultHead h2 {

@@ -74,6 +74,25 @@
   --fg-font: "KBFG Text", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --fg-font-kb: "KBFG Text", "Noto Sans KR", sans-serif;
 
+  /* motion — 계열은 fadeUp 하나뿐이고 곡선도 하나로 통일한다.
+     CSS 내장 ease-out 은 곡률이 약해 «기본값 그대로»로 읽히므로 강한 곡선을
+     쓴다. 화면에 «나타나는» 것에는 ease-in-out 을 쓰지 않는다 — 시작이 느려
+     반응이 없는 것처럼 읽힌다(ease-in-out 은 이미 떠 있는 것이 자리를 옮길
+     때의 곡선이고, 우리에겐 그런 모션이 없다). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* keyframes 이름을 변수에 담아 넘긴다. CSS Modules 는 .module.css 안의
+     animation-name 을 무조건 스코프 이름으로 바꾸는데, fadeUp 은 모듈이 아닌
+     이 파일에 있어서 «_fadeUp_해시_1» 이라는 없는 이름이 박힌다(그래서 11곳이
+     전부 조용히 죽어 있었다). var() 안의 토큰은 다시 쓰지 않으므로 이 경로만
+     살아남는다. */
+  --kf-fade-up: fadeUp;
+
+  /* 전면 배경 + 안쪽 내용만 1440 으로 묶는 여백. 좁을 때는 화면 여백이고,
+     1440 을 넘으면 남는 폭의 절반이라 글줄이 더 늘어나지 않는다. 100% 는
+     쓰는 쪽 요소 기준으로 풀리므로 각 절이 자기 폭으로 계산한다. */
+  --edge: max(clamp(20px, 4.4vw, 64px), (100% - 1440px) / 2);
+
   /* grade ramp: amber sequential, hue + alpha stepped so adjacent grades are
      actually distinguishable on the map (single-alpha yellow read as one tone
      in grade-1-dense districts). grade 1 = best = deepest. */
@@ -156,21 +175,26 @@ ul {
   list-style: none;
 }
 
-/* 1440 design frame, centered; shrinks gracefully by the scrollbar width. */
+/* 1440 은 «내용»의 프레임이지 «면»의 프레임이 아니다. 여기서 통째로 막으면
+   랜딩의 어두운 히어로·노란 CTA 가 넓은 화면에서 양옆에 흰 띠를 남긴다.
+   폭 제한은 그것이 필요한 화면(S2~S5)이 각자 .page 에서 건다. */
 #root {
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
 }
 
+
 /* ── motion ──────────────────────────────────────────
-   One seed family: fadeUp (opacity + 8px lift), ease-out, 0.12~0.35s.
-   Screens enter with it, card lists stagger it, popovers reuse it. */
+   One seed family: fadeUp (opacity + lift), var(--ease-out), 0.12~0.6s.
+   Screens enter with it, card lists stagger it, popovers reuse it.
+
+   이동 거리는 요소가 정한다. 매번 보는 제품 화면은 짧게(기본 8px), 한 번만
+   보는 랜딩의 큰 면은 멀리서 들어와야 «천천히 온다»가 느껴진다. 거리를 안
+   주고 시간만 늘리면 그냥 느린 페이드가 된다. */
 
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--fadeup-dist, 8px));
   }
 
   to {

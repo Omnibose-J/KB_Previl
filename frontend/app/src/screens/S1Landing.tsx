@@ -152,6 +152,13 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
         </div>
 
         <p className={s.sources}>{SOURCES.join("  ·  ")}</p>
+
+        {/* 히어로가 화면을 정확히 채우면서 «아래에 더 있다»는 신호가 사라졌다.
+            장식이 아니라 눌러서 실제로 내려가는 버튼이라 자리값을 한다. */}
+        <button className={s.scrollCue} onClick={() => scrollTo(why)}>
+          <span>Scroll</span>
+          <i />
+        </button>
       </header>
 
       {/* ── WHY NOW ──────────────────────────────────────────────────── */}

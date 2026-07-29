@@ -1,9 +1,13 @@
 /* S4 — figma metrics: crumb 66px, dark hero 177px, 960px main + 360px sidebar. */
 
 .page {
+  /* 1440 프레임은 이제 #root 가 아니라 각 화면이 건다. 이 화면들은 지도·목록
+     비율과 글줄 길이가 1440 기준으로 짜여 있어 그 폭을 유지한다. */
+  max-width: 1440px;
+  margin: 0 auto;
   background: var(--fg-paper);
   min-height: 100vh;
-  animation: fadeUp 0.3s ease-out both;
+  animation: var(--kf-fade-up) 0.3s var(--ease-out) both;
 }
 
 .pad {
@@ -937,7 +941,7 @@
   border-radius: 18px;
   box-shadow: 0 24px 64px rgb(0 0 0 / 30%);
   /* display:none → flex retriggers the animation, so each open replays it */
-  animation: fadeUp 0.28s ease-out both;
+  animation: var(--kf-fade-up) 0.28s var(--ease-out) both;
 }
 
 /* GoodwillCard keeps its S4-section chrome (rule top + tall padding) — inside

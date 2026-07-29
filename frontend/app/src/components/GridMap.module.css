@@ -45,7 +45,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 16px rgb(0 0 0 / 24%);
   white-space: nowrap;
-  animation: fadeUp 0.18s ease-out both;
+  animation: var(--kf-fade-up) 0.18s var(--ease-out) both;
 }
 
 .bubble strong {
