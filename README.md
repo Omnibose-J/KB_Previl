@@ -26,8 +26,9 @@ verify 8/8 · consistency 17/17 · as-of selftest PASS · ≤T 셀프테스트 P
 | | |
 |---|---|
 | 인허가 이력 | 535,603건 · 좌표 보유 89.1% |
-| 100m 격자 | 21,544개 (데이터가 닿는 셀) |
-| 상권 내 격자 | 11,466 (53.2%) — 나머지는 매출 NULL |
+| 100m 격자 | 23,572개 (데이터가 닿는 셀) |
+| 상권 내 격자 | 11,900 (50.5%) — 나머지는 매출 NULL |
+| 사전계산 | `grid_score` 241,776행 (12업태 × 20,148격자) |
 | 서울 3년 생존율 | 2013년 개업 71.3% → 2019년 65.7% → 2023년 58.8% |
 | 모델 (순수 입지) | LightGBM · AUC **0.6392** · 최고 베이스라인 0.5669 |
 | 상위 10% 자리 | 실측 생존율 **76.9%** (73.8–79.7) · 전체 58.6% |
@@ -41,10 +42,66 @@ verify 8/8 · consistency 17/17 · as-of selftest PASS · ≤T 셀프테스트 P
 
 ---
 
+## 콜드 스타트 — 빈 상태에서 서비스까지
+
+이 저장소는 **코드만** 담는다. `kb.db`·`pipeline/cache/`·`model/.cache/`는 전부
+gitignore이고 **학습된 모델 아티팩트도 추적되지 않는다**. `service.precompute`가
+순위 모델을 매번 학습하므로, clone한 사람은 아래 한 줄로 전부 만들어야 한다.
+
+```bash
+cp .env.example .env      # 키 4종을 채운다
+python -m pipeline.bootstrap --preflight    # 키·경로·잔여 쿼터 점검 (네트워크 호출 없음)
+python -m pipeline.bootstrap --gates        # 수집 → … → grid_score → 게이트
+```
+
+16단계다: `schema → collect → normalize → cohort → grid → geocode → sgis →
+sgis_match → features → access → addr_history → concept → concept_mix →
+precompute → ui_curves → succession`.
+
+**`pipeline.run`은 이 일을 못 한다.** features까지만 돌고 `grid_score`를 만들지
+않아 추천이 빈 목록이 되며, 센서스 단계가 없어 `corp_cnt`가 전부 NULL로 남는다.
+
+### 필요한 키
+
+| 키 | 쓰는 곳 | 없으면 |
+|---|---|---|
+| `SEOUL_OPEN_API_KEY` | 인허가·상권·생활인구 수집 | collect 불가 |
+| `KAKAO_REST_API_KEY` | 격자 중심 → 행정동 역지오코딩 | geocode 불가 |
+| `SGIS_CONSUMER_KEY` / `_SECRET` | 센서스 | 배후인구 피처 결측 |
+| `DATA_GO_KR_SERVICE_KEY` | SEMAS 점포 (`--semas`) | 선택 — 없어도 완주 |
+
+`OPENAI_API_KEY`는 **필요 없다.** 기각된 비정형 실험에서만 쓰였고 콜드스타트
+경로에 없다.
+
+### 시간과 쿼터
+
+| 단계 | 캐시 있을 때 |
+|---|---|
+| normalize (53.5만 행) | 33초 |
+| features · access · sgis | 7초 |
+| addr_history | 13초 |
+| concept | 78초 |
+| precompute (모델 학습 + 채점) | 59초 |
+| succession (M2) | 68초 |
+| **ui_curves** (1·3·5년 곡선 × 등급 × 면적대) | **895초** |
+
+캐시가 없으면 여기에 수집이 붙는다. 서울 열린데이터는 **일일 900콜**이고 인허가
+한 종만 **536콜**이라, 전량 수집은 약 780콜로 하루 예산 안에 겨우 들어간다.
+중간에 쿼터가 끊기면 같은 명령을 다시 치면 된다 — 각 단계는 출력 테이블이 차
+있으면 건너뛰고, `--from <단계>`로 지점을 지정할 수도 있다.
+
+### 알아둘 것
+
+`pipeline.verify`의 `counts` 검사는 **라이브 API의 총건수와 대조**한다
+(`verify.py:62`). 캐시가 원천보다 오래되면 그만큼 어긋나 실패한다 — 캐시로만
+재구축한 DB에서 7/8이 나오는 건 이 이유이고, 수집을 포함한 콜드런에서는 통과한다.
+
+---
+
 ## 실행
 
 ```bash
-python -m pipeline.run --all                  # 수집 → 정규화 → 격자 → 검증
+python -m pipeline.bootstrap --gates          # 콜드 스타트 (위 참조)
 python -m model.recommend --uptae 한식 --top 10        # 입지 추천
 python -m model.economics --uptae-cd CS100001 --rent 300 --upfront 8000
 python -m pipeline.query --lon 127.0276 --lat 37.4979  # 좌표로 격자 조회
