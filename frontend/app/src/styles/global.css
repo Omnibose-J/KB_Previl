@@ -87,6 +87,7 @@
      전부 조용히 죽어 있었다). var() 안의 토큰은 다시 쓰지 않으므로 이 경로만
      살아남는다. */
   --kf-fade-up: fadeUp;
+  --kf-bar-fill: barFill;
 
   /* 전면 배경 + 안쪽 내용만 1440 으로 묶는 여백. 좁을 때는 화면 여백이고,
      1440 을 넘으면 남는 폭의 절반이라 글줄이 더 늘어나지 않는다. 100% 는
@@ -111,6 +112,36 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* 앵커 이동·scrollIntoView 가 뚝 끊기지 않고 흐른다. 휠 입력을 가로채는
+   스크롤 라이브러리는 쓰지 않는다 — 네이티브 스크롤 속도·관성·접근성 도구가
+   전부 그 위에서 깨진다. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── 화면 전환 ────────────────────────────────────────
+   View Transitions 가 지원되면 화면 교체가 교차 페이드로 이어진다. 미지원
+   브라우저는 App.tsx 에서 그냥 즉시 교체된다(내용은 동일). */
+::view-transition-old(root) {
+  animation: vtOut 0.22s ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: vtIn 0.32s var(--ease-out) both;
+}
+
+@keyframes vtOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vtIn {
+  from {
+    opacity: 0;
+  }
 }
 
 body {
@@ -203,6 +234,20 @@ ul {
   }
 }
 
+/* 막대는 왼쪽에서 차오른다. 폭은 인라인 style 로 오므로 여기서는 scaleX 만
+   0->1 로 민다 — 폭 자체를 keyframe 으로 잡으면 인라인 값을 이길 수 없다.
+   값이 «바뀔» 때는 이 애니메이션이 이미 끝나 있으므로 각 막대에 걸린
+   transition: width 가 이어받는다(그래야 재계산마다 0부터 다시 그리지 않는다). */
+@keyframes barFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -210,6 +255,10 @@ ul {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }
 

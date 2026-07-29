@@ -183,6 +183,13 @@
   height: 100%;
   /* 아주 얇은 조각도 보이게 — 0폭이면 «없다»로 읽힌다 */
   min-width: 2px;
+
+  /* 왼쪽에서 차오른다. 첫 등장은 barFill(scaleX 0->1), 값이 바뀔 때는
+     transition: width 가 이어받는다 — 이 카드는 입력마다 재계산되므로
+     keyframe 을 다시 돌리면 타이핑할 때마다 0부터 그려 깜빡인다. */
+  transform-origin: left;
+  animation: var(--kf-bar-fill) 0.7s var(--ease-out) both;
+  transition: width 0.45s var(--ease-out);
 }
 
 .segRent {

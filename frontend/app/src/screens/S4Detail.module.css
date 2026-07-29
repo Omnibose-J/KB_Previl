@@ -301,6 +301,29 @@
   border-top: 1px solid var(--fg-line);
 }
 
+/* 리포트는 한 후보당 한 번 길게 읽는 문서라 절이 스크롤로 들어온다.
+   @supports 밖에서는 규칙이 통째로 무시돼 그냥 보인 채로 남는다 — «안 보임»
+   이 기본 상태가 되면 지원 여부에 따라 내용이 사라진다.
+   구간을 앞쪽(entry 10% ~ cover 26%)으로 잡아, 제대로 화면에 들어왔을 때는
+   이미 다 떠 있게 한다. 위로 되짚어 읽을 때 다시 흐려지면 방해가 된다. */
+@supports (animation-timeline: view()) {
+  .card {
+    --fadeup-dist: 18px;
+
+    animation-name: var(--kf-fade-up);
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 26%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card {
+      animation: none;
+    }
+  }
+}
+
 .cardHead {
   display: flex;
   flex-direction: column;
@@ -394,6 +417,11 @@
   display: block;
   height: 100%;
   border-radius: 5px;
+
+  /* 왼쪽에서 차오른다 — 첫 등장은 barFill, 값 변경은 transition 이 이어받는다 */
+  transform-origin: left;
+  animation: var(--kf-bar-fill) 0.7s var(--ease-out) both;
+  transition: width 0.45s var(--ease-out);
 }
 
 .barY {
@@ -647,6 +675,13 @@
   border-radius: 4px;
   background: var(--fg-y);
   flex: none;
+
+  /* 왼쪽에서 차오른다. 첫 등장은 barFill(scaleX 0->1), 값이 바뀔 때는
+     transition: width 가 이어받는다 — keyframe 을 다시 돌리면 재계산마다
+     0부터 그려 깜빡인다. */
+  transform-origin: left;
+  animation: var(--kf-bar-fill) 0.7s var(--ease-out) both;
+  transition: width 0.45s var(--ease-out);
 }
 
 .pctBar em {

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { flushSync } from "react-dom";
 import S1Landing from "./screens/S1Landing";
 import S2Input from "./screens/S2Input";
 import S3Results from "./screens/S3Results";
@@ -22,9 +23,21 @@ export type Screen =
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "landing" });
 
+  // 화면 교체를 교차 페이드로 잇는다. startViewTransition 은 «콜백 실행 전후의
+  // DOM»을 비교하므로 setState 를 flushSync 로 동기 커밋해야 한다 — 안 그러면
+  // React 가 나중에 렌더해서 전환이 빈 화면 사이에서 일어난다.
+  // 지원하지 않는 브라우저에서는 그냥 즉시 교체된다(전환만 없고 내용은 같다).
+  const go = useCallback((next: Screen) => {
+    if (!document.startViewTransition) {
+      setScreen(next);
+      return;
+    }
+    document.startViewTransition(() => flushSync(() => setScreen(next)));
+  }, []);
+
   return (
     <SearchProvider>
-      <Route screen={screen} go={setScreen} />
+      <Route screen={screen} go={go} />
     </SearchProvider>
   );
 }

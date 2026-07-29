@@ -67,6 +67,13 @@
   height: 100%;
   border-radius: 5px;
   background: var(--fg-y);
+
+  /* 왼쪽에서 차오른다. 첫 등장은 barFill(scaleX 0->1), 값이 바뀔 때는
+     transition: width 가 이어받는다 — keyframe 을 다시 돌리면 재계산마다
+     0부터 그려 깜빡인다. */
+  transform-origin: left;
+  animation: var(--kf-bar-fill) 0.7s var(--ease-out) both;
+  transition: width 0.45s var(--ease-out);
 }
 
 /* 1위만 색을 진하게 — 색만으로 구분하지 않도록 수치를 항상 함께 보여준다. */
