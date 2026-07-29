@@ -260,12 +260,14 @@ def preflight():
     # 캐시가 있으면 그만큼 호출을 안 쓴다. 어느 것이 있는지 낱개로 알려준다 —
     # licence.jsonl 하나만 보고 «캐시 있음» 이라 하면 휴게음식점 147콜이
     # 남아 있는데도 준비된 줄로 읽힌다.
+    # 실측 2026-07-29, 빈 캐시로 `collect --dry-run` (서비스당 총건수 1콜).
+    # 합계 857 로 일일 한도 900 에 여유가 43 밖에 없다.
     CACHE_CALLS = {
         "licence.jsonl": 536,
         "licence_rest.jsonl": 147,
         "trdar_area.jsonl": 2,
-        f"trdar_sales_{DEFAULT_QUARTER}.jsonl": 35,
-        f"trdar_store_{DEFAULT_QUARTER}.jsonl": 13,
+        f"trdar_sales_{DEFAULT_QUARTER}.jsonl": 22,
+        f"trdar_store_{DEFAULT_QUARTER}.jsonl": 76,
         f"trdar_flpop_{DEFAULT_QUARTER}.jsonl": 2,
         "lvpop.jsonl": 72,
     }
