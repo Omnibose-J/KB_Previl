@@ -20,7 +20,7 @@ import sqlite3
 import sys
 from collections import Counter, defaultdict
 
-from pipeline.config import DB_PATH
+from pipeline.config import DB_PATH, REST_EATERY_UPTAE
 from pipeline.grid import neighbors
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -54,14 +54,25 @@ def concept_of(name):
 def build(con):
     cells = defaultdict(Counter)
     n_named = n_open = 0
-    for name, gid in con.execute(
-            "SELECT bplcnm, grid_id FROM licence "
-            "WHERE bplcnm IS NOT NULL AND grid_id IS NOT NULL AND is_closed = 0"):
-        n_open += 1
-        c = concept_of(name)
-        if c:
-            cells[gid][c] += 1
-            n_named += 1
+
+    # 일반음식점 + 휴게음식점(음식점류). 전에는 일반음식점만 읽어서 카페·
+    # 베이커리가 통째로 안 잡혔다 — 사전에 «커피»·«카페»·«베이커리» 가 있는데도
+    # 걸릴 상호가 없었던 것이다. 서울 영업 중 음식업의 16.9% 가 그쪽에 있다.
+    ph = ",".join("?" * len(REST_EATERY_UPTAE))
+    sources = [
+        ("SELECT bplcnm, grid_id FROM licence "
+         "WHERE bplcnm IS NOT NULL AND grid_id IS NOT NULL AND is_closed = 0", ()),
+        (f"SELECT bplcnm, grid_id FROM licence_rest "
+         f"WHERE bplcnm IS NOT NULL AND grid_id IS NOT NULL AND is_closed = 0 "
+         f"AND uptae IN ({ph})", REST_EATERY_UPTAE),
+    ]
+    for sql, args in sources:
+        for name, gid in con.execute(sql, args):
+            n_open += 1
+            c = concept_of(name)
+            if c:
+                cells[gid][c] += 1
+                n_named += 1
     print(f"영업중 점포 {n_open:,} · 콘셉트 확정 {n_named:,} "
           f"({n_named / n_open:.1%}) · 격자 {len(cells):,}")
 
@@ -82,7 +93,7 @@ def build(con):
     covered = len({g for g, _, _ in rows})
     con.executemany("INSERT OR REPLACE INTO score_meta VALUES(?,?)", [
         ("concept_mix_ring", str(RING)),
-        ("concept_mix_source", "licence.bplcnm:open_only"),
+        ("concept_mix_source", "licence+licence_rest.bplcnm:open_only"),
         ("concept_mix_claim", "observation_only:not_predictive"),
         ("concept_mix_shops", str(n_named)),
         ("concept_mix_grids", str(covered)),

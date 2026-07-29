@@ -54,6 +54,19 @@ SEOUL_DAILY_BUDGET = 900
 
 SVC_LICENCE = "LOCALDATA_072404"        # 일반음식점 인허가
 SVC_LICENCE_REST = "LOCALDATA_072405"   # 휴게음식점
+
+# 휴게음식점 중 «음식점»으로 셀 것. 카페·베이커리·패스트푸드는 여기 있고,
+# 편의점 5,917 · 백화점 527 · 철도역구내 105 는 인허가만 휴게음식점이지 경쟁
+# 음식점이 아니라 뺀다. «기타 휴게음식점» 7,353 도 뺀다 — 상호를 보면 GS25·
+# 씨유 같은 편의점과 카페·도넛이 섞여 있어 어느 쪽으로도 셀 수 없다.
+#
+# 레인 B(service.api)와 레인 A(model.concept_mix)가 같은 집합을 써야 화면의
+# «음식점 수»와 «주변에 많은 가게»가 같은 모집단을 말한다. 두 곳에 복사하면
+# 한쪽만 고쳐져 조용히 갈라지므로 여기 한 곳에서 정한다.
+REST_EATERY_UPTAE = (
+    "커피숍", "일반조리판매", "다방", "패스트푸드", "과자점",
+    "푸드트럭", "아이스크림", "전통찻집", "떡카페", "키즈카페",
+)
 SVC_TRDAR_AREA = "TbgisTrdarRelm"       # 영역-상권
 SVC_TRDAR_SALES = "VwsmTrdarSelngQq"    # 추정매출-상권
 SVC_TRDAR_STORE = "VwsmTrdarStorQq"     # 점포-상권

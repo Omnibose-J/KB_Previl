@@ -1544,7 +1544,10 @@ def test_concept_mix_counts_are_observations_not_predictions():
     assert counts == sorted(counts, reverse=True)
     # 관측이라는 선언이 응답에 남아 있어야 한다
     assert mix["claim"] == "observation_only:not_predictive"
-    assert mix["source"] == "licence.bplcnm:open_only"
+    # 원천이 두 표다. 일반음식점만 읽던 시절에는 사전에 «커피»·«카페»가 있어도
+    # 걸릴 상호가 없어 카페가 통째로 안 잡혔다(30,801 -> 79,693 으로 늘었다).
+    # 한쪽으로 되돌아가면 여기서 걸린다.
+    assert mix["source"] == "licence+licence_rest.bplcnm:open_only"
 
 
 def test_concept_mix_reports_unavailable_when_batch_missing(monkeypatch, tmp_path):

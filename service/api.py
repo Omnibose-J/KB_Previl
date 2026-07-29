@@ -11,7 +11,13 @@ from contextlib import contextmanager
 
 from pyproj import Transformer
 
-from pipeline.config import CRS_GRID, CRS_WGS84, DB_PATH, GRID_SIZE_M
+from pipeline.config import (
+    CRS_GRID,
+    CRS_WGS84,
+    DB_PATH,
+    GRID_SIZE_M,
+    REST_EATERY_UPTAE,
+)
 from pipeline.grid import in_seoul, neighbors, to_grid_id
 from service import alerts
 
@@ -85,16 +91,9 @@ REST_UPTAE = {
 
 # «영업 중인 음식점»에 함께 세는 휴게음식점. 서울 영업 중 음식업 131,153곳 중
 # 22,108곳(16.9%)이 여기 있는데 화면은 일반음식점 109,045곳만 세고 있었다.
-#
-# 휴게음식점 전부는 아니다. 편의점 5,917 · 백화점 527 · 철도역구내 105 처럼
-# 인허가는 휴게음식점이지만 «경쟁 음식점»이 아닌 것들은 뺀다.
-# «기타 휴게음식점» 7,353 도 뺐다 — 상호를 보면 GS25·씨유 같은 편의점과
-# 카페·도넛이 섞여 있어 어느 쪽으로도 셀 수 없다. 모르는 것을 넣어 숫자를
-# 키우지 않는다.
-REST_EATERY = (
-    "커피숍", "일반조리판매", "다방", "패스트푸드", "과자점",
-    "푸드트럭", "아이스크림", "전통찻집", "떡카페", "키즈카페",
-)
+# 집합은 pipeline.config 가 정한다 — model.concept_mix 도 같은 것을 써야
+# «음식점 수»와 «주변에 많은 가게»가 같은 모집단을 말한다.
+REST_EATERY = REST_EATERY_UPTAE
 
 NOT_EVALUATED_DETAIL = "이웃 이력 부족으로 평가하지 않음"
 SURVIVAL_PERIODS = (1, 3, 5)
