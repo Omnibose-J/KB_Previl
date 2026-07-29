@@ -122,6 +122,15 @@ CREATE TABLE IF NOT EXISTS lvpop_profile (
   PRIMARY KEY (adstrd_cd, tmzon)
 );
 
+-- 산출물 메타 (레인 공유). service.precompute 가 순위 메타를 쓰고
+-- pipeline.addr_history 가 승계 라벨 규약을 쓴다. 콜드 스타트에서는
+-- addr_history 가 precompute 보다 먼저 도는데, 소유자를 precompute 로 두면
+-- 그 시점에 테이블이 없어 죽는다. 그래서 공유 스키마가 소유한다.
+CREATE TABLE IF NOT EXISTS score_meta (
+  k TEXT PRIMARY KEY,
+  v TEXT
+);
+
 -- 코호트 생존율 (전량 기준)
 CREATE TABLE IF NOT EXISTS cohort_survival (
   scope         TEXT,          -- 'seoul' | 'uptae:한식' | 'grid:...'

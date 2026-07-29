@@ -3,10 +3,11 @@
 kb.db
 kb.db-wal
 kb.db-shm
-kb-baseline-20260728.db
-kb-w5-work.db
-kb-w5-work.db-wal
-kb-w5-work.db-shm
+# 작업용 사본·백업 (콜드런 산출물, 교체 전 원본 등). 개별 이름을 나열하면
+# 새 사본이 생길 때마다 빠뜨린다.
+kb-*.db
+kb-*.db-wal
+kb-*.db-shm
 pipeline/cache/
 probe/results/
 __pycache__/
@@ -25,3 +26,5 @@ scratch_*
 # 판정 서브에이전트가 저장소 루트에 남기는 임시 스크립트
 temp_*.py
 analyze_*.py
+# anatomy 코드그래프 캐시 (레포에서 재생성된다)
+.codegraph/
