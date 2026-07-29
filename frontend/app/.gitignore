@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.local
+
+# tsc -b 증분 캐시 — 빌드할 때마다 바뀌어 커밋마다 노이즈가 낀다
+*.tsbuildinfo
