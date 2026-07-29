@@ -17,13 +17,13 @@
 }
 
 .title {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .lead {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -59,7 +59,7 @@
   border-radius: 4px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -74,7 +74,7 @@
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -83,12 +83,12 @@
 
 .fieldInput input::placeholder {
   color: var(--fg-t8);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
 }
 
 .unit {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
   flex: none;
 }
@@ -98,7 +98,7 @@
   border-radius: 10px;
   background: var(--fg-y-bg);
   color: var(--fg-y-text);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   text-align: center;
 }
@@ -126,15 +126,15 @@
 }
 
 .resultLabel {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t6);
 }
 
 .resultValue {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
-  line-height: 33px;
+  line-height: 36px;
   color: var(--fg-ink);
 }
 
@@ -147,7 +147,7 @@
 }
 
 .resultNote {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
@@ -156,7 +156,7 @@
   padding: 10px 14px;
   border-radius: 8px;
   background: var(--fg-wash);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t4);
 }
 
@@ -164,7 +164,7 @@
   padding: 10px 14px;
   border-radius: 8px;
   background: var(--fg-orange-bg);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-orange-deep);
 }
@@ -177,7 +177,7 @@
 }
 
 .compareTitle {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
 }
@@ -193,7 +193,7 @@
 .table th {
   padding: 10px 16px;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t5);
   border-top: 1px solid var(--fg-line3);
@@ -202,7 +202,7 @@
 .table td {
   padding: 10px 16px;
   text-align: right;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
   border-top: 1px solid var(--fg-line3);

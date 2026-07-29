@@ -31,20 +31,20 @@
 }
 
 .unrated strong {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .unrated p {
-  font-size: 13px;
-  line-height: 21px;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--fg-t4);
 }
 
 .unratedNote {
   color: var(--fg-t6) !important;
-  font-size: 12px !important;
+  font-size: 14px !important;
 }
 
 /* ── breadcrumb bar ──────────────────────────────── */
@@ -55,7 +55,7 @@
   padding: 14px 48px;
   background: var(--fg-card);
   border-bottom: 1px solid var(--fg-line);
-  font-size: 13px;
+  font-size: 15px;
   color: #5a5a5a;
 }
 
@@ -63,7 +63,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: #5a5a5a;
 }
@@ -108,7 +108,7 @@
 .pillGrayDark {
   padding: 5px 10px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -133,14 +133,14 @@
 }
 
 .heroTitle {
-  font-size: 38px;
+  font-size: 39px;
   font-weight: 900;
-  line-height: 49px;
+  line-height: 50px;
   color: #fff;
 }
 
 .heroSub {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fg-dt2);
 }
 
@@ -153,7 +153,7 @@
 }
 
 .heroGradeLabel {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-dt3);
 }
 
@@ -165,7 +165,7 @@
 }
 
 .heroGradeCap {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-dt3);
 }
 
@@ -202,7 +202,7 @@
   padding: 9px 16px;
   border: 0;
   border-radius: 100px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   background: var(--fg-wash);
   color: #6a6a6a;
@@ -249,7 +249,7 @@
 }
 
 .kpiLabel {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -261,15 +261,15 @@
 }
 
 .kpiV strong {
-  font-size: 38px;
+  font-size: 39px;
   font-weight: 900;
-  line-height: 42px;
+  line-height: 43px;
   color: var(--fg-ink);
 }
 
 .kpiV em {
   font-style: normal;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: #6a6a6a;
 }
@@ -279,12 +279,12 @@
 }
 
 .kpiMuted {
-  font-size: 20px !important;
+  font-size: 22px !important;
   color: var(--fg-t7) !important;
 }
 
 .kpiCap {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
@@ -304,13 +304,13 @@
 }
 
 .cardHead h2 {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .cardHead p {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -327,7 +327,7 @@
   border-radius: 100px;
   background: var(--fg-y-bg);
   color: var(--fg-y-text);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -348,14 +348,14 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
 }
 
 .barLabel em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--fg-t8);
 }
@@ -374,7 +374,7 @@
 }
 
 .barName {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t5);
 }
 
@@ -401,7 +401,7 @@
 }
 
 .barValue {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
   text-align: right;
@@ -418,8 +418,8 @@
 }
 
 .reportBody p {
-  font-size: 14px;
-  line-height: 27px;
+  font-size: 16px;
+  line-height: 31px;
   color: var(--fg-t2);
 }
 
@@ -473,7 +473,7 @@
 }
 
 .vs span {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -486,14 +486,14 @@
 }
 
 .vs strong {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
-  line-height: 31px;
+  line-height: 33px;
 }
 
 .vs em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   color: #5a5a5a;
 }
 
@@ -502,9 +502,9 @@
   border-radius: 10px;
   background: var(--fg-dark);
   color: var(--fg-y);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 21px;
+  line-height: 24px;
 }
 
 /* risk rows */
@@ -531,7 +531,7 @@
   padding: 4px 8px;
   border-radius: 5px;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -550,14 +550,14 @@
 }
 
 .riskBody strong {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .riskBody p {
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 23px;
   color: var(--fg-t5);
 }
 
@@ -577,7 +577,7 @@
 .table th {
   padding: 14px 20px;
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t7);
 }
@@ -585,7 +585,7 @@
 .table td {
   padding: 12px 20px;
   border-top: 1px solid var(--fg-line3);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t2);
 }
 
@@ -603,19 +603,19 @@
   border-radius: 5px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .thCap {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 300;
   color: var(--fg-t8);
 }
 
 .tdCap {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-t8);
 }
 
@@ -625,8 +625,8 @@
 }
 
 .tableFoot {
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 21px;
   color: var(--fg-t7);
 }
 
@@ -669,15 +669,15 @@
 }
 
 .loanTag {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   color: var(--fg-y-dim);
 }
 
 .loan h3 {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 30px;
+  line-height: 33px;
   color: var(--fg-ink);
 }
 
@@ -691,14 +691,14 @@
 }
 
 .loanList li {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--fg-t2);
 }
 
 .loanCap {
-  font-size: 10px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 19px;
   color: var(--fg-y-dim2);
 }
 
@@ -713,15 +713,15 @@
 }
 
 .coachTag {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   color: var(--fg-y);
 }
 
 .coach p {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 24px;
+  line-height: 27px;
   color: #fff;
 }
 
@@ -736,7 +736,7 @@
   border-radius: 100px;
   background: var(--fg-dark-row);
   color: var(--fg-dt1);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -750,14 +750,14 @@
 }
 
 .alarm strong {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .alarm p {
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 23px;
   color: var(--fg-t5);
 }
 
@@ -771,7 +771,7 @@
 }
 
 .datacard strong {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
 }
@@ -783,13 +783,13 @@
 }
 
 .datacard li {
-  font-size: 11px;
-  line-height: 19px;
+  font-size: 13px;
+  line-height: 22px;
   color: var(--fg-t5);
 }
 
 .dataFoot {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-t7);
 }
 
@@ -820,13 +820,13 @@
 }
 
 .bldgId strong {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .bldgId span {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
@@ -838,13 +838,13 @@
 
 .bldgStats em {
   font-style: normal;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-green);
 }
 
 .bldgStats span {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
 }
 
@@ -861,7 +861,7 @@
   border-radius: 100px;
   border: 1px solid var(--fg-chipline);
   background: var(--fg-card);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t4);
 }
@@ -877,7 +877,7 @@
   padding: 18px;
   border-radius: 10px;
   background: var(--fg-gray-bg);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t4);
 }
 
@@ -889,7 +889,7 @@
   border-radius: 10px;
   background: var(--fg-dark);
   color: var(--fg-y);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -907,8 +907,8 @@
   padding: 16px 18px;
   border-radius: 10px;
   background: var(--fg-gray-bg);
-  font-size: 13px;
-  line-height: 21px;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--fg-t4);
 }
 
@@ -958,7 +958,7 @@
   border-radius: 50%;
   background: var(--fg-gray-bg);
   color: var(--fg-t4);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -973,7 +973,7 @@
   .side { position: static; }
   .main { padding: 4px 20px; }
   .hero { flex-wrap: wrap; padding: 24px 20px; gap: 16px; }
-  .heroTitle { font-size: 28px; line-height: 38px; }
+  .heroTitle { font-size: 30px; line-height: 41px; }
   .heroGrade { align-items: flex-start; }
   .pair { grid-template-columns: 1fr; gap: 0; }
   .pair > .card:nth-child(2) { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); }
@@ -995,6 +995,6 @@
 
 @media (max-width: 680px) {
   .barRow { grid-template-columns: 64px 1fr 84px; gap: 8px; }
-  .barValue { font-size: 12px; }
-  .barName { font-size: 11px; }
+  .barValue { font-size: 14px; }
+  .barName { font-size: 13px; }
 }

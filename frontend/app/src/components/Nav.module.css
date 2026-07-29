@@ -1,11 +1,18 @@
-/* Figma-snapshot compact nav: white bar, 1px warm hairline, logo 28px mark. */
+/* Compact top bar for S2/S3. 로고 블록의 세 값(마크 26px · 워드마크 19px ·
+   «KB» 옐로)은 S1Landing.module.css 의 .mark/.wordmark 와 같아야 한다 —
+   랜딩에서 넘어올 때 로고가 바뀌면 다른 서비스로 읽힌다.
+
+   세로 여백만 랜딩(20px)에 맞추고 가로는 32px 로 둔다. 랜딩은 64px 거터를
+   쓰지만 S3 결과 화면은 32px 라, 가로까지 맞추면 바 안의 로고가 아래 본문과
+   어긋난다. 하단 hairline 도 남긴다 — 랜딩은 바로 아래가 어두운 히어로라
+   경계가 저절로 생기지만, 여기는 흰 본문 위라 선이 없으면 바가 뜬다. */
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 15px 32px;
+  padding: 20px 32px;
   background: var(--fg-card);
   border-bottom: 1px solid var(--fg-line);
 }
@@ -20,22 +27,18 @@
 }
 
 .mark {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--fg-y);
-  color: var(--fg-ink);
-  font-family: var(--fg-font-kb);
-  font-size: 13px;
-  font-weight: 500; /* KBFG max weight; synthesis is blocked globally */
+  height: 26px;
+  width: auto;
 }
 
 .wordmark {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   color: var(--fg-ink);
+}
+
+.wordmarkKb {
+  color: var(--fg-y);
 }
 
 .center {
@@ -66,7 +69,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
   color: #9a9a9a;
 }
 
@@ -83,7 +86,7 @@
   border-radius: 50%;
   background: var(--fg-chipline);
   color: var(--fg-t6);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 

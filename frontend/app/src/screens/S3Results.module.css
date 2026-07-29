@@ -13,7 +13,7 @@
   padding: 8px 14px;
   border-radius: 100px;
   background: var(--fg-wash);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t2);
 }
@@ -27,7 +27,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg-y-deep);
 }
@@ -55,14 +55,14 @@
 }
 
 .rankTitle {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--fg-ink);
-  line-height: 33px;
+  line-height: 36px;
 }
 
 .rankSub {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
   margin-top: 3px;
 }
@@ -84,7 +84,7 @@
 }
 
 .whatifHead strong {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-y);
 }
@@ -93,7 +93,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-dt3);
 }
 
@@ -129,13 +129,13 @@ button.wCtl:disabled {
 }
 
 .wTitle {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
 }
 
 .wSub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-dt3);
 }
 
@@ -144,7 +144,7 @@ button.wCtl:disabled {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-dt2);
 }
 
@@ -154,7 +154,7 @@ button.wCtl:disabled {
   border-bottom: 1px solid var(--fg-dark-stroke);
   background: none;
   color: var(--fg-y);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   outline: none;
   padding: 0 0 2px;
@@ -206,7 +206,7 @@ button.wCtl:disabled {
 }
 
 .mapTitle {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
 }
@@ -220,7 +220,7 @@ button.wCtl:disabled {
   padding: 7px 12px;
   border: 0;
   border-radius: 100px;
-  font-size: 11px;
+  font-size: 13px;
   background: var(--fg-dark);
   color: var(--fg-y);
   font-weight: 700;
@@ -246,7 +246,7 @@ button.wCtl:disabled {
 
 .insGray strong {
   color: var(--fg-t5);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   flex: none;
 }
@@ -262,7 +262,7 @@ button.wCtl:disabled {
 }
 
 .insGray span {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--fg-t2);
 }
@@ -274,7 +274,7 @@ button.wCtl:disabled {
   align-items: center;
   gap: 16px;
   padding: 120px 0;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--fg-t3);
 }
 
@@ -284,13 +284,15 @@ button.wCtl:disabled {
   border-radius: 10px;
   background: var(--fg-dark);
   color: var(--fg-y);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 /* ---- responsive ---- */
 @media (max-width: 1024px) {
-  .body { grid-template-columns: 1fr; padding: 16px 16px 28px; }
+  /* minmax(0, 1fr) — 그냥 1fr 이면 트랙의 최소폭이 min-content 라, 안 줄어드는
+     자식(지도 범례) 하나가 열 전체를 밀어내 페이지에 가로 스크롤이 생긴다. */
+  .body { grid-template-columns: minmax(0, 1fr); padding: 16px 16px 28px; }
   .mapPanel { position: static; order: -1; }
   .mapBox { height: 380px; }
   .condPill { display: none; }
@@ -298,6 +300,6 @@ button.wCtl:disabled {
 
 @media (max-width: 680px) {
   .whatifRow { grid-template-columns: 1fr; }
-  .rankTitle { font-size: 19px; }
+  .rankTitle { font-size: 21px; }
   .mapHead { flex-wrap: wrap; }
 }

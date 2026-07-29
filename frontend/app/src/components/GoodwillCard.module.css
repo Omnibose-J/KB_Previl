@@ -16,13 +16,13 @@
 }
 
 .head h2 {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .head p {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -30,8 +30,8 @@
   padding: 18px;
   border-radius: 10px;
   background: var(--fg-gray-bg);
-  font-size: 13px;
-  line-height: 21px;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--fg-t4);
 }
 
@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -68,7 +68,7 @@
   border-radius: 4px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -83,7 +83,7 @@
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -92,12 +92,12 @@
 
 .fieldInput input::placeholder {
   color: var(--fg-t8);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
 }
 
 .unit {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
   flex: none;
 }
@@ -123,7 +123,7 @@
 }
 
 .leaseHead strong {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
 }
@@ -166,12 +166,12 @@
 .leaseTicks {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-t8);
 }
 
 .leaseCap {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t6);
 }
@@ -182,7 +182,7 @@
   border: 1px dashed var(--fg-chipline);
   border-radius: 10px;
   background: none;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t5);
 }
@@ -214,7 +214,7 @@
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -237,7 +237,7 @@
   border-bottom: 1px solid var(--fg-line2);
   background: none;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -246,7 +246,7 @@
 
 .assetNum em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
@@ -254,7 +254,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
   text-decoration: underline;
 }
@@ -264,7 +264,7 @@
   border-radius: 10px;
   background: var(--fg-y-bg);
   color: var(--fg-y-text);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   text-align: center;
 }
@@ -282,7 +282,7 @@
 .refOrange {
   padding: 6px 12px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -305,19 +305,19 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fg-t4);
 }
 
 .estimate strong {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
   color: var(--fg-ink);
 }
 
 .estimate em {
   font-style: normal;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t7);
 }
 
@@ -343,18 +343,18 @@
 }
 
 .gapRow span {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
 .gapRow strong {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .valuation {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
   display: flex;
@@ -365,7 +365,7 @@
 
 .valuation em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--fg-t7);
 }
@@ -384,7 +384,7 @@
 .sensTable th {
   padding: 10px 14px;
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t7);
   background: var(--fg-card-warm);
@@ -394,7 +394,7 @@
 .sensTable td {
   padding: 9px 14px;
   border-top: 1px solid var(--fg-line3);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t2);
 }
 
@@ -418,21 +418,21 @@
 }
 
 .basis dt {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg-t5);
 }
 
 .basis dd {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--fg-t2);
 }
 
 .basis dd em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--fg-t7);
   margin-left: 6px;
@@ -452,7 +452,7 @@
 }
 
 .sensTitle {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-t2);
 }
@@ -468,7 +468,7 @@
   border: 1px solid var(--fg-chipline);
   border-radius: 100px;
   background: var(--fg-card);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t3);
 }
@@ -487,13 +487,13 @@
 }
 
 .sensCap {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t7);
 }
 
 .notice {
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 21px;
   color: var(--fg-t6);
 }
 
@@ -504,7 +504,7 @@
   border-radius: 8px;
   background: var(--fg-wash);
   border-left: 3px solid var(--fg-y);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--fg-t4);
 }
@@ -530,14 +530,14 @@
 
 .decompHead h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .decompHead p {
   margin: 2px 0 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
 }
 
@@ -607,19 +607,19 @@
 }
 
 .decompName {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t2);
 }
 
 .decompValue {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg-ink);
   text-align: right;
 }
 
 .decompNote {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
 }
 
@@ -627,14 +627,14 @@
   padding: 10px 12px;
   border-radius: 8px;
   background: var(--fg-orange-bg);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--fg-orange-deep);
 }
 
 .decompUnder,
 .decompBench {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t6);
 }

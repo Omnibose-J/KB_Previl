@@ -28,14 +28,14 @@
 }
 
 .head h1 {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 45px;
+  line-height: 48px;
   color: var(--fg-ink);
 }
 
 .head p {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fg-t5);
 }
 
@@ -72,20 +72,20 @@
 }
 
 .stepTag {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   color: var(--fg-y);
   letter-spacing: 0.02em;
 }
 
 .boxTitleRow h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .boxHead p {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t6);
 }
 
@@ -106,14 +106,14 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #5a5a5a;
 }
 
 .sliderLabel em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t8);
 }
 
@@ -121,7 +121,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--fg-ink);
 }
@@ -130,7 +130,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t8);
   text-decoration: underline;
@@ -168,7 +168,7 @@
 .rangeEnds {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t8);
 }
 
@@ -183,7 +183,7 @@
 .chipOn {
   padding: 9px 16px;
   border-radius: 100px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   border: 1px solid var(--fg-chipline);
   background: var(--fg-card);
@@ -209,7 +209,7 @@
   padding: 12px 16px;
   border-radius: 10px;
   background: var(--fg-y-bg);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-y-text);
 }
 
@@ -237,7 +237,7 @@
 }
 
 .summaryTitle {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-y);
 }
@@ -256,13 +256,13 @@
 }
 
 .kv dt {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-dt3);
 }
 
 .kv dd {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: #fff;
 }
@@ -287,12 +287,12 @@
 }
 
 .funnel span {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-dt3);
 }
 
 .funnel strong {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
 }
@@ -307,7 +307,7 @@
 
 /* funnel row that is not narrowing yet — a hint, not a number */
 .fHint {
-  font-size: 12px !important;
+  font-size: 14px !important;
   font-weight: 500 !important;
   color: var(--fg-dt4) !important;
 }
@@ -318,7 +318,7 @@
   border-radius: 12px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -339,8 +339,8 @@
 }
 
 .caption {
-  font-size: 11px;
-  line-height: 19px;
+  font-size: 13px;
+  line-height: 22px;
   color: var(--fg-t6);
 }
 
@@ -353,14 +353,14 @@
 }
 
 .help strong {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .help span {
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 23px;
   color: var(--fg-t5);
 }
 
@@ -372,7 +372,7 @@
 }
 
 @media (max-width: 680px) {
-  .head h1 { font-size: 24px; line-height: 34px; }
-  .sliderValue { font-size: 16px; }
+  .head h1 { font-size: 26px; line-height: 37px; }
+  .sliderValue { font-size: 18px; }
   .sliderLabel em { display: none; }
 }

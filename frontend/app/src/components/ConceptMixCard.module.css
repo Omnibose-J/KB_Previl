@@ -16,13 +16,13 @@
 }
 
 .head h2 {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .head p {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -30,7 +30,7 @@
   padding: 18px;
   border: 1px dashed var(--fg-line);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t6);
 }
 
@@ -48,7 +48,7 @@
 }
 
 .name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--fg-ink);
 }
@@ -75,7 +75,7 @@
 }
 
 .count {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-ink);
   text-align: right;
@@ -87,13 +87,13 @@
   padding: 0;
   border: 0;
   background: none;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-y-text);
   cursor: pointer;
 }
 
 .note {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--fg-t6);
 }

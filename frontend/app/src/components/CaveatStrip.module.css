@@ -9,8 +9,8 @@
   background: var(--fg-wash);
   border-top: 1px solid var(--fg-line);
   color: var(--fg-t5);
-  font-size: 11px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .item + .item::before {

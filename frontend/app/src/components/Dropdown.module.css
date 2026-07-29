@@ -20,19 +20,19 @@
 }
 
 .trig {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .trigEmpty {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--fg-t8);
 }
 
 .trigDark {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg-y);
 }
@@ -99,7 +99,7 @@
 .optOn {
   padding: 9px 12px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--fg-t2);
   cursor: pointer;
@@ -132,6 +132,6 @@
 
 .optNote {
   padding: 12px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }

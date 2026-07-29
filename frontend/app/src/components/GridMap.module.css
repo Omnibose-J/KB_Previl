@@ -49,13 +49,13 @@
 }
 
 .bubble strong {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-y);
 }
 
 .bubble span {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-dt2);
 }
 
@@ -66,7 +66,7 @@
   border-radius: 8px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -87,7 +87,7 @@
   background: var(--fg-card);
   border-radius: 10px;
   box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-t6);
 }
 
@@ -124,12 +124,12 @@
   background: var(--fg-y);
   color: var(--fg-dark);
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .pin span {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
 }
@@ -138,7 +138,7 @@
    a thinned map would read as "these are all the cells" (lane B contract). */
 .zoomHint {
   padding: 12px 16px;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 23px;
   color: var(--fg-t3);
 }

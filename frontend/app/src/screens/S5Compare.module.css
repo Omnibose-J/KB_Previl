@@ -24,7 +24,7 @@
   border: 0;
   background: none;
   padding: 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t4);
 }
 
@@ -33,7 +33,7 @@
 }
 
 .crumbPath {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -48,7 +48,7 @@
 }
 
 .h1 {
-  font-size: 34px;
+  font-size: 35px;
   line-height: 1.32;
   font-weight: 700;
   color: #fff;
@@ -62,7 +62,7 @@
 
 .heroSub {
   max-width: 560px;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--fg-dt1);
 }
@@ -97,7 +97,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-ink);
 }
@@ -110,13 +110,13 @@
   border-radius: 50%;
   background: var(--fg-y);
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   color: var(--fg-ink);
 }
 
 .blockNote {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -131,7 +131,7 @@
 .chipOn {
   padding: 7px 13px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 14px;
   border: 1px solid var(--fg-chipline);
   background: var(--fg-card);
   color: var(--fg-t3);
@@ -190,7 +190,7 @@
   border-radius: 7px;
   background: var(--fg-ink);
   color: #fff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -198,7 +198,7 @@
 .slotPlaceNone {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .slotPlace {
@@ -214,7 +214,7 @@
   border: 0;
   background: none;
   padding: 2px 4px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t7);
 }
 
@@ -241,7 +241,7 @@
 }
 
 .numLabel {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -259,7 +259,7 @@
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -272,7 +272,7 @@
 
 .numUnit {
   flex: none;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-t6);
 }
 
@@ -282,7 +282,7 @@
   border-radius: 8px;
   border: 1px dashed var(--fg-chipline);
   background: none;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t4);
 }
 
@@ -296,7 +296,7 @@
   border: 0;
   border-radius: 11px;
   background: var(--fg-y);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-ink);
 }
@@ -308,7 +308,7 @@
 }
 
 .runHint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
   text-align: center;
 }
@@ -327,7 +327,7 @@
   padding: 10px 14px;
   border-radius: 9px;
   background: var(--fg-ink);
-  font-size: 12px;
+  font-size: 14px;
   color: #fff;
 }
 
@@ -351,13 +351,13 @@
   border-radius: 14px;
   background: var(--fg-mapbg);
   border: 1px dashed var(--fg-chipline);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t6);
   text-align: center;
 }
 
 .mapNote {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--fg-t6);
 }
@@ -381,14 +381,14 @@
 }
 
 .resultHead h2 {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .resultHead p {
   margin-top: 5px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t4);
 }
 
@@ -411,7 +411,7 @@
 .slopeColH {
   position: absolute;
   top: -22px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -439,7 +439,7 @@
   flex: none;
   border-radius: 50%;
   background: var(--fg-wash);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg-t4);
 }
@@ -456,14 +456,14 @@
 }
 
 .rankBody strong {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .rankBody em {
   font-style: normal;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t5);
 }
 
@@ -495,7 +495,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .table th,
@@ -511,7 +511,7 @@
 }
 
 .table th {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -533,7 +533,7 @@
   border-radius: 6px;
   background: var(--fg-ink);
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -541,7 +541,7 @@
 .moveDown {
   margin-left: 6px;
   font-style: normal;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -555,7 +555,7 @@
 
 .tableFoot,
 .notice {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--fg-t6);
 }
@@ -564,7 +564,7 @@
 .burdenNo {
   padding: 11px 14px;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -622,7 +622,7 @@
   }
 
   .h1 {
-    font-size: 26px;
+    font-size: 28px;
   }
 
   .slope {

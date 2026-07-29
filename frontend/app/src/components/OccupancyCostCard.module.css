@@ -17,13 +17,13 @@
 }
 
 .title {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--fg-ink);
 }
 
 .lead {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fg-t6);
 }
 
@@ -49,7 +49,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
 }
@@ -60,7 +60,7 @@
   border-radius: 4px;
   background: var(--fg-y);
   color: var(--fg-ink);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -76,7 +76,7 @@
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--fg-ink);
   outline: none;
@@ -89,7 +89,7 @@
 
 .unit {
   flex: none;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
 }
 
@@ -97,7 +97,7 @@
   padding: 18px;
   border-radius: 10px;
   background: var(--fg-wash);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t4);
   text-align: center;
 }
@@ -122,13 +122,13 @@
 }
 
 .headlineLabel {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-y-text);
 }
 
 .headlineValue {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 900;
   color: var(--fg-ink);
   letter-spacing: -0.5px;
@@ -138,14 +138,14 @@
    숫자를 하나 더 들이미는 게 아니다. */
 .headlineBand {
   font-style: normal;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--fg-y-dim);
   white-space: nowrap;
 }
 
 .headlineBasis {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--fg-y-dim);
 }
@@ -156,7 +156,7 @@
 }
 
 .headlineGap {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-y-dim);
 }
 
@@ -248,19 +248,19 @@
 }
 
 .legendName {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fg-t2);
 }
 
 .legendValue {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fg-ink);
   text-align: right;
 }
 
 .legendNote {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fg-t6);
 }
 
@@ -286,7 +286,7 @@
 }
 
 .successionLabel {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t4);
 }
@@ -295,7 +295,7 @@
 .successionValueDim {
   grid-row: span 2;
   align-self: center;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 900;
 }
 
@@ -306,13 +306,13 @@
 /* 기본값은 크기를 낮추고 색을 죽인다 — 옆 자리도 같은 값인데 굵게 띄우면
    «이 자리의 숫자»로 읽힌다. */
 .successionValueDim {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 500;
   color: var(--fg-t6);
 }
 
 .successionNote {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t6);
 }
@@ -323,7 +323,7 @@
 }
 
 .successionScope {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t7);
 }
@@ -348,20 +348,20 @@
 
 .burdenLabel {
   flex: 1;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fg-t4);
 }
 
 .burdenValue {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   color: var(--fg-ink);
 }
 
 .burdenBand {
   font-style: normal;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--fg-t6);
   white-space: nowrap;
@@ -369,7 +369,7 @@
 
 .burdenNote,
 .burdenTied {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t6);
 }
@@ -396,19 +396,19 @@
 }
 
 .burdenNone strong {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--fg-t2);
 }
 
 .burdenNone p {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t5);
 }
 
 .notice {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--fg-t7);
 }
@@ -427,7 +427,7 @@
   }
 
   .headlineValue {
-    font-size: 26px;
+    font-size: 28px;
   }
 
   /* 노트를 값 아래로 흘려 이름이 0폭으로 눌리지 않게 한다 */
