@@ -234,10 +234,13 @@ function BurdenRow({ data }: { data: EstimateResponse }) {
   if (data.burdenRate === null) {
     return (
       <div className={s.burdenNone}>
+        {/* 이유가 셋인데(상권 밖 · 그 업종의 상권 매출 분류 없음 · 그 상권에
+            그 업종 행 없음) 사용자에게는 결과가 같다. 한 문장으로 덮되 내부
+            필드명(revenue, burdenRate)은 내보내지 않는다. */}
         <strong>부담률은 계산하지 못했어요</strong>
         <p>
-          이 자리는 주변 매출 기록이 없어서 «매출 대비 얼마인지»를 낼 수 없어요.
-          {data.missingAxes.length > 0 ? ` 비어 있는 값 · ${data.missingAxes.join(", ")}` : ""}
+          이 자리에서 같은 업종의 매출 기록을 찾지 못해 «매출 대비 얼마인지»를
+          낼 수 없어요. 아래 실질 점유비용은 그대로 보셔도 됩니다.
         </p>
       </div>
     );

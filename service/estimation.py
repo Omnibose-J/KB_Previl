@@ -98,11 +98,18 @@ def _trade_area_revenue(grid_id, uptae, sales_available):
         if not sales_available:
             return None, None, trade_area_code
 
+        # 아래 세 갈래는 «원천이 그 조합을 안 담고 있다» 는 사실이지 장애가
+        # 아니다. 상권 «밖» 격자는 이미 위에서 None 을 돌려주고 200 으로
+        # 나가는데(매출·부담률은 missing_axes 로 표기된다), 같은 결과를 여기서만
+        # 예외로 올리고 있었다. 그래서 화면에는 «데이터를 불러오지 못했어요 +
+        # 다시 시도» 가 떴다 — 다시 시도해도 없는 행은 생기지 않는다.
+        #
+        # 실측(2026-07-30): 기타·외국음식전문점은 상권 매출 분류 대응이 아예
+        # 없어 100% 실패했고, 경양식 62.5% · 일식 60% · 통닭 57.5% 가 실패했다.
+        # 추천 상위 20곳에서도 경양식 8/20 이 오류 화면이었다.
         induty_code = UPTAE_INDUTY.get(uptae)
         if induty_code is None:
-            raise EstimationUnavailableError(
-                f"서울 동일 업종 매출 원천이 없는 업태입니다: {uptae}"
-            )
+            return None, None, trade_area_code
         quarter = con.execute(
             "SELECT MAX(s.quarter) "
             "FROM trdar_sales s "
@@ -112,9 +119,7 @@ def _trade_area_revenue(grid_id, uptae, sales_available):
             (induty_code,),
         ).fetchone()[0]
         if quarter is None:
-            raise EstimationUnavailableError(
-                "서울 동일 업종 매출 원천 행이 없습니다."
-            )
+            return None, None, trade_area_code
         source = con.execute(
             "SELECT s.sales_amt / t.stor_co / 3.0 / 10000.0 "
             "FROM trdar_sales s "
@@ -131,9 +136,7 @@ def _trade_area_revenue(grid_id, uptae, sales_available):
         or not math.isfinite(source[0])
         or source[0] <= 0
     ):
-        raise EstimationUnavailableError(
-            "해당 상권 동일 업종의 월매출 원천 행이 없습니다."
-        )
+        return None, None, trade_area_code
     return source[0], quarter, trade_area_code
 
 

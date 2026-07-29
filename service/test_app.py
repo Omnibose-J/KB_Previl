@@ -553,6 +553,71 @@ def test_changes_endpoint_separates_no_baseline_from_no_change():
         assert body["reason"]
 
 
+ESTIMATE_INPUT = {
+    "deposit": 5000, "monthlyRent": 250, "askingGoodwill": 12000,
+    "areaM2": 66, "floor": 1,
+}
+
+
+def test_missing_revenue_source_is_a_blank_not_a_server_error():
+    """원천에 그 조합이 없는 것은 «장애» 가 아니라 «빈 값» 이다.
+
+    상권 밖 격자는 예전부터 200 + monthlyRevenue=null 로 나갔는데, 상권 «안» 인데
+    그 업종의 매출 행이 없는 경우만 503 을 올리고 있었다. 사용자 화면에는
+    «데이터를 불러오지 못했어요 + 다시 시도» 가 떴다 — 다시 눌러도 없는 행은
+    생기지 않는다. 실측으로 경양식 62.5% · 일식 60% 가 이 상태였다.
+    """
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '경양식' "
+            "WHERE f.sales_amt IS NOT NULL AND NOT EXISTS ("
+            "  SELECT 1 FROM trdar_sales s "
+            "  WHERE s.trdar_cd = f.trdar_cd AND s.induty_cd = 'CS100004') "
+            "LIMIT 1"
+        ).fetchone()
+    assert row is not None
+
+    response = client.post(
+        "/api/estimate",
+        json={"gridId": row["grid_id"], "uptae": "경양식", **ESTIMATE_INPUT},
+    )
+    assert response.status_code == 200, response.json()
+    body = response.json()
+    assert body["monthlyRevenue"] is None
+    assert body["burdenRate"] is None
+    assert "revenue" in body["missingAxes"]
+    # 매출이 없어도 실질 점유비용은 사용자 입력만으로 나온다 — 그 부분까지
+    # 같이 죽이면 «계산할 수 있는 것도 못 준» 것이 된다.
+    assert body["effectiveCost"] > 0
+    assert body["costBreakdown"]
+
+
+@pytest.mark.parametrize("uptae", ["기타", "외국음식전문점(인도,태국등)"])
+def test_uptae_without_a_sales_classification_still_answers(uptae):
+    """상권 매출 분류에 대응이 없는 업태는 «전 격자» 에서 매출을 못 낸다.
+
+    그 업태를 고른 사용자는 어느 자리를 눌러도 오류 화면만 봤다(실측 100%).
+    """
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = ? "
+            "WHERE f.sales_amt IS NOT NULL LIMIT 1",
+            (uptae,),
+        ).fetchone()
+    assert row is not None
+
+    response = client.post(
+        "/api/estimate",
+        json={"gridId": row["grid_id"], "uptae": uptae, **ESTIMATE_INPUT},
+    )
+    assert response.status_code == 200, response.json()
+    body = response.json()
+    assert body["monthlyRevenue"] is None
+    assert body["effectiveCost"] > 0
+
+
 def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     sample = _sample_grid()
     lon = sample["center_lon"]
