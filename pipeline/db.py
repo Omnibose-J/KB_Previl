@@ -189,6 +189,14 @@ def connect():
     return con
 
 
+def connect_ro():
+    uri = f"{DB_PATH.resolve().as_uri()}?mode=ro"
+    con = sqlite3.connect(uri, uri=True)
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA query_only=ON")
+    return con
+
+
 def init():
     con = connect()
     con.executescript(SCHEMA)

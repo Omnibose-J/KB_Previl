@@ -14,7 +14,7 @@ field, and --selftest checks the replay against a direct count.
 import argparse
 from collections import defaultdict
 
-from pipeline.db import init
+from pipeline.db import connect_ro
 from pipeline.grid import neighbors
 
 # horizon (months) used for "recent" windows
@@ -732,6 +732,6 @@ if __name__ == "__main__":
     if a.describe:
         describe()
     if a.selftest:
-        selftest(init())
+        selftest(connect_ro())
     if a.selftest_cut:
-        raise SystemExit(0 if selftest_cut(init()) else 1)
+        raise SystemExit(0 if selftest_cut(connect_ro()) else 1)

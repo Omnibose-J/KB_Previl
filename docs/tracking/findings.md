@@ -126,34 +126,43 @@ retry inside the goodwill dialog; valuation itself is unaffected.
 **가장 작은 수정** — 레인 A 가 다음 `profile_build` 실행 시 note 를
 `guest.purpose:reject(0.533-0.600)` 로 갱신한다.
 
-## F-A2. Read-only gates mutate the shared `kb.db` (2026-07-28)
+## F-A2. RESOLVED — read-only gates mutated the shared `kb.db` (2026-07-29)
 
-**Symptom** — running the canonical gate chain changed the shared DB SHA-256
-from `69747C235957C0BA4C2387E1A39E0D0ECFD39C0160E4ED09DAE48C6F96BA6705`
-to `32C651A81F320C11A9318E328DFBC88BA668148815678C88D1799A7C4E6BF6DB`
-and created `kb.db-wal` / `kb.db-shm`, despite W1-W4 being read-only work.
-An independent repeat of the same gate changed the hash again to
-`0D0BBB8E3259B73F911B228E7B76CF04FE73B680F632199B10E9CC5E31F9AA8B`,
-which reproduces the mutation.
+**Symptom (historical)** — the canonical gate chain changed the main DB file
+bytes and created `kb.db-wal` / `kb.db-shm`, despite every predicate being
+read-only. File-byte hashes are now retired as a WAL database invariant; they
+were only the signal that led to the writer-path diagnosis below.
 
 **Cause** — `pipeline.verify`, `pipeline.consistency`, `model.test_leakage`,
-and `model.asof --selftest-cut` call `pipeline.db.init()`.
-`pipeline/db.py:192-195` executes the full `SCHEMA` and commits, while
-`SCHEMA` starts with `PRAGMA journal_mode=WAL`. The verification entrypoint is
-therefore a writer even when every predicate only reads data.
+and the two `model.asof` self-test paths previously called
+`pipeline.db.init()`. That function executes the full `SCHEMA` and commits,
+while `SCHEMA` starts with `PRAGMA journal_mode=WAL`. The verification
+entrypoints were therefore writers even when every predicate only read data.
 
-**Why it cannot be solved here** — `pipeline/` and shared DB writes belong to
-lane A and require owner approval. Reverting journal mode or deleting WAL/SHM
-would be another unapproved write while a live read-only API process holds the
-database.
+**Resolution** — `pipeline.db.connect_ro()` now opens `KB_DB` through a
+`mode=ro` URI and sets `PRAGMA query_only=ON`. The five read-only gate call
+sites use that connection: `pipeline.verify`, `pipeline.consistency`,
+`model.test_leakage`, and the two `model.asof` self-test paths. The writer
+entrypoint `init()` and every feature-building path remain unchanged.
 
-**Blast radius** — any lane B/C agent following the documented full-gate
-command can violate the shared-DB immutability boundary before W5. This run
-found no `addr_tenancy` table and `PRAGMA quick_check` returned `ok`, so there
-is no evidence of W5 data landing. Byte hashes are not a valid invariant for a
-WAL database and are retired as a baseline criterion. The smallest durable fix
-for F-A2 remains a read-only gate connection that never calls schema
-initialization; that fix is outside W5.
+**Verification** — the full gate returned `8/8 PASS`, `17/17 PASS`, leakage
+guard `PASS`, and `<=T` invariance `PASS` with exit `0`. Before and after the
+gate, the SHA-256 over sorted canonical JSON containing all 39 non-internal
+table row counts, the four ranking metadata values, and `PRAGMA quick_check`
+was identical:
+
+```text
+content_fingerprint_before=1aff0f9062ad9d3f7d7d1969330d1e15a66377358ea6c6c10d47bec12a44111a
+content_fingerprint_after=1aff0f9062ad9d3f7d7d1969330d1e15a66377358ea6c6c10d47bec12a44111a
+quick_check=ok
+rank_model=gbm
+rank_features=open_cnt,open_cnt_r1,same_uptae_cnt,same_uptae_r1,openings_36m,closures_36m,churn_36m,growth_36m,prior_surv_3y,prior_surv_n,median_area,open_month,prior_surv_1y,same_group_r1,other_group_r1,group_share_r1,median_tenure_r1,veteran_share_r1,uptae_entropy_r1,close_accel_r1
+rank_train_years=2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022
+rank_test_years=2023
+```
+
+**Remaining limitation** — a read-only WAL connection may still create or
+touch `kb.db-shm`; its bytes and timestamps are not content invariants.
 
 ## W5 recovery baseline (2026-07-28)
 

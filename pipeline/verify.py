@@ -10,7 +10,7 @@ import sys
 
 from .config import (COVERAGE_CEIL, COVERAGE_FLOOR, EXPECT_COORD_PCT,
                      EXPECT_COORD_TOL, EXPECT_COVERAGE_PCT, FOOD_INDUTY)
-from .db import init
+from .db import connect_ro
 
 CHECKS = {}
 
@@ -140,7 +140,7 @@ def main():
                     help=f"one of: {', '.join(CHECKS)} (default: all)")
     a = ap.parse_args()
     names = a.checks or list(CHECKS)
-    con = init()
+    con = connect_ro()
     results = {}
     for nm in names:
         if nm not in CHECKS:

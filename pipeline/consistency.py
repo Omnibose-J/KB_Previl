@@ -14,7 +14,7 @@ import json
 import sys
 from collections import Counter
 
-from .db import init
+from .db import connect_ro
 
 CHECKS = {}
 
@@ -405,7 +405,7 @@ def main():
     ap.add_argument("checks", nargs="*")
     a = ap.parse_args()
     names = a.checks or list(CHECKS)
-    con = init()
+    con = connect_ro()
     res = {}
     for nm in names:
         fn = CHECKS.get(nm)

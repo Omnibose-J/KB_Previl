@@ -11,7 +11,7 @@ import sys
 
 import numpy as np
 
-from pipeline.db import init
+from pipeline.db import connect_ro
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
@@ -122,7 +122,7 @@ def recovery_cutoff_guard():
 
 
 def main():
-    con = init()
+    con = connect_ro()
     train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
 
     print("1) RED — 미래 정보를 주입하면 탐지되어야 한다")
