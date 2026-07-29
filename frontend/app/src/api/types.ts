@@ -91,7 +91,7 @@ export interface GridCell {
   /** closed ring: first point equals last */
   polygon: Point[];
   center: Point;
-  /** false = outside every trade area (46.8%); sales views hatch these */
+  /** false = outside every trade area (49.5%); sales views hatch these */
   salesAvailable: boolean;
 }
 
