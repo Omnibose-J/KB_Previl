@@ -138,6 +138,18 @@ export interface Competition {
   closuresTotal: number | null;
 }
 
+/** 선택한 업태의 상권 매출 공표 여부.
+ *
+ *  `available` 은 «상권 안이냐», 이쪽은 «그 안에서 그 업종 매출이 공표됐느냐».
+ *  서울 상권분석 매출은 카드 기반 추정이라 점포가 한두 곳이면 개별 사업자
+ *  매출이 드러나 공표하지 않는다(점포 1곳 공표율 9.7% · 20곳 이상 99.2%).
+ *  그래서 «없음» 자체가 «이 상권엔 그 업종이 거의 없다» 는 관측이다. */
+export interface UptaeSales {
+  /** 이 상권의 그 업종 점포 수. 업태 대응이 없으면 null */
+  uptaeStores: number | null;
+  uptaePublished: boolean;
+}
+
 export interface AreaSurvival {
   rate: number | null;
   sample: number | null;
@@ -174,7 +186,7 @@ export interface Demand {
 }
 
 /** 상권 resolution (median radius 151m); absent outside trade areas. */
-export interface Sales {
+export interface Sales extends UptaeSales {
   quarterlyAmount: number | null;
   quarterlyCount: number | null;
   footTraffic: number | null;

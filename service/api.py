@@ -17,6 +17,7 @@ from pipeline.config import (
     DB_PATH,
     GRID_SIZE_M,
     REST_EATERY_UPTAE,
+    UPTAE_INDUTY,
 )
 from pipeline.grid import in_seoul, neighbors, to_grid_id
 from service import alerts
@@ -416,7 +417,7 @@ def _plus(value, extra):
     return None if value is None else value + extra
 
 
-def _grid_detail(row, uptae, same_uptae, rest_food):
+def _grid_detail(row, uptae, same_uptae, rest_food, uptae_sales):
     district, adm_dong = _location_names(row["sgis_adm_nm"])
     item = _grid_cell(row, uptae)
     item.update(
@@ -467,6 +468,11 @@ def _grid_detail(row, uptae, same_uptae, rest_food):
                 "quarterly_count": row["sales_cnt"],
                 "foot_traffic": row["flpop"],
                 "available": row["sales_amt"] is not None,
+                # 아래 둘은 «선택한 업태» 기준이다. available 은 격자에 매출
+                # 값이 있느냐(상권 안이냐)이고, 이것은 그 안에서 «그 업종의»
+                # 매출이 공표됐느냐다 — 상권 안에서도 31.1% 가 미공표다.
+                "uptae_stores": uptae_sales["stores"],
+                "uptae_published": uptae_sales["published"],
             },
             # The verified/overheated thresholds are not in score_meta yet.
             "signal": None,
@@ -549,10 +555,12 @@ def recommend(uptae, districts=(), top=24):
         mix = _concept_mix_batch(con, grid_ids)
         same = _same_uptae_batch(con, grid_ids, uptae)
         rest = _rest_food_batch(con, grid_ids)
+        usales = _uptae_sales_batch(con, grid_ids, uptae)
 
     items = []
     for row in rows:
-        item = _grid_detail(row, uptae, same[row["grid_id"]], rest[row["grid_id"]])
+        item = _grid_detail(row, uptae, same[row["grid_id"]],
+                            rest[row["grid_id"]], usales[row["grid_id"]])
         item["concept_mix"] = mix.get(row["grid_id"])
         items.append(item)
 
@@ -578,7 +586,8 @@ def grid_detail(grid_id, uptae):
         mix = _concept_mix_batch(con, [grid_id])
         same = _same_uptae_batch(con, [grid_id], uptae)
         rest = _rest_food_batch(con, [grid_id])
-    item = _grid_detail(row, uptae, same[grid_id], rest[grid_id])
+        usales = _uptae_sales_batch(con, [grid_id], uptae)
+    item = _grid_detail(row, uptae, same[grid_id], rest[grid_id], usales[grid_id])
     item["concept_mix"] = mix.get(grid_id)
     return item
 
@@ -649,6 +658,57 @@ def _same_uptae_batch(con, grid_ids, uptae):
         }
         for gid in ids
     }
+
+
+
+
+def _uptae_sales_batch(con, grid_ids, uptae):
+    """이 상권에 이 업종 점포가 몇 곳이고, 매출이 공표됐는가.
+
+    매출 결측은 우리가 흘린 것이 아니라 «원천이 안 준 것» 이다. 서울 상권분석의
+    매출은 카드 기반 추정이라 점포가 한두 곳이면 개별 사업자의 매출이 그대로
+    드러나므로 공표하지 않는다 — 실측으로 점포 1곳이면 공표율 9.7%, 2곳이면
+    26.2%, 20곳 이상이면 99.2% 다.
+
+    그래서 결측 자체가 관측이다: «이 상권엔 그 업종이 두 곳뿐» 이라는 사실을
+    화면이 말할 수 있어야 «계산 실패» 로 버리지 않는다. 서울 평균으로 메우는
+    길은 막혀 있고(serving-design §138) 막혀 있는 것이 맞다 — 결측이 점포가
+    적은 상권에 몰려 있어서, 평균을 붙이면 한산한 골목에 번화가 값이 붙는다.
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+    induty = UPTAE_INDUTY.get(uptae)
+    if induty is None:
+        # 그 업태는 상권분석 분류에 대응이 아예 없다 — 점포 수도 셀 수 없다.
+        return {gid: {"stores": None, "published": False} for gid in ids}
+
+    out = {}
+    for start in range(0, len(ids), 400):
+        chunk = ids[start : start + 400]
+        holes = ",".join("?" * len(chunk))
+        for row in con.execute(
+            f"SELECT f.grid_id, "
+            f"       (SELECT MAX(t.stor_co) FROM trdar_store t "
+            f"         WHERE t.trdar_cd = f.trdar_cd AND t.induty_cd = ?) stores, "
+            f"       EXISTS (SELECT 1 FROM trdar_sales s JOIN trdar_store t2 "
+            f"          ON t2.trdar_cd = s.trdar_cd AND t2.induty_cd = s.induty_cd "
+            f"         AND t2.quarter = s.quarter "
+            f"        WHERE s.trdar_cd = f.trdar_cd AND s.induty_cd = ? "
+            f"          AND t2.stor_co > 0) published "
+            f"FROM grid_feature f WHERE f.grid_id IN ({holes})",
+            [induty, induty, *chunk],
+        ):
+            # 행이 없으면 0 이다. trdar_store 는 stor_co=0 인 행도 1,001개 담고
+            # 있으므로 «행 없음» 과 «0곳» 이 원천에서 같은 뜻이다. null 은
+            # 위쪽 업태 매핑 없음 한 경우만 쓴다 — 두 상태를 같은 값으로 내면
+            # 화면이 «업종 분류에 없어요» 와 «그 업종 가게가 없어요» 를 구분
+            # 못 하고, 실제로 통닭(치킨)이 전자로 잘못 표시됐다.
+            out[row["grid_id"]] = {
+                "stores": row["stores"] if row["stores"] is not None else 0,
+                "published": bool(row["published"]),
+            }
+    return {gid: out.get(gid, {"stores": 0, "published": False}) for gid in ids}
 
 
 def _rest_food_batch(con, grid_ids):

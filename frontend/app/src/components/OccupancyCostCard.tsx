@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { EstimateInput, EstimateResponse, RecoverySource } from "../api/types";
+import type { EstimateInput, EstimateResponse, RecoverySource, Sales } from "../api/types";
 import { int, man, pct1, quarter } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./OccupancyCostCard.module.css";
@@ -24,11 +24,15 @@ const DEBOUNCE_MS = 400;
 export default function OccupancyCostCard({
   gridId,
   uptae,
+  sales,
   rentMonthly,
   onRentChange,
 }: {
   gridId: string;
   uptae: string;
+  /** 부담률이 안 나올 때 «왜» 를 말하기 위해 받는다 — 상세가 이미 들고 있는
+   *  값이라 estimate 응답을 늘리는 것보다 이쪽이 싸다. */
+  sales: Sales;
   /** S4가 들고 있는 값 — 손익 카드와 같은 임대료를 쓴다(두 번 입력시키지 않는다) */
   rentMonthly: number | null;
   onRentChange: (v: number | null) => void;
@@ -108,13 +112,17 @@ export default function OccupancyCostCard({
       ) : q.isError ? (
         <ErrorState onRetry={() => q.refetch()} detail={String(q.error)} />
       ) : (
-        <Result data={q.data} />
+        <Result data={q.data} sales={sales} uptae={uptae} />
       )}
     </section>
   );
 }
 
-function Result({ data }: { data: EstimateResponse }) {
+function Result({ data, sales, uptae }: {
+  data: EstimateResponse;
+  sales: Sales;
+  uptae: string;
+}) {
   const cost = data.costBreakdown;
   const total = data.effectiveCost;
   const band = data.effectiveCostBand;
@@ -192,7 +200,7 @@ function Result({ data }: { data: EstimateResponse }) {
           같은 기본값이다. 측정값처럼 그리면 이 제품이 가장 경계하는 거짓이 된다. */}
       <SuccessionRow prob={data.successionProb} source={data.recoverySource} />
 
-      <BurdenRow data={data} />
+      <BurdenRow data={data} sales={sales} uptae={uptae} />
 
       <p className={s.notice}>{data.notice}</p>
     </>
@@ -230,18 +238,59 @@ function SuccessionRow({ prob, source }: { prob: number; source: RecoverySource 
 }
 
 /** 부담률은 매출이 있어야 나온다. 없으면 «정보 없음»이지 0이 아니다. */
-function BurdenRow({ data }: { data: EstimateResponse }) {
+/** 매출이 없는 이유를 «관측» 으로 돌려준다.
+ *
+ *  서울 상권분석 매출은 카드 기반 추정이라 점포가 한두 곳이면 개별 사업자
+ *  매출이 드러나 공표하지 않는다(점포 1곳 공표율 9.7% · 2곳 26.2% ·
+ *  20곳 이상 99.2%). 그래서 «없음» 은 계산 실패가 아니라 «이 상권엔 그 업종이
+ *  거의 없다» 는 사실이고, 그것 자체가 입지 정보다 — 버리지 않고 말한다.
+ *
+ *  서울 평균으로 메우지 않는다(serving-design §138). 결측이 점포 적은 상권에
+ *  몰려 있어서, 평균을 붙이면 한산한 골목에 번화가 값이 붙는다. */
+function WhyNoRevenue({ sales, uptae }: { sales: Sales; uptae: string }) {
+  if (!sales.available) {
+    return (
+      <p>
+        이 자리는 상권 밖이라 매출 통계가 없어요. 아래 실질 점유비용은 그대로
+        보셔도 됩니다.
+      </p>
+    );
+  }
+  if (sales.uptaeStores === null) {
+    return (
+      <p>
+        {uptae}은(는) 상권 매출 통계의 업종 분류에 없어서 «매출 대비 얼마인지»를
+        낼 수 없어요. 아래 실질 점유비용은 그대로 보셔도 됩니다.
+      </p>
+    );
+  }
+  if (sales.uptaeStores === 0) {
+    return (
+      <p>
+        이 상권엔 {uptae} 가게가 <b>한 곳도 없어서</b> 매출 통계가 없어요.
+        경쟁이 없다는 뜻일 수도, 이 자리에 맞지 않는 업종이라는 뜻일 수도 있어요.
+      </p>
+    );
+  }
+  return (
+    <p>
+      이 상권엔 {uptae} 가게가 <b>{int(sales.uptaeStores)}곳</b>뿐이라 매출
+      통계가 공표되지 않았어요. 가게가 적으면 개별 매출이 드러나서 서울시가
+      비공개합니다. 아래 실질 점유비용은 그대로 보셔도 됩니다.
+    </p>
+  );
+}
+
+function BurdenRow({ data, sales, uptae }: {
+  data: EstimateResponse;
+  sales: Sales;
+  uptae: string;
+}) {
   if (data.burdenRate === null) {
     return (
       <div className={s.burdenNone}>
-        {/* 이유가 셋인데(상권 밖 · 그 업종의 상권 매출 분류 없음 · 그 상권에
-            그 업종 행 없음) 사용자에게는 결과가 같다. 한 문장으로 덮되 내부
-            필드명(revenue, burdenRate)은 내보내지 않는다. */}
         <strong>부담률은 계산하지 못했어요</strong>
-        <p>
-          이 자리에서 같은 업종의 매출 기록을 찾지 못해 «매출 대비 얼마인지»를
-          낼 수 없어요. 아래 실질 점유비용은 그대로 보셔도 됩니다.
-        </p>
+        <WhyNoRevenue sales={sales} uptae={uptae} />
       </div>
     );
   }

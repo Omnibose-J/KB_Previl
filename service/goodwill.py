@@ -3,6 +3,7 @@
 import math
 import statistics
 
+from pipeline.config import UPTAE_INDUTY
 from service import api
 from service.bands import _percentile
 from service.economics import grade_survival_curves
@@ -23,18 +24,6 @@ ADJUSTMENT_REASONS = ["v1 미적용 — 데이터 기반 조정 항은 로드맵
 # The licensing taxonomy is more granular than Seoul's commercial-analysis
 # taxonomy. Only mappings that preserve the same food-service category are
 # served; unsupported categories fail instead of borrowing another benchmark.
-UPTAE_INDUTY = {
-    "한식": "CS100001",
-    "식육(숯불구이)": "CS100001",
-    "중국식": "CS100002",
-    "일식": "CS100003",
-    "경양식": "CS100004",
-    "통닭(치킨)": "CS100007",
-    "분식": "CS100008",
-    "호프/통닭": "CS100009",
-    "정종/대포집/소주방": "CS100009",
-    "까페": "CS100010",
-}
 
 
 class GoodwillUnavailableError(RuntimeError):

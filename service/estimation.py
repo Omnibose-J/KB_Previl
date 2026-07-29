@@ -7,7 +7,7 @@ import os
 from service import api
 from service.cost import (CostParams, effective_monthly_cost,
                           effective_monthly_cost_band)
-from service.goodwill import UPTAE_INDUTY
+from pipeline.config import UPTAE_INDUTY
 
 
 DEFAULT_SUCCESSION_PROB = 0.4

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { GoodwillAssetInput, GoodwillInput, GridDetail } from "../api/types";
-import { man, pct1, signedMan, yearsLabel } from "../lib/format";
+import { int, man, pct1, signedMan, yearsLabel } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./GoodwillCard.module.css";
 
@@ -65,12 +65,24 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
     retry: 0,
   });
 
-  if (!d.sales.available) {
+  // sales.available 은 «상권 안이냐» 만 본다. 상권 «안» 이어도 그 업종의 매출이
+  // 공표되지 않은 조합이 31.1% 인데, 그걸 안 거르면 /goodwill 이 503 을 내고
+  // 화면에 «데이터를 불러오지 못했어요 + 다시 시도» 가 떴다 — 다시 눌러도 없는
+  // 통계는 생기지 않는다. 권리금은 산출 전체가 매출 파생이라 여기서 멈춘다.
+  if (!d.sales.available || !d.sales.uptaePublished) {
     return (
       <section className={s.card}>
         <Head />
         <p className={s.unavailable}>
-          이 자리는 주변 매출 기록이 없어서 권리금 참고가를 계산할 수 없어요.
+          {!d.sales.available
+            ? "이 자리는 상권 밖이라 매출 기록이 없어서 권리금 참고가를 계산할 수 없어요."
+            : d.sales.uptaeStores === null
+              ? `${uptae}은(는) 상권 매출 통계의 업종 분류에 없어서 권리금 참고가를 계산할 수 없어요.`
+              : d.sales.uptaeStores === 0
+                ? `이 상권엔 ${uptae} 가게가 한 곳도 없어서 매출 통계가 없어요. ` +
+                  "권리금 참고가는 같은 업종 매출을 기준으로 잡기 때문에 계산할 수 없어요."
+                : `이 상권엔 ${uptae} 가게가 ${int(d.sales.uptaeStores)}곳뿐이라 매출 통계가 ` +
+                  "공표되지 않았어요. 가게가 적으면 개별 매출이 드러나서 서울시가 비공개합니다."}
         </p>
       </section>
     );

@@ -618,6 +618,54 @@ def test_uptae_without_a_sales_classification_still_answers(uptae):
     assert body["effectiveCost"] > 0
 
 
+def test_absent_sales_carries_the_store_count_that_explains_it():
+    """매출 결측은 «계산 실패» 가 아니라 «그 업종이 이 상권에 거의 없다» 는 관측이다.
+
+    서울 상권분석 매출은 카드 기반 추정이라 점포가 한두 곳이면 개별 사업자
+    매출이 드러나 공표하지 않는다(실측 — 점포 1곳 공표율 9.7% · 20곳 이상 99.2%).
+    그 점포 수를 함께 내보내야 화면이 이유를 말할 수 있다.
+    """
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT f.grid_id, t.stor_co FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '일식' "
+            "JOIN trdar_store t ON t.trdar_cd = f.trdar_cd AND t.induty_cd = 'CS100003' "
+            "WHERE f.sales_amt IS NOT NULL AND t.stor_co > 0 AND NOT EXISTS ("
+            "  SELECT 1 FROM trdar_sales s "
+            "  WHERE s.trdar_cd = f.trdar_cd AND s.induty_cd = 'CS100003') "
+            "LIMIT 1"
+        ).fetchone()
+    assert row is not None
+
+    body = client.get(
+        f"/api/grid/{row['grid_id']}", params={"uptae": "일식"}
+    ).json()["sales"]
+    assert body["available"] is True          # 상권 «안» 이다
+    assert body["uptaePublished"] is False    # 그런데 그 업종 매출은 미공표
+    assert body["uptaeStores"] == row["stor_co"]
+
+
+def test_published_sales_says_so():
+    """공표된 조합은 uptaePublished 가 True 여야 한다 — 아니면 화면이 멀쩡한
+    자리에도 «통계가 없어요» 를 띄운다."""
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
+            "JOIN trdar_sales s ON s.trdar_cd = f.trdar_cd AND s.induty_cd = 'CS100001' "
+            "JOIN trdar_store t ON t.trdar_cd = s.trdar_cd "
+            "AND t.induty_cd = s.induty_cd AND t.quarter = s.quarter "
+            "WHERE f.sales_amt IS NOT NULL AND t.stor_co > 0 LIMIT 1"
+        ).fetchone()
+    assert row is not None
+
+    body = client.get(
+        f"/api/grid/{row['grid_id']}", params={"uptae": "한식"}
+    ).json()["sales"]
+    assert body["uptaePublished"] is True
+    assert body["uptaeStores"] > 0
+
+
 def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     sample = _sample_grid()
     lon = sample["center_lon"]

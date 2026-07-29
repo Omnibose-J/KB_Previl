@@ -328,6 +328,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           <OccupancyCostCard
             gridId={d.gridId}
             uptae={uptae}
+            sales={d.sales}
             rentMonthly={search.rentMonthly}
             onRentChange={(v) => search.set({ rentMonthly: v })}
           />

@@ -151,6 +151,11 @@ class Sales(ApiModel):
     quarterly_count: float | None
     foot_traffic: float | None
     available: bool
+    #: 선택한 업태 기준. available 은 «상권 안이냐», 아래 둘은 «그 안에서 그
+    #: 업종의 매출이 공표됐느냐» 다. 상권 안에서도 31.1% 가 미공표인데, 원인은
+    #: 표본 부족 비공개다 — 점포 1곳이면 공표율 9.7%, 20곳 이상이면 99.2%.
+    uptae_stores: float | None
+    uptae_published: bool
 
 
 class ConceptCount(ApiModel):
