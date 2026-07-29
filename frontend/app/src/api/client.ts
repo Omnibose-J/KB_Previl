@@ -12,7 +12,6 @@ import type {
   GridsResponse,
   Meta,
   RecommendResponse,
-  ReportResponse,
 } from "./types";
 
 /**
@@ -81,9 +80,4 @@ export const api = {
   /** 후보 1~3건 → 월세순 vs 실질비용순 병렬 (criteria §W3). 4건 이상은 422 */
   compare: (input: CompareInput) =>
     request<CompareResponse>("/compare", { method: "POST", body: JSON.stringify(input) }),
-  report: (gridId: string, uptae: string) =>
-    request<ReportResponse>("/report", {
-      method: "POST",
-      body: JSON.stringify({ gridId, uptae }),
-    }),
 };

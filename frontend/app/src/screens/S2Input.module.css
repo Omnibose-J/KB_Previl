@@ -10,8 +10,8 @@
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 28px;
-  padding-block: 44px 56px;
+  gap: 40px;
+  padding-block: 60px 88px;
   padding-inline: var(--edge);
   align-items: start;
 }
@@ -224,7 +224,7 @@
 .side {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 22px;
   position: sticky;
   top: 20px;
 }

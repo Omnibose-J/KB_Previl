@@ -444,7 +444,7 @@ select.fieldEmpty {
 .secHead {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
   max-width: 780px;
 }
 
@@ -470,9 +470,9 @@ select.fieldEmpty {
 .why {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 56px;
   background: var(--fg-paper);
-  padding-block: 80px;
+  padding-block: 112px;
   padding-inline: var(--edge);
 }
 
@@ -514,9 +514,9 @@ select.fieldEmpty {
 .what {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 56px;
   background: var(--fg-card);
-  padding-block: 88px;
+  padding-block: 120px;
   padding-inline: var(--edge);
 }
 
@@ -580,9 +580,9 @@ select.fieldEmpty {
 .differs {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 48px;
   background: var(--fg-dark);
-  padding-block: 88px;
+  padding-block: 120px;
   padding-inline: var(--edge);
 }
 
@@ -645,9 +645,9 @@ select.fieldEmpty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 36px;
   background: var(--fg-y);
-  padding-block: 80px;
+  padding-block: 112px;
   padding-inline: var(--edge);
   text-align: center;
 }

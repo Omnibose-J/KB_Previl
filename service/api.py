@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pyproj import Transformer
 
 from pipeline.config import CRS_GRID, CRS_WGS84, DB_PATH, GRID_SIZE_M
-from pipeline.grid import in_seoul, to_grid_id
+from pipeline.grid import in_seoul, neighbors, to_grid_id
 
 
 class ApiInputError(ValueError):
@@ -44,6 +44,8 @@ MAX_GRID_CELLS = 2_000
 RESOLUTION = {
     "competition.shopsHere": "격자 100m",
     "competition.shopsNeighbor": "격자 3x3 (300m)",
+    "competition.sameUptaeHere": "격자 100m",
+    "competition.sameUptaeNeighbor": "격자 3x3 (300m)",
     "competition.openingsTotal": "격자 100m",
     "competition.closuresTotal": "격자 100m",
     "areaSurvival": "격자 3x3 (300m)",
@@ -375,7 +377,7 @@ def _grid_cell(row, uptae):
     }
 
 
-def _grid_detail(row, uptae):
+def _grid_detail(row, uptae, same_uptae):
     district, adm_dong = _location_names(row["sgis_adm_nm"])
     item = _grid_cell(row, uptae)
     item.update(
@@ -394,6 +396,8 @@ def _grid_detail(row, uptae):
             "competition": {
                 "shops_here": row["food_store_cnt"],
                 "shops_neighbor": row["food_store_cnt_r1"],
+                "same_uptae_here": same_uptae["here"],
+                "same_uptae_neighbor": same_uptae["r1"],
                 # Lane A has not landed the trailing-36-month feature yet.
                 "openings_36m": None,
                 "openings_total": row["hist_open_cnt"],
@@ -500,11 +504,13 @@ def recommend(uptae, districts=(), top=24):
             + " ORDER BY s.score DESC LIMIT ?",
             [uptae, *district_args, top],
         ).fetchall()
-        mix = _concept_mix_batch(con, [row["grid_id"] for row in rows])
+        grid_ids = [row["grid_id"] for row in rows]
+        mix = _concept_mix_batch(con, grid_ids)
+        same = _same_uptae_batch(con, grid_ids, uptae)
 
     items = []
     for row in rows:
-        item = _grid_detail(row, uptae)
+        item = _grid_detail(row, uptae, same[row["grid_id"]])
         item["concept_mix"] = mix.get(row["grid_id"])
         items.append(item)
 
@@ -528,9 +534,52 @@ def grid_detail(grid_id, uptae):
         if row is None:
             return None
         mix = _concept_mix_batch(con, [grid_id])
-    item = _grid_detail(row, uptae)
+        same = _same_uptae_batch(con, [grid_id], uptae)
+    item = _grid_detail(row, uptae, same[grid_id])
     item["concept_mix"] = mix.get(grid_id)
     return item
+
+
+def _same_uptae_batch(con, grid_ids, uptae):
+    """업태별 «영업 중» 점포 수 — 이 칸과 3x3 링.
+
+    화면이 «같은 업종 가게 수»라 부르던 값은 `food_store_cnt`, 즉 업태를 가리지
+    않은 음식점 전체였다. 한식을 고르든 중국식을 고르든 같은 숫자가 나왔다.
+    업태별 수는 `grid_feature.competitor_same_uptae`(json: 업태 -> 수)에 이미
+    있고, 그 합이 `food_store_cnt` 와 전 격자에서 일치한다 — 즉 그 칸의 전수
+    집계다. 그래서 키가 없으면 «모름»이 아니라 진짜 0이다.
+
+    링 합은 `food_store_cnt_r1` 과 같은 정의를 쓴다(중심 포함 3x3). 이웃 중
+    grid_feature 에 없는 칸은 데이터가 닿지 않은 칸이라 합에서 빠진다.
+
+    S3 는 후보를 한 번에 그리므로 격자마다 조회하면 N+1 이 된다.
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+
+    wanted = list({cell for gid in ids for cell in neighbors(gid, 1)})
+    counts = {}
+    # SQLite 의 바인드 변수 상한(기본 999)에 걸리지 않게 끊어 묻는다.
+    for start in range(0, len(wanted), 500):
+        chunk = wanted[start : start + 500]
+        placeholders = ",".join("?" * len(chunk))
+        for row in con.execute(
+            f"SELECT grid_id, competitor_same_uptae FROM grid_feature "
+            f"WHERE grid_id IN ({placeholders})",
+            chunk,
+        ):
+            counts[row["grid_id"]] = json.loads(
+                row["competitor_same_uptae"] or "{}"
+            ).get(uptae, 0)
+
+    return {
+        gid: {
+            "here": counts.get(gid),
+            "r1": sum(counts[cell] for cell in neighbors(gid, 1) if cell in counts),
+        }
+        for gid in ids
+    }
 
 
 def _concept_mix_batch(con, grid_ids):

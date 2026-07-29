@@ -90,7 +90,7 @@
   justify-content: space-between;
   gap: 32px;
   background: var(--fg-dark);
-  padding-block: 32px;
+  padding-block: 44px;
   padding-inline: var(--edge);
 }
 
@@ -176,8 +176,8 @@
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
-  padding-block: 28px 40px;
+  gap: 36px;
+  padding-block: 44px 72px;
   padding-inline: var(--edge);
   align-items: start;
 }
@@ -190,7 +190,7 @@
   background: var(--fg-card);
   border: 1px solid var(--fg-line);
   border-radius: 16px;
-  padding: 6px 32px;
+  padding: 12px 32px;
 }
 
 /* report tabs — one question per view */
@@ -273,7 +273,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  padding: 26px 0;
+  padding: 36px 0;
 }
 
 .kpi {
@@ -331,8 +331,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 26px 0 28px;
+  gap: 22px;
+  padding: 38px 0 40px;
   border-top: 1px solid var(--fg-line);
 }
 
@@ -353,28 +353,11 @@
   color: var(--fg-t6);
 }
 
-.cardHeadRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.llmTag {
-  flex: none;
-  padding: 7px 12px;
-  border-radius: 100px;
-  background: var(--fg-y-bg);
-  color: var(--fg-y-text);
-  font-size: 13px;
-  font-weight: 700;
-}
-
 /* signal bar pairs */
 .bars {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 26px;
 }
 
 .barPair {
@@ -449,22 +432,6 @@
   font-weight: 700;
   color: var(--fg-t2);
   text-align: right;
-}
-
-/* AI report */
-.reportBody {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 22px 24px;
-  border-radius: 12px;
-  background: var(--fg-card-warm);
-}
-
-.reportBody p {
-  font-size: 16px;
-  line-height: 31px;
-  color: var(--fg-t2);
 }
 
 /* 경쟁/위험 pair — one section, two columns split by a vertical rule */
@@ -704,7 +671,7 @@
 .side {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   position: sticky;
   top: 16px;
 }

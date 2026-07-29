@@ -102,8 +102,12 @@ export interface StationAnchor {
 }
 
 export interface Competition {
+  /** 업태 무관 — 이 칸에서 영업 중인 «음식점 전체» */
   shopsHere: number | null;
   shopsNeighbor: number | null;
+  /** 선택한 업태만 — 이 칸 / 3x3 링(중심 포함) */
+  sameUptaeHere: number | null;
+  sameUptaeNeighbor: number | null;
   /** lane A backlog — null until the 36-month window column lands */
   openings36m: number | null;
   openingsTotal: number | null;

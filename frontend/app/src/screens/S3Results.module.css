@@ -36,8 +36,8 @@
 .body {
   display: grid;
   grid-template-columns: 600px 1fr;
-  gap: 24px;
-  padding-block: 24px 32px;
+  gap: 36px;
+  padding-block: 40px 64px;
   padding-inline: var(--edge);
   align-items: start;
 }
@@ -170,7 +170,7 @@ button.wCtl:disabled {
 .list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 
 /* Staggered entrance for the first screenful of candidates. `backwards`, not

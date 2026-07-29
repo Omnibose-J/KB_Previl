@@ -17,11 +17,11 @@ import s from "./S4Detail.module.css";
 
 // S4, rebuilt against figma-snapshot S4: breadcrumb bar → dark hero (pills +
 // big grade) → KPI 3 → economics (the one card figma lacks and we keep — it is
-// the demo's centrepiece) → signal bars → AI report (real POST /report) →
-// 경쟁/위험 pair → observed-by-grade table, with the 4-card sidebar.
+// the demo's centrepiece) → signal bars → 경쟁/위험 pair →
+// observed-by-grade table, with the 4-card sidebar.
 //
 // Figma blocks that had no data behind them are kept as VISUALS but with
-// honest content: 대출/코칭/알림 cards carry a "연계 기획" label and no
+// honest content: 대출/코칭/알림 cards carry a "준비 중" label and no
 // simulated numbers; the 매물 table slot became the observed-survival table.
 
 export default function S4Detail({
@@ -129,13 +129,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
       document.body.style.overflow = "";
     };
   }, [gwOpen]);
-  const report = useQuery({
-    queryKey: ["report", d.gridId, uptae],
-    queryFn: () => api.report(d.gridId, uptae),
-    staleTime: Infinity,
-    retry: 0,
-  });
-
   const overall = meta?.overallSurvival ?? null;
 
   return (
@@ -195,25 +188,23 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>주변의 같은 업종 가게</span>
+              <span className={s.kpiLabel}>이 자리의 {uptae} 가게</span>
               <p className={s.kpiV}>
-                {d.competition.shopsHere !== null ? (
+                {d.competition.sameUptaeHere !== null ? (
                   <>
-                    <strong>{int(d.competition.shopsHere)}</strong>
+                    <strong>{int(d.competition.sameUptaeHere)}</strong>
                     <em>곳</em>
                   </>
                 ) : (
                   <strong className={s.kpiMuted}>정보 없음</strong>
                 )}
               </p>
+              {/* 개·폐업 누계는 업태를 가리지 않은 값이라 «음식점»으로 적는다.
+                  같은 칸 안에서 위는 업태별, 아래는 전체라는 것이 드러나야 한다. */}
               <span className={s.kpiCap}>
-                {d.competition.openingsTotal !== null
-                  ? `지금까지 ${int(d.competition.openingsTotal)}곳 열고 ${
-                      d.competition.closuresTotal !== null
-                        ? `${int(d.competition.closuresTotal)}곳 닫았어요`
-                        : "폐업 수는 정보 없음"
-                    }`
-                  : "개업 기록 없음"}
+                {d.competition.shopsHere !== null
+                  ? `영업 중인 음식점 전체는 ${int(d.competition.shopsHere)}곳`
+                  : "음식점 수는 정보 없음"}
               </span>
             </div>
             <div className={s.kpi}>
@@ -254,10 +245,18 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                     : undefined
                 }
               />
+              {/* 여기는 «업태별» 수다. 업태 무관 전체 음식점 수는 아래
+                  «경쟁이 걱정되세요?» 칸이 따로 보여준다. 두 값을 같은
+                  이름으로 부르면 한식을 골라도 중국식을 골라도 같은 숫자가
+                  나오던 예전 화면으로 되돌아간다. */}
               <BarPair
-                label="같은 업종 가게 수"
-                a={{ name: "이 자리", value: d.competition.shopsHere, render: (v) => `${int(v)}곳` }}
-                b={{ name: "주변 평균", value: d.competition.shopsNeighbor, render: (v) => `${int(v)}곳` }}
+                label={`${uptae} 가게 수`}
+                a={{ name: "이 자리 100m", value: d.competition.sameUptaeHere, render: (v) => `${int(v)}곳` }}
+                b={{
+                  name: "주변 300m",
+                  value: d.competition.sameUptaeNeighbor,
+                  render: (v) => `${int(v)}곳`,
+                }}
               />
               <BarPair
                 label="연 가게 vs 닫은 가게"
@@ -269,44 +268,25 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
           <ConceptMixCard mix={d.conceptMix} />
 
-          {/* ── AI report (real LLM call, whitelist-guarded server-side) ── */}
-          <section className={s.card} data-reveal>
-            <div className={s.cardHeadRow}>
-              <div className={s.cardHead}>
-                <h2>AI가 정리한 이 자리</h2>
-              </div>
-              <span className={s.llmTag}>LLM 생성 · 근거 데이터 인용</span>
-            </div>
-            {report.isPending ? (
-              <Loading label="근거 문장 생성 중…" />
-            ) : report.isError ? (
-              <ErrorState onRetry={() => report.refetch()} detail={String(report.error)} />
-            ) : (
-              <div className={s.reportBody}>
-                {report.data.sentences.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-            )}
-          </section>
-
           {/* ── 경쟁 + 위험 pair ─────────────────────────────────── */}
           <div className={s.pair}>
             <section className={s.card} data-reveal>
               <div className={s.cardHead}>
                 <h2>경쟁이 걱정되세요?</h2>
-                <p>같은 업종 가게가 오래 버티고 있는 곳은 그만큼 검증된 자리예요.</p>
+                <p>가게가 오래 버티고 있는 곳은 그만큼 검증된 자리예요.</p>
               </div>
+              {/* 이 두 값은 업태를 가리지 않은 «음식점 전체»다 — 위의 업태별
+                  칸과 이름이 겹치지 않게 «음식점»으로 부른다. */}
               <div className={s.vs}>
                 <div className={s.vsGreen}>
-                  <span>영업 중인 가게</span>
+                  <span>영업 중인 음식점</span>
                   <strong>
                     {d.competition.shopsHere !== null ? `${int(d.competition.shopsHere)}곳` : "정보 없음"}
                   </strong>
                   <em>오래 버틴 가게가 많다는 뜻이에요</em>
                 </div>
                 <div className={s.vsOrange}>
-                  <span>지금까지 연 가게</span>
+                  <span>지금까지 연 음식점</span>
                   <strong>
                     {d.competition.openingsTotal !== null ? `${int(d.competition.openingsTotal)}곳` : "정보 없음"}
                   </strong>
@@ -509,7 +489,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         {/* ── sidebar ──────────────────────────────────────────────── */}
         <aside className={s.side}>
           <div className={s.loan}>
-            <span className={s.loanTag}>KB 창업자금 대출 · 연계 기획</span>
+            <span className={s.loanTag}>KB 창업자금 대출 · 준비 중</span>
             <h3>이 분석 그대로 대출 상담까지</h3>
             <ul className={s.loanList}>
               <li>함께 전달되는 것 · 입지 등급</li>
@@ -520,7 +500,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.coach}>
-            <span className={s.coachTag}>전문가 최종 코칭 · 연계 기획</span>
+            <span className={s.coachTag}>전문가 최종 코칭 · 준비 중</span>
             <p>AI가 1차 스크리닝을 마쳤습니다. KB 소상공인 컨설팅 전문가와 최종 점검을 이어가세요.</p>
             <div className={s.coachChips}>
               <span>상권 분석</span>
@@ -531,8 +511,8 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.alarm}>
-            <strong>이 격자 변동 알림 · 연계 기획</strong>
-            <p>재계산 라운드가 돌면 변동 알림으로 이어질 기획입니다.</p>
+            <strong>이 자리 변동 알림 · 준비 중</strong>
+            <p>이 자리의 등급이나 경쟁이 달라지면 알려드릴게요.</p>
           </div>
 
           <div className={s.datacard}>

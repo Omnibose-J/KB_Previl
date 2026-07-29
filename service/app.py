@@ -125,6 +125,8 @@ class StationAnchor(ApiModel):
 class Competition(ApiModel):
     shops_here: int | None
     shops_neighbor: int | None
+    same_uptae_here: int | None
+    same_uptae_neighbor: int | None
     openings_36m: int | None = Field(alias="openings36m")
     openings_total: int | None
     closures_total: int | None

@@ -370,6 +370,47 @@ def test_trade_area_coverage_and_sales_value_availability_are_distinct():
     assert "footTraffic" not in payload["missingAxes"]
 
 
+def test_same_uptae_count_tracks_the_requested_uptae():
+    """업태를 바꾸면 «같은 업종 가게 수»가 실제로 달라져야 한다.
+
+    화면이 이 값으로 `food_store_cnt`(업태 무관 음식점 전체)를 쓰고 있었다.
+    한식을 골라도 까페를 골라도 같은 숫자가 나왔고, 응답 자체는 200이라
+    스키마 검사로는 잡히지 않았다. 값이 «달라진다»는 것이 이 필드의 계약이다.
+    """
+    with api.readonly_connection() as con:
+        # 두 업태가 서로 다른 수로 들어 있는 칸을 원천에서 직접 고른다.
+        rows = con.execute(
+            "SELECT f.grid_id, f.competitor_same_uptae, f.food_store_cnt "
+            "FROM grid_feature f WHERE f.food_store_cnt > 30"
+        ).fetchall()
+    sample = None
+    for row in rows:
+        counts = json.loads(row["competitor_same_uptae"])
+        pair = sorted(counts.items(), key=lambda kv: -kv[1])[:2]
+        if len(pair) == 2 and pair[0][1] != pair[1][1]:
+            sample = (row["grid_id"], row["food_store_cnt"], pair)
+            break
+    assert sample is not None
+    grid_id, total, ((first, first_n), (second, second_n)) = sample
+
+    payloads = {}
+    for uptae in (first, second):
+        response = client.get(f"/api/grid/{grid_id}", params={"uptae": uptae})
+        assert response.status_code == 200
+        payloads[uptae] = response.json()["competition"]
+
+    assert payloads[first]["sameUptaeHere"] == first_n
+    assert payloads[second]["sameUptaeHere"] == second_n
+    assert payloads[first]["sameUptaeHere"] != payloads[second]["sameUptaeHere"]
+
+    # 업태별 수는 전체 음식점 수의 부분이고, 링은 중심을 포함하므로 그 이상이다.
+    for uptae in (first, second):
+        cell = payloads[uptae]
+        assert cell["shopsHere"] == total
+        assert cell["sameUptaeHere"] <= cell["shopsHere"]
+        assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
+
+
 def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     sample = _sample_grid()
     lon = sample["center_lon"]

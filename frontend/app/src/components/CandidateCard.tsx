@@ -77,16 +77,23 @@ export default function CandidateCard({
         {/* Every recommended cell is top-graded, so the per-grade rate is the
             same number on all 24 cards — it read as hardcoded (owner report
             2026-07-27). Per-cell counts vary; the grade rate lives in S4. */}
+        {/* 첫 칸만 선택한 업태, 나머지 둘은 업태 무관 음식점 누계다. 라벨에
+            그대로 적는다 — 예전엔 셋 다 «가게»여서 어느 것이 업태별인지 알 수
+            없었고, 실제로 첫 칸은 업태와 무관한 전체 음식점 수였다. */}
         <Micro
-          label="영업 중인 가게"
-          value={cell.competition.shopsHere !== null ? `${int(cell.competition.shopsHere)}곳` : null}
+          label={`${cell.uptae} 가게`}
+          value={
+            cell.competition.sameUptaeHere !== null
+              ? `${int(cell.competition.sameUptaeHere)}곳`
+              : null
+          }
         />
         <Micro
-          label="지금까지 연 가게"
+          label="지금까지 연 음식점"
           value={cell.competition.openingsTotal !== null ? `${int(cell.competition.openingsTotal)}곳` : null}
         />
         <Micro
-          label="지금까지 닫은 가게"
+          label="지금까지 닫은 음식점"
           value={cell.competition.closuresTotal !== null ? `${int(cell.competition.closuresTotal)}곳` : null}
         />
         <Micro
