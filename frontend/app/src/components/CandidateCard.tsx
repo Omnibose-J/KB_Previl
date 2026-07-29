@@ -1,4 +1,5 @@
 import type { GridDetail } from "../api/types";
+import { storeCount } from "../lib/competition";
 import { int, meters, pct1, stationAnchor } from "../lib/format";
 import s from "./CandidateCard.module.css";
 
@@ -23,6 +24,7 @@ export default function CandidateCard({
   onSelect: () => void;
   onOpen: () => void;
 }) {
+  const stores = storeCount(cell.competition);
   return (
     <li
       className={selected ? s.cardOn : s.card}
@@ -82,11 +84,7 @@ export default function CandidateCard({
             없었고, 실제로 첫 칸은 업태와 무관한 전체 음식점 수였다. */}
         <Micro
           label={`${cell.uptae} 가게`}
-          value={
-            cell.competition.sameUptaeHere !== null
-              ? `${int(cell.competition.sameUptaeHere)}곳`
-              : null
-          }
+          value={stores.here !== null ? `${int(stores.here)}곳` : null}
         />
         <Micro
           label="지금까지 연 음식점"

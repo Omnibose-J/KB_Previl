@@ -411,6 +411,58 @@ def test_same_uptae_count_tracks_the_requested_uptae():
         assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
 
 
+def test_semas_covers_cafes_that_the_licence_table_cannot_see():
+    """카페는 휴게음식점으로 등록돼 인허가 테이블에 거의 없다.
+
+    서울 카페 21,619곳 중 인허가에 잡히는 것은 1,239곳(5.7%)이다. 상가업소
+    기준 수가 인허가 기준보다 «크다»는 것이 이 필드의 존재 이유이므로 그것을
+    직접 잰다. 두 값이 같아지면 보강이 죽은 것이다.
+    """
+    with api.readonly_connection() as con:
+        sample = con.execute(
+            "SELECT s.grid_id, COUNT(*) n FROM store s "
+            "JOIN grid_score g ON g.grid_id = s.grid_id AND g.uptae = '까페' "
+            "WHERE s.inds_scls_nm = '카페' GROUP BY s.grid_id "
+            "ORDER BY n DESC LIMIT 1"
+        ).fetchone()
+    assert sample is not None
+
+    response = client.get(
+        f"/api/grid/{sample['grid_id']}", params={"uptae": "까페"}
+    )
+    assert response.status_code == 200
+    cell = response.json()["competition"]
+
+    assert cell["currentStoresHere"] == sample["n"]
+    assert cell["currentStoresHere"] > cell["sameUptaeHere"]
+    assert cell["currentStoresNeighbor"] >= cell["currentStoresHere"]
+    assert cell["currentStoresSource"]
+
+
+def test_unmapped_uptae_report_no_current_store_count_instead_of_zero():
+    """SEMAS 가 [주점]·[한식] 을 우리와 다르게 자르는 업태는 매핑이 없다.
+
+    없는 매핑을 0 으로 내보내면 «이 근처에 한식이 하나도 없다»가 되어 정확히
+    반대로 읽힌다. 모르는 것은 null 로 나가야 한다.
+    """
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT grid_id FROM grid_score WHERE uptae = '한식' LIMIT 1"
+        ).fetchone()
+
+    for uptae in ("한식", "호프/통닭", "정종/대포집/소주방", "기타"):
+        response = client.get(
+            f"/api/grid/{row['grid_id']}", params={"uptae": uptae}
+        )
+        assert response.status_code == 200
+        cell = response.json()["competition"]
+        assert cell["currentStoresHere"] is None, uptae
+        assert cell["currentStoresNeighbor"] is None, uptae
+        assert cell["currentStoresSource"] is None, uptae
+        # 인허가 기준 값은 그대로 살아 있어야 한다 — 대체가 아니라 추가다.
+        assert cell["sameUptaeHere"] is not None, uptae
+
+
 def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     sample = _sample_grid()
     lon = sample["center_lon"]

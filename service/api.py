@@ -46,6 +46,8 @@ RESOLUTION = {
     "competition.shopsNeighbor": "격자 3x3 (300m)",
     "competition.sameUptaeHere": "격자 100m",
     "competition.sameUptaeNeighbor": "격자 3x3 (300m)",
+    "competition.currentStoresHere": "격자 100m",
+    "competition.currentStoresNeighbor": "격자 3x3 (300m)",
     "competition.openingsTotal": "격자 100m",
     "competition.closuresTotal": "격자 100m",
     "areaSurvival": "격자 3x3 (300m)",
@@ -60,6 +62,24 @@ RESOLUTION = {
     "sales.footTraffic": "상권 (중앙값 반경 151m)",
     "nearestStation": "지점 실측",
 }
+
+# 우리 업태 -> SEMAS(소상공인시장진흥공단 상가업소) 분류.
+#
+# 인허가 테이블은 «일반음식점»만 담는다. 카페와 테이크아웃 치킨은 대부분
+# «휴게음식점»으로 등록되므로 통째로 안 보인다 — 실측으로 까페 1,239 vs
+# SEMAS 21,619(17.4배), 통닭(치킨) 1,630 vs 5,206(3.2배). 카페 창업자가 보는
+# 경쟁 수가 실제의 5.7%였다.
+#
+# 나머지 열 업태는 «누락»이 아니다. 분식 1.0배·일식 1.0배·중국식 1.1배로
+# 이미 맞고, 호프/통닭 0.3배·정종/대포집 7.3배·식육 5.5배는 SEMAS 가 [주점]과
+# [한식] 중분류를 우리와 다르게 자른 «경계 차이»다. 억지로 붙이면 지금 맞는
+# 값에 없던 오차가 들어간다. 그래서 여기 없는 업태는 NULL 로 남는다 —
+# 매핑을 «채우지» 말 것.
+SEMAS_UPTAE = {
+    "까페": ("inds_scls_nm", ("카페",)),
+    "통닭(치킨)": ("inds_scls_nm", ("치킨",)),
+}
+SEMAS_SOURCE = "소상공인시장진흥공단 상가업소"
 
 NOT_EVALUATED_DETAIL = "이웃 이력 부족으로 평가하지 않음"
 SURVIVAL_PERIODS = (1, 3, 5)
@@ -377,7 +397,7 @@ def _grid_cell(row, uptae):
     }
 
 
-def _grid_detail(row, uptae, same_uptae):
+def _grid_detail(row, uptae, same_uptae, semas):
     district, adm_dong = _location_names(row["sgis_adm_nm"])
     item = _grid_cell(row, uptae)
     item.update(
@@ -398,6 +418,11 @@ def _grid_detail(row, uptae, same_uptae):
                 "shops_neighbor": row["food_store_cnt_r1"],
                 "same_uptae_here": same_uptae["here"],
                 "same_uptae_neighbor": same_uptae["r1"],
+                "current_stores_here": semas["here"],
+                "current_stores_neighbor": semas["r1"],
+                "current_stores_source": (
+                    SEMAS_SOURCE if semas["here"] is not None else None
+                ),
                 # Lane A has not landed the trailing-36-month feature yet.
                 "openings_36m": None,
                 "openings_total": row["hist_open_cnt"],
@@ -507,10 +532,11 @@ def recommend(uptae, districts=(), top=24):
         grid_ids = [row["grid_id"] for row in rows]
         mix = _concept_mix_batch(con, grid_ids)
         same = _same_uptae_batch(con, grid_ids, uptae)
+        semas = _semas_batch(con, grid_ids, uptae)
 
     items = []
     for row in rows:
-        item = _grid_detail(row, uptae, same[row["grid_id"]])
+        item = _grid_detail(row, uptae, same[row["grid_id"]], semas[row["grid_id"]])
         item["concept_mix"] = mix.get(row["grid_id"])
         items.append(item)
 
@@ -535,7 +561,8 @@ def grid_detail(grid_id, uptae):
             return None
         mix = _concept_mix_batch(con, [grid_id])
         same = _same_uptae_batch(con, [grid_id], uptae)
-    item = _grid_detail(row, uptae, same[grid_id])
+        semas = _semas_batch(con, [grid_id], uptae)
+    item = _grid_detail(row, uptae, same[grid_id], semas[grid_id])
     item["concept_mix"] = mix.get(grid_id)
     return item
 
@@ -577,6 +604,51 @@ def _same_uptae_batch(con, grid_ids, uptae):
         gid: {
             "here": counts.get(gid),
             "r1": sum(counts[cell] for cell in neighbors(gid, 1) if cell in counts),
+        }
+        for gid in ids
+    }
+
+
+def _semas_batch(con, grid_ids, uptae):
+    """SEMAS 상가업소 기준 «현재 영업 중» 점포 수 — 이 칸과 3x3 링.
+
+    매핑이 없는 업태는 전부 None 이다(SEMAS_UPTAE 주석 참조). 0 이 아니라
+    None 인 이유: 그 업태의 SEMAS 대응을 «모른다»는 뜻이지 그 칸에 점포가
+    없다는 뜻이 아니다.
+
+    이 값은 표시 전용이다. SEMAS 는 개·폐업 이력이 없는 현재 스냅샷이라
+    개업 시점의 상태를 복원할 수 없고, 그대로 모델에 넣으면 결과를 이미 아는
+    시점의 정보가 된다(model/asof.py LEAKY 가 food_store_cnt 를 막는 것과
+    같은 이유). 등급은 이 값을 보지 않는다.
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+    mapping = SEMAS_UPTAE.get(uptae)
+    if mapping is None:
+        return {gid: {"here": None, "r1": None} for gid in ids}
+
+    column, names = mapping
+    wanted = list({cell for gid in ids for cell in neighbors(gid, 1)})
+    counts = {}
+    for start in range(0, len(wanted), 500):
+        chunk = wanted[start : start + 500]
+        cells = ",".join("?" * len(chunk))
+        kinds = ",".join("?" * len(names))
+        for row in con.execute(
+            f"SELECT grid_id, COUNT(*) n FROM store "
+            f"WHERE grid_id IN ({cells}) AND {column} IN ({kinds}) "
+            "GROUP BY grid_id",
+            [*chunk, *names],
+        ):
+            counts[row["grid_id"]] = row["n"]
+
+    # 격자에 한 곳도 없으면 조회 결과에 안 나온다. SEMAS 는 서울 음식업 전수
+    # 스냅샷이므로 그 없음은 «모름»이 아니라 0 이다.
+    return {
+        gid: {
+            "here": counts.get(gid, 0),
+            "r1": sum(counts.get(cell, 0) for cell in neighbors(gid, 1)),
         }
         for gid in ids
     }

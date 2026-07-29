@@ -9,6 +9,7 @@ import GoodwillCard from "../components/GoodwillCard";
 import OccupancyCostCard from "../components/OccupancyCostCard";
 import { ErrorState, Loading } from "../components/states";
 import { SOURCES } from "../copy";
+import { storeCount } from "../lib/competition";
 import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
 import { isRecommendable } from "../lib/grade";
 import { useReveal } from "../lib/reveal";
@@ -130,6 +131,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
     };
   }, [gwOpen]);
   const overall = meta?.overallSurvival ?? null;
+  const stores = storeCount(d.competition);
 
   return (
     <>
@@ -190,21 +192,22 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             <div className={s.kpi}>
               <span className={s.kpiLabel}>이 자리의 {uptae} 가게</span>
               <p className={s.kpiV}>
-                {d.competition.sameUptaeHere !== null ? (
+                {stores.here !== null ? (
                   <>
-                    <strong>{int(d.competition.sameUptaeHere)}</strong>
+                    <strong>{int(stores.here)}</strong>
                     <em>곳</em>
                   </>
                 ) : (
                   <strong className={s.kpiMuted}>정보 없음</strong>
                 )}
               </p>
-              {/* 개·폐업 누계는 업태를 가리지 않은 값이라 «음식점»으로 적는다.
-                  같은 칸 안에서 위는 업태별, 아래는 전체라는 것이 드러나야 한다. */}
+              {/* 원천을 반드시 적는다. 인허가에는 카페가 거의 없어서, 출처 없이
+                  숫자만 두면 카페 사용자가 «경쟁이 없다»로 읽는다. */}
               <span className={s.kpiCap}>
+                {stores.source} 기준
                 {d.competition.shopsHere !== null
-                  ? `영업 중인 음식점 전체는 ${int(d.competition.shopsHere)}곳`
-                  : "음식점 수는 정보 없음"}
+                  ? ` · 영업 중인 음식점 전체 ${int(d.competition.shopsHere)}곳`
+                  : ""}
               </span>
             </div>
             <div className={s.kpi}>
@@ -251,12 +254,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                   나오던 예전 화면으로 되돌아간다. */}
               <BarPair
                 label={`${uptae} 가게 수`}
-                a={{ name: "이 자리 100m", value: d.competition.sameUptaeHere, render: (v) => `${int(v)}곳` }}
-                b={{
-                  name: "주변 300m",
-                  value: d.competition.sameUptaeNeighbor,
-                  render: (v) => `${int(v)}곳`,
-                }}
+                a={{ name: "이 자리 100m", value: stores.here, render: (v) => `${int(v)}곳` }}
+                b={{ name: "주변 300m", value: stores.ring, render: (v) => `${int(v)}곳` }}
+                note={`${stores.source} 기준`}
               />
               <BarPair
                 label="연 가게 vs 닫은 가게"

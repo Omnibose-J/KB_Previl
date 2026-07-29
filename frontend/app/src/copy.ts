@@ -19,6 +19,7 @@ export const PROVENANCE = {
  *  contributed nothing, so naming them would be a claim we cannot defend. */
 export const SOURCES = [
   "인허가 이력",
+  "상가업소 (소상공인시장진흥공단)",
   "서울 상권 추정매출",
   "서울시 생활인구",
   "전국사업체조사",
