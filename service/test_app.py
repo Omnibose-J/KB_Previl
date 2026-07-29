@@ -463,6 +463,34 @@ def test_unmapped_uptae_report_no_current_store_count_instead_of_zero():
         assert cell["sameUptaeHere"] is not None, uptae
 
 
+def test_changes_endpoint_separates_no_baseline_from_no_change():
+    """견줄 판이 없는 것과 변동이 없는 것은 다른 상태다.
+
+    둘 다 «event: null» 로 답하면 화면이 «아직 못 잽니다»와 «그대로예요»를
+    구분할 수 없고, 사용자는 알림이 도는 줄 알고 기다린다.
+    """
+    sample = _sample_grid()
+    response = client.get(
+        f"/api/grid/{sample['grid_id']}/changes",
+        params={"uptae": sample["uptae"]},
+    )
+    assert response.status_code == 200
+    body = response.json()
+
+    with api.readonly_connection() as con:
+        has_baseline = con.execute(
+            "SELECT 1 FROM score_run WHERE is_current = 0 LIMIT 1"
+        ).fetchone()
+
+    assert body["available"] is bool(has_baseline)
+    if has_baseline:
+        assert body["baselineAsOf"] and body["currentAsOf"]
+        # 변동이 있으면 문장이 함께 나오고, 없으면 둘 다 비어 있다.
+        assert (body["event"] is None) == (body["sentence"] is None)
+    else:
+        assert body["reason"]
+
+
 def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     sample = _sample_grid()
     lon = sample["center_lon"]

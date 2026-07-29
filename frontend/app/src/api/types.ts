@@ -101,6 +101,29 @@ export interface StationAnchor {
   stations500m: number | null;
 }
 
+/** 변동 종류. recalibration 을 grade 와 같이 다루면 «기준이 바뀐 것»이
+ *  «당신 자리가 나빠진 것»으로 읽힌다. */
+export type ChangeKind = "grade" | "recalibration" | "becameScorable" | "becameUnscorable";
+
+export interface ChangeEvent {
+  kind: ChangeKind;
+  beforeAsOf: string;
+  afterAsOf: string;
+  beforeGrade: number | null;
+  afterGrade: number | null;
+  scoreShift: number | null;
+}
+
+export interface ChangesResponse {
+  /** false = «변동 없음»이 아니라 «견줄 이전 판이 아직 없음» */
+  available: boolean;
+  reason: string | null;
+  baselineAsOf: string | null;
+  currentAsOf: string | null;
+  event: ChangeEvent | null;
+  sentence: string | null;
+}
+
 export interface Competition {
   /** 업태 무관 — 이 칸에서 영업 중인 «음식점 전체» */
   shopsHere: number | null;

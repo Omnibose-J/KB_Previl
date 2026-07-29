@@ -1,5 +1,6 @@
 import type {
   BuildingsResponse,
+  ChangesResponse,
   CompareInput,
   CompareResponse,
   EconomicsInput,
@@ -80,4 +81,8 @@ export const api = {
   /** 후보 1~3건 → 월세순 vs 실질비용순 병렬 (criteria §W3). 4건 이상은 422 */
   compare: (input: CompareInput) =>
     request<CompareResponse>("/compare", { method: "POST", body: JSON.stringify(input) }),
+  changes: (gridId: string, uptae: string) =>
+    request<ChangesResponse>(
+      `/grid/${encodeURIComponent(gridId)}/changes?uptae=${encodeURIComponent(uptae)}`,
+    ),
 };

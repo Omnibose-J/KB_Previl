@@ -510,10 +510,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             </div>
           </div>
 
-          <div className={s.alarm}>
-            <strong>이 자리 변동 알림 · 준비 중</strong>
-            <p>이 자리의 등급이나 경쟁이 달라지면 알려드릴게요.</p>
-          </div>
+          <ChangesCard gridId={d.gridId} uptae={uptae} />
 
           <div className={s.datacard}>
             <strong>데이터 출처 및 한계</strong>
@@ -544,6 +541,47 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         </div>
       </div>
     </>
+  );
+}
+
+/** 직전 채점 판과 견준 이 자리의 변동.
+ *
+ *  네 상태를 «전부 다르게» 보여야 한다 — 견줄 판이 없음 / 그대로임 /
+ *  자리가 변함 / 우리가 기준을 바꿈. 마지막 것을 «등급이 내렸어요»로 뭉개면
+ *  사용자 자리는 그대로인데 나빠졌다고 알리는 셈이 된다.
+ *
+ *  실패는 조용히 넘긴다 — 이건 사이드바의 부가 정보이고, 여기서 에러를 띄우면
+ *  본문 리포트가 멀쩡한데도 화면이 고장난 것처럼 보인다. */
+function ChangesCard({ gridId, uptae }: { gridId: string; uptae: string }) {
+  const q = useQuery({
+    queryKey: ["changes", gridId, uptae],
+    queryFn: () => api.changes(gridId, uptae),
+    staleTime: Infinity,
+    retry: 0,
+  });
+  if (q.isPending || q.isError) return null;
+
+  const { available, event, sentence, baselineAsOf, currentAsOf } = q.data;
+  return (
+    <div className={s.alarm}>
+      <strong>이 자리, 그새 달라졌나요?</strong>
+      {!available ? (
+        <p>아직 견줄 이전 기록이 없어요. 다음 갱신부터 비교해 드릴게요.</p>
+      ) : !event ? (
+        <p>
+          {baselineAsOf} 이후 등급은 그대로예요.
+        </p>
+      ) : (
+        <>
+          <p className={event.kind === "recalibration" ? s.alarmNote : s.alarmMoved}>
+            {sentence}
+          </p>
+          <span className={s.alarmFoot}>
+            {baselineAsOf} → {currentAsOf} 두 판을 견줬어요
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 

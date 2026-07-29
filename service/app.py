@@ -206,6 +206,33 @@ class GridsResponse(ApiModel):
     resolutions: dict[str, str]
 
 
+class ChangeEvent(ApiModel):
+    kind: str
+    grid_id: str
+    uptae: str
+    before_run: str
+    after_run: str
+    before_as_of: str
+    after_as_of: str
+    before_grade: int | None
+    after_grade: int | None
+    score_shift: float | None
+
+
+class ChangesResponse(ApiModel):
+    """available=False 는 «변동 없음»이 아니라 «견줄 이전 판이 아직 없음»이다.
+    둘을 한 모양으로 답하면 화면이 구분할 수 없다."""
+
+    available: bool
+    reason: str | None = None
+    baseline_run: str | None = None
+    current_run: str | None = None
+    baseline_as_of: str | None = None
+    current_as_of: str | None = None
+    event: ChangeEvent | None = None
+    sentence: str | None = None
+
+
 class UptaeMix(ApiModel):
     uptae: str | None
     active: int
@@ -596,6 +623,18 @@ def grid_detail(
     if item is None:
         raise HTTPException(status_code=404, detail=api.NOT_EVALUATED_DETAIL)
     return item
+
+
+@app.get(
+    "/api/grid/{grid_id}/changes",
+    response_model=ChangesResponse,
+    responses=NOT_FOUND_DATABASE_ERRORS,
+)
+def grid_changes(
+    grid_id: Annotated[str, Path(pattern=r"^\d+_\d+$")],
+    uptae: Annotated[str, Query(min_length=1, max_length=80)],
+) -> dict:
+    return api.grid_changes(grid_id, uptae)
 
 
 @app.get(

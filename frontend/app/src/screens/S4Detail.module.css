@@ -779,6 +779,22 @@
   color: var(--fg-t5);
 }
 
+/* 자리가 실제로 움직인 경우만 색을 준다. 재보정은 우리 사정이라 조용히 둔다 —
+   같은 강조를 주면 사용자가 자기 자리가 변한 줄로 읽는다. */
+.alarmMoved {
+  color: var(--fg-ink);
+  font-weight: 700;
+}
+
+.alarmNote {
+  color: var(--fg-t6);
+}
+
+.alarmFoot {
+  font-size: 13px;
+  color: var(--fg-t6);
+}
+
 /* data & limits — flat text block */
 .datacard {
   display: flex;

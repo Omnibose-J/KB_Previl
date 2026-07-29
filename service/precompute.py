@@ -13,6 +13,7 @@ reports the survival rate actually observed in that grade on held-out data.
 
 import argparse
 from collections import defaultdict
+import hashlib
 import sys
 import time
 
@@ -76,7 +77,79 @@ CREATE TABLE IF NOT EXISTS score_meta (
   k TEXT PRIMARY KEY,
   v TEXT
 );
+
+-- 변동 알림의 «이전 상태». grid_score 와 같은 모양이되 어느 판인지 알아야
+-- 하므로 run_id 를 함께 둔다.
+CREATE TABLE IF NOT EXISTS grid_score_prev (
+  run_id     TEXT,
+  uptae      TEXT,
+  grid_id    TEXT,
+  score      REAL,
+  grade      INTEGER,
+  observed   REAL,
+  PRIMARY KEY (run_id, uptae, grid_id)
+);
+CREATE INDEX IF NOT EXISTS ix_prev_cell ON grid_score_prev(uptae, grid_id);
+
+-- 판마다의 «어떤 모델로 언제 찍었나». 등급이 달라졌을 때 그것이 자리의
+-- 변화인지 우리가 기준을 바꾼 것인지는 이 표가 없으면 구분할 수 없고,
+-- 구분하지 못하면 재보정을 «당신 자리가 나빠졌다»로 알리게 된다.
+CREATE TABLE IF NOT EXISTS score_run (
+  run_id        TEXT PRIMARY KEY,
+  as_of         TEXT,      -- 채점 기준 시점 (YYYY-MM)
+  model         TEXT,
+  train_years   TEXT,
+  features_hash TEXT,      -- 순위 피처 집합의 해시
+  is_current    INTEGER    -- 1 = 지금 grid_score 에 들어 있는 판
+);
 """
+
+
+def _parse_asof(value):
+    """YYYY-MM -> 월 인덱스(year*12+month). asof.py 가 쓰는 것과 같은 축이다."""
+    try:
+        year, month = (int(part) for part in value.split("-"))
+    except ValueError:
+        raise SystemExit(f"--asof 형식은 YYYY-MM 입니다: {value}") from None
+    if not 1 <= month <= 12:
+        raise SystemExit(f"--asof 의 월이 1~12 가 아닙니다: {value}")
+    return year * 12 + month
+
+
+def _register_current():
+    con = init()
+    con.executescript(SCHEMA)
+    meta = {r[0]: r[1] for r in con.execute("SELECT k, v FROM score_meta")}
+    missing = [
+        k
+        for k in ("as_of", "rank_model", "rank_train_years", "rank_features")
+        if k not in meta
+    ]
+    if missing:
+        raise SystemExit(f"score_meta 에 {missing} 가 없습니다 — 먼저 채점할 것.")
+    rank_cols = meta["rank_features"].split(",")
+    run_id = f"{meta['as_of']}-{meta['rank_model']}-{_features_hash(rank_cols)}"
+    con.execute("UPDATE score_run SET is_current = 0")
+    con.execute(
+        "INSERT OR REPLACE INTO score_run VALUES(?,?,?,?,?,1)",
+        (
+            run_id,
+            meta["as_of"],
+            meta["rank_model"],
+            meta["rank_train_years"],
+            _features_hash(rank_cols),
+        ),
+    )
+    con.commit()
+    n = con.execute("SELECT count(*) FROM grid_score").fetchone()[0]
+    print(f"현재 판 등록: {run_id} · grid_score {n:,}행 (재채점 없음)")
+    return 0
+
+
+def _features_hash(rank_cols):
+    """순위 피처 집합의 지문. 이 값이 달라진 판의 등급 차이는 자리의 변화가
+    아니라 «우리가 무엇을 보는지»가 바뀐 것이다."""
+    return hashlib.sha256(",".join(rank_cols).encode()).hexdigest()[:16]
 
 
 def wilson(k, n, z=1.96):
@@ -223,7 +296,27 @@ def main():
         default=WINNER,
         help="ranking model — defaults to the E-M tournament winner",
     )
+    # 과거 시점 채점은 grid_score 를 «절대» 덮지 않는다. 6개월 전 상태를 운영
+    # 점수 자리에 쓰면 서비스가 조용히 과거를 내놓는다. --asof 는 그래서 항상
+    # grid_score_prev 로만 들어간다 — 플래그 하나로 오사용이 불가능해진다.
+    ap.add_argument(
+        "--asof",
+        metavar="YYYY-MM",
+        help="과거 시점으로 채점해 grid_score_prev 에 적재 (grid_score 는 불변)",
+    )
+    # score_run 이 생기기 전에 채점된 DB 에는 «현재 판»의 메타가 없다. 그렇다고
+    # 재채점하면 서비스 중인 점수를 다시 쓰게 되므로, score_meta 에 이미 있는
+    # (as_of·model·train_years·rank_features) 를 그대로 옮겨 등록만 한다.
+    # 같은 실행이 쓴 값들이라 grid_score 와 어긋날 수 없다.
+    ap.add_argument(
+        "--register-current",
+        action="store_true",
+        help="재채점 없이 현재 grid_score 의 판 메타만 score_run 에 기록",
+    )
     a = ap.parse_args()
+    asof_t = _parse_asof(a.asof) if a.asof else None
+    if a.register_current:
+        return _register_current()
 
     t0 = time.time()
     con = init()
@@ -260,7 +353,7 @@ def main():
         f"1등급 n={curve_n[1]:,} ... 10등급 n={curve_n[10]:,}"
     )
 
-    t = current_month(con)
+    t = asof_t if asof_t is not None else current_month(con)
     ao = AsOf(load_shops(con))
     ai = AccessIndex(con)
     xi, ri, di = ExtraIndex(con), RestIndex(con), RideIndex(con)
@@ -294,7 +387,14 @@ def main():
                 return i + 1, observed[i]
         return 10, observed[-1]
 
-    con.execute("DELETE FROM grid_score")
+    as_of = f"{t // 12}-{t % 12 or 12:02d}"
+    run_id = f"{as_of}-{a.model}-{_features_hash(rank_cols)}"
+    historical = asof_t is not None
+    if historical:
+        con.execute("DELETE FROM grid_score_prev WHERE run_id = ?", (run_id,))
+    else:
+        con.execute("DELETE FROM grid_score")
+
     for u in a.uptae:
         X, keep = [], []
         for gid, b in base.items():
@@ -316,8 +416,40 @@ def main():
         for gid, s in zip(keep, p):
             g, obs = grade_of(float(s))
             rows.append((u, gid, float(s), g, obs))
-        con.executemany("INSERT OR REPLACE INTO grid_score VALUES(?,?,?,?,?)", rows)
+        if historical:
+            con.executemany(
+                "INSERT OR REPLACE INTO grid_score_prev VALUES(?,?,?,?,?,?)",
+                [(run_id, *row) for row in rows],
+            )
+        else:
+            con.executemany("INSERT OR REPLACE INTO grid_score VALUES(?,?,?,?,?)", rows)
         print(f"  {u:<22} {len(rows):,}격자")
+
+    # 판 메타는 두 경우 다 남긴다. 현재판이 아니면 is_current=0 이고, 현재판을
+    # 새로 쓸 때는 이전 «현재»의 깃발을 내린다 — is_current 가 둘이면 어느 것과
+    # 비교해야 할지 알 수 없다.
+    if not historical:
+        con.execute("UPDATE score_run SET is_current = 0")
+    con.execute(
+        "INSERT OR REPLACE INTO score_run VALUES(?,?,?,?,?,?)",
+        (
+            run_id,
+            as_of,
+            a.model,
+            ",".join(str(year) for year in CONFIRMED_TRAIN_YEARS),
+            _features_hash(rank_cols),
+            0 if historical else 1,
+        ),
+    )
+
+    if historical:
+        con.commit()
+        n = con.execute(
+            "SELECT count(*) FROM grid_score_prev WHERE run_id = ?", (run_id,)
+        ).fetchone()[0]
+        print(f"\ngrid_score_prev[{run_id}]: {n:,}행 · {time.time() - t0:.0f}초")
+        print("grid_score 는 건드리지 않았다 (과거 시점 채점).")
+        return 0
 
     rank_features = ",".join(rank_cols)
     con.executemany(

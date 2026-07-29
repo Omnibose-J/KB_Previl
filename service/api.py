@@ -13,6 +13,7 @@ from pyproj import Transformer
 
 from pipeline.config import CRS_GRID, CRS_WGS84, DB_PATH, GRID_SIZE_M
 from pipeline.grid import in_seoul, neighbors, to_grid_id
+from service import alerts
 
 
 class ApiInputError(ValueError):
@@ -607,6 +608,20 @@ def _same_uptae_batch(con, grid_ids, uptae):
         }
         for gid in ids
     }
+
+
+def grid_changes(grid_id, uptae):
+    """이 칸이 직전 채점 판과 견주어 무엇이 달라졌는가.
+
+    견줄 판이 없으면 «변동 없음»이 아니라 available=False 다. 둘을 같은 모양으로
+    답하면 사용자는 알림이 도는 줄 알고 기다린다.
+    """
+    with readonly_connection() as con:
+        _ensure_uptae(con, uptae)
+        try:
+            return {"available": True, **alerts.changes_for(con, grid_id, uptae)}
+        except alerts.NoBaselineError as exc:
+            return {"available": False, "reason": str(exc)}
 
 
 def _semas_batch(con, grid_ids, uptae):
