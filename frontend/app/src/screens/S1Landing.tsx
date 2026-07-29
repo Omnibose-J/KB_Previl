@@ -5,9 +5,22 @@ import type { Screen } from "../App";
 import Dropdown from "../components/Dropdown";
 import { useSearch } from "../state/search";
 import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
-import { int, pct0 } from "../lib/format";
+import { int, pct0, splitUnit } from "../lib/format";
 import s from "./S1Landing.module.css";
 import markUrl from "../assets/previl-mark.png";
+
+/** 히어로 지표 한 칸. 수치는 크게, 단위는 작게 — 자릿수가 먼저 읽힌다.
+ *  단위로 안 갈라지는 값("77% vs 28%")은 splitUnit 이 통째로 돌려주므로
+ *  여기서 따로 분기하지 않는다. */
+function Metric({ v }: { v: string }) {
+  const [n, u] = splitUnit(v);
+  return (
+    <strong>
+      {n}
+      {u ? <i>{u}</i> : null}
+    </strong>
+  );
+}
 
 // S1 landing, rebuilt 1:1 against figma-snapshot S1 (2026-07-27 direction:
 // match the mockup layout first, carve details later). Structure = mockup;
@@ -48,6 +61,9 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
       {/* ── Hero (dark) ──────────────────────────────────────────────── */}
       <header className={s.hero}>
+        {/* 첫 방문자는 헤드라인을 읽기 전까지 이게 «무엇인지» 를 알 데가 없다.
+            상단 nav 는 이름만 말하고, 제품 범주는 푸터까지 내려가야 나온다. */}
+        <p className={s.eyebrow}>AI 상권·입지 참모</p>
         <h1 className={s.h1}>
           어디에 낼지,
           <br />
@@ -118,19 +134,19 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
             (UX critique #3). All live: provenance consts + meta(). */}
         <div className={s.stats}>
           <div className={s.stat}>
-            <strong>{PROVENANCE.recordCount}</strong>
+            <Metric v={PROVENANCE.recordCount} />
             <span>개업·폐업 기록 ({PROVENANCE.recordSince})</span>
           </div>
           <i className={s.statDivider} />
           <div className={s.stat}>
-            <strong>{meta.data ? int(meta.data.gridCount) : "…"}</strong>
+            <Metric v={meta.data ? int(meta.data.gridCount) : "…"} />
             <span>분석한 서울의 자리</span>
           </div>
           <i className={s.statDivider} />
           <div className={s.stat}>
-            <strong>
-              {top && bottom ? `${pct0(top.survival)} vs ${pct0(bottom.survival)}` : "…"}
-            </strong>
+            <Metric
+              v={top && bottom ? `${pct0(top.survival)} vs ${pct0(bottom.survival)}` : "…"}
+            />
             <span>1등급과 10등급의 실제 3년 생존율</span>
           </div>
         </div>
