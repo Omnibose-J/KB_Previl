@@ -49,7 +49,6 @@ export default function CandidateCard({
               {cell.nearestStation ? ` · ${stationAnchor(cell.nearestStation)}` : ""}
             </p>
             <div className={s.pills}>
-              <Signal cell={cell} />
               {cell.confidence === "partial" ? <span className={s.pillGray}>상권 밖</span> : null}
               <span className={s.gradePill}>{cell.grade}등급</span>
             </div>
@@ -146,12 +145,11 @@ function Micro({ label, value }: { label: string; value: string | null }) {
 }
 
 /**
- * 검증된 자리 / 과열 신호. The verdict is computed by lane A and shipped in the
- * payload — the front end must not derive it from thresholds of its own
- * (§3-S3). "상승 초입" is banned: we never predicted a rise.
+ * 검증된 자리 / 과열 신호 배지는 뺐다. 「최근 개업 급증 = 위험」을 확정
+ * 홀드아웃(2023 코호트 n=7,915)에서 재보니 급증 상위 10% 의 3년 생존율이
+ * 60.4% [56.8, 63.8] 로 나머지 57.8% [56.5, 59.0] 보다 «높았고» CI 도 겹쳤다
+ * — 방향이 반대이고 구분도 안 된다(docs/model-findings.md §22).
+ *
+ * 다른 정의로 검정해 CI 가 0 을 벗어나면 그때 되살리면 된다. 렌더될 수 없는
+ * 자리를 남겨두면 다음 사람이 「레인 A 대기」로 읽고 같은 일을 반복한다.
  */
-function Signal({ cell }: { cell: GridDetail }) {
-  if (cell.signal === "verified") return <span className={s.pillGreen}>검증된 자리</span>;
-  if (cell.signal === "overheated") return <span className={s.pillOrange}>과열 신호</span>;
-  return null;
-}

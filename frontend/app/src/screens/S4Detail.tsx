@@ -137,8 +137,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
       <header className={s.hero}>
         <div className={s.heroL}>
           <div className={s.heroPills}>
-            {d.signal === "verified" ? <span className={s.pillGreenDark}>검증된 자리</span> : null}
-            {d.signal === "overheated" ? <span className={s.pillOrangeDark}>과열 신호</span> : null}
             <span className={s.pillYellowDark}>
               {uptae} {d.grade}등급
             </span>
@@ -294,16 +292,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                   <strong>
                     {d.competition.openingsTotal !== null ? `${int(d.competition.openingsTotal)}곳` : "정보 없음"}
                   </strong>
-                  <em>갑자기 늘면 과열 신호예요</em>
+                  <em>지금까지 이 자리를 거쳐 간 가게 수예요</em>
                 </div>
               </div>
-              {/* verified/overheated verdict strip returns when lane A ships
-                  the signal column — until then there is nothing to say. */}
-              {d.signal === "verified" ? (
-                <div className={s.verdict}>검증된 자리 — 영업 점포가 많고 최근 급증하지 않았습니다</div>
-              ) : d.signal === "overheated" ? (
-                <div className={s.verdict}>과열 신호 — 최근 개업이 급증했습니다. 진입 시점 주의</div>
-              ) : null}
             </section>
 
             <section className={s.card} data-reveal>
