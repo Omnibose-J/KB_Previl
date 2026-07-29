@@ -75,8 +75,8 @@ corresponds to a catch-all bucket ("기타") or to 인도·태국 cuisine, so an
 mapping would be the cross-industry borrow `goodwill.py` explicitly refuses.
 **The absence is real; refusing is correct.**
 
-The three "minor deviations" below were noted in the same audit and are
-**still open** — they are separate from F-C2 proper.
+The three "minor deviations" below were noted in the same audit. All three were
+worked on 2026-07-29; see the resolution block after them.
 
 **Found** 2026-07-27 (lane C, design-vs-implementation audit of goodwill).
 
@@ -103,6 +103,65 @@ retry inside the goodwill dialog; valuation itself is unaffected.
 - expected survival comes from the 36-month curves, so valuation N is capped at 3
   years regardless of lease — a consequence of design §2 reusing the economics
   curves, stated nowhere in doc or UI.
+
+### Resolution of the three deviations (2026-07-29)
+
+**(3) valuation horizon — RESOLVED.** Three changes closed it. `e3f14e0` removed
+the whole-year `floor`, so N is now the measured fraction (grade 1: 2.651y, was
+truncated to 2y, +29% on the reference value) and a 1.5-year lease is valued as
+1.5 years. `6f4ef98` states on screen which constraint bound — remaining lease
+or the 36-month record — and, when the record binds, that the true value is
+therefore higher than shown. `c8c7123` replaced the lease number input with a
+0.5–3.0 year slider, so the cap is structural rather than something the user
+learns only by reading a footnote. `fdfeea4` dropped the meaningless 0-year
+sensitivity column that short leases produced.
+
+**(2) benchmark weighting — MEASURED; the description above is stale, and the
+magnitude was understated.** The code has used a *median* of per-trade-area
+per-store sales since the owner call of 2026-07-27, not an average, and design
+§24 specifies 중앙값, so the implementation conforms. But the underlying choice
+of weighting is not minor. Measured on quarter 20261:
+
+```text
+uptae   trade areas  median-of-trade-areas  store-weighted   gap
+한식           1,405              1,739만          2,763만  -37.1%
+중국식           445              1,403만          2,236만  -37.3%
+일식             332              1,423만          2,188만  -34.9%
+경양식           330              1,051만          1,990만  -47.2%
+통닭(치킨)       443              1,188만          2,149만  -44.7%
+분식             781                775만          1,340만  -42.2%
+호프/통닭        880                941만          1,846만  -49.0%
+까페           1,061                554만          1,390만  -60.1%
+```
+
+Store-weighted is far higher because trade areas with many stores also have
+higher per-store sales. Switching would raise the benchmark, shrink excess
+profit, and for 한식 move the share of grids valued at zero intangible from
+42.3% to 65.8% and the median reference value from 1,427만 to 0만 (10,879
+grids). A single spot: 여의동 at 4,095만 goes from 9,754만 to 5,513만, -43%.
+
+No recompute was made. The design says 중앙값, an owner call is on record, and
+the counterfactual the report answers — "compared with opening somewhere else" —
+is a choice among *locations*, which uniform-over-trade-areas represents. The
+2026-07-27 call did compare median against the mean of the same ratios
+(2,226만 for 한식); it did not have the store-weighted figure in front of it.
+The number above is recorded so a future change is a decision, not a discovery.
+See `docs/decisions/2026-07-29-goodwill-benchmark-weighting.md`.
+
+What was fixed instead is the label, which did misstate the unit: the report
+said 서울 중간 월매출, which reads as the median Seoul *store*. It is now
+서울 상권 중간값 / 같은 업종 상권들의 점포당 매출 중 가운데 값, and the
+paired row is 이 상권 점포당 월매출, so both sides of the comparison name the
+same unit.
+
+**(1) single operating margin — kept for v1, with the reason recorded.** A
+per-uptae rate from 소상공인실태조사 is not obtainable here: the survey is not in
+`docs/data-inventory.md` and no per-uptae rate exists anywhere in the repo, so
+closing this is a data-acquisition task, not a code change. The 0.15 constant is
+labelled `v1 고정` in `operatingMarginSource` and surfaced verbatim in the
+report, and the sensitivity table already brackets the assumption at
+12% / 15% / 18%, so the uncertainty is on screen rather than hidden. Whether the
+source even publishes a rate at 한식 / 중국식 / 일식 granularity is unverified.
 
 
 ---

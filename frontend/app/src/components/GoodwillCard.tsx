@@ -239,17 +239,21 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
       {/* 근거 행렬 — 전부 응답 필드, 출처 병기 */}
       <dl className={s.basis}>
         <div>
-          <dt>이 상권 월매출</dt>
+          <dt>이 상권 점포당 월매출</dt>
           <dd>
             {man(r.monthlyRevenue)} <em>같은 상권 안 자리는 같은 값이에요</em>
           </dd>
         </div>
         <div>
-          <dt>서울 중간 월매출</dt>
+          {/* «서울 중간 월매출»이라고 하면 «서울 점포의 중간 매출»로 읽힌다.
+              실제로는 상권 1,400여 곳의 점포당 매출을 줄 세운 가운데 값이라,
+              점포 수로 가중한 값과 37~60% 벌어진다. 단위를 이름에 박는다. */}
+          <dt>서울 상권 중간값</dt>
           <dd>
             {man(r.benchmarkMonthlyRevenue)}{" "}
             <em>
-              같은 업종 기준{r.benchmarkWarning ? ` · ${r.benchmarkWarning}` : ""}
+              같은 업종 상권들의 점포당 매출 중 가운데 값
+              {r.benchmarkWarning ? ` · ${r.benchmarkWarning}` : ""}
             </em>
           </dd>
         </div>
