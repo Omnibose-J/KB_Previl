@@ -117,6 +117,7 @@ export default function OccupancyCostCard({
 function Result({ data }: { data: EstimateResponse }) {
   const cost = data.costBreakdown;
   const total = data.effectiveCost;
+  const band = data.effectiveCostBand;
   const hidden = total - cost.rent;
   // Segment widths share one scale so the bar reads as one month's money.
   const seg = (v: number) => (total > 0 ? `${(v / total) * 100}%` : "0%");
@@ -127,6 +128,11 @@ function Result({ data }: { data: EstimateResponse }) {
         <div className={s.headlineMain}>
           <span className={s.headlineLabel}>실질 월 점유비용</span>
           <strong className={s.headlineValue}>{man(total)}</strong>
+          {/* 큰 숫자 하나만 내면 우리가 갖지 못한 확신을 표현하게 된다. 밴드는
+              답을 흐리는 게 아니라 «이 자리가 얼마나 불확실한가»를 같이 말한다. */}
+          <em className={s.headlineBand}>
+            {man(band.low)} ~ {man(band.high)}
+          </em>
         </div>
         {hidden > 0 ? (
           <p className={s.headlineGap}>
@@ -134,6 +140,12 @@ function Result({ data }: { data: EstimateResponse }) {
             <b className={s.gapAccent}>{man(hidden)}</b>이 더 나가요.
           </p>
         ) : null}
+        {/* 대표값이 왜 밴드의 높은 쪽에 붙어 있는지 말하지 않으면, 사용자는
+            그것을 «중간값»으로 읽는다. 보수적으로 잡았다는 사실 자체가 정보다. */}
+        <p className={s.headlineBasis}>
+          큰 숫자는 <b>권리금을 한 푼도 못 건진다</b>고 보고 계산했어요. 다음 사람이 이어받거나
+          오래 쓰면 낮은 쪽에 가까워져요.
+        </p>
       </div>
 
       {/* 한 달 치 돈 한 줄 — 월세 옆에 숨은 비용이 얼마나 붙는지가 보여야 한다. */}
@@ -169,8 +181,8 @@ function Result({ data }: { data: EstimateResponse }) {
           value={cost.premiumAmortized}
           note={
             data.paramsUsed
-              ? `못 건지는 몫만 · ${int(data.paramsUsed.horizonMonths)}개월로 나눔`
-              : "못 건지는 몫만"
+              ? `전액 손실 기준 · ${int(data.paramsUsed.horizonMonths)}개월로 나눔`
+              : "전액 손실 기준"
           }
         />
       </ul>
@@ -207,8 +219,12 @@ function SuccessionRow({ prob, source }: { prob: number; source: RecoverySource 
           : source === "survival_curve_proxy"
             ? "이 등급 자리들이 실제로 버틴 기록에서 나온 하한이에요. 이보다 나쁠 수는 있어도 좋기는 어려워요."
             : "이 자리의 승계 기록을 학습한 모델로 계산했어요."}
-        {" "}이어받는다는 뜻이지, 낸 권리금을 그만큼 돌려받는다는 뜻은 아니에요.
+        {" "}이어받는다는 뜻이지, 낸 권리금을 그만큼 돌려받는다는 뜻은 아니에요.{" "}
+        <b>돌려받는 몫을 이보다 크게 잡지는 않았어요.</b>
       </p>
+      {/* 매물별 차등이 없다는 사실을 안 밝히면, 사용자는 이 값을 «내가 보고 있는
+          그 가게»의 값으로 읽는다. 같은 골목 같은 업종이면 전부 같은 값이다. */}
+      <p className={s.successionScope}>같은 자리·같은 업종이면 모두 같은 값이에요.</p>
     </div>
   );
 }
@@ -232,6 +248,11 @@ function BurdenRow({ data }: { data: EstimateResponse }) {
       <div className={s.burdenMain}>
         <span className={s.burdenLabel}>매출에서 자리값이 차지하는 몫</span>
         <strong className={s.burdenValue}>{pct1(data.burdenRate)}</strong>
+        {data.burdenRateBand ? (
+          <em className={s.burdenBand}>
+            {pct1(data.burdenRateBand.low)} ~ {pct1(data.burdenRateBand.high)}
+          </em>
+        ) : null}
       </div>
       <p className={s.burdenNote}>
         {data.monthlyRevenue !== null ? `월 매출 ${man(data.monthlyRevenue)} 기준` : ""}

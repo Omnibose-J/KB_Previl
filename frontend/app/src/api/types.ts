@@ -409,7 +409,13 @@ export interface EstimateResponse {
   successionProb: number;
   /** 서버가 실제로 선택한 승계 확률 원천. */
   recoverySource: RecoverySource;
+  /** 대표값은 **회수율 0** 시나리오다 — 권리금을 한 푼도 못 건진다고 본 보수적
+   *  기준선. 승계 확률은 회수율의 «상한»이지 기댓값이 아니므로(model-findings
+   *  §21-C), 계약 앞둔 사용자에게 비용을 낮게 부르는 쪽으로 잡지 않는다. */
   effectiveCost: number;
+  /** 회수율 · 상각기간 · 기회비용이자율을 흔든 그리드의 5~95 백분위.
+   *  폭이 좁으면 «가정이 바뀌어도 결과가 같다», 넓으면 «판단하기 어려운 자리». */
+  effectiveCostBand: { low: number; high: number };
   costBreakdown: CostBreakdown;
   /**
    * 상권 단위 추정매출. **매물 단위가 아니다** — 같은 상권 후보끼리는 같은 값이
@@ -420,6 +426,8 @@ export interface EstimateResponse {
   revenueResolution: "trade_area";
   /** null = 상권 밖이라 매출 근거 없음. **0으로 그리지 않는다** */
   burdenRate: number | null;
+  /** 비용 밴드 ÷ 월매출. 매출이 없으면 null — 비용 밴드는 그때도 나온다 */
+  burdenRateBand: { low: number; high: number } | null;
   /** 비어 있는 축 이름 — 화면은 채우지 않고 비었다고 말한다 */
   missingAxes: string[];
   notice: string;

@@ -134,6 +134,27 @@
   letter-spacing: -0.5px;
 }
 
+/* 밴드는 대표값 옆에 붙되 그것과 경쟁하지 않는다 — 폭을 읽히게 하는 게 목적이지
+   숫자를 하나 더 들이미는 게 아니다. */
+.headlineBand {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-y-dim);
+  white-space: nowrap;
+}
+
+.headlineBasis {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg-y-dim);
+}
+
+.headlineBasis b {
+  font-weight: 700;
+  color: var(--fg-y-text);
+}
+
 .headlineGap {
   font-size: 13px;
   color: var(--fg-y-dim);
@@ -296,6 +317,17 @@
   color: var(--fg-t6);
 }
 
+.successionNote b {
+  font-weight: 700;
+  color: var(--fg-t3);
+}
+
+.successionScope {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-t7);
+}
+
 /* ── 부담률 ─────────────────────────────────────────────── */
 
 .burden {
@@ -325,6 +357,14 @@
   font-size: 22px;
   font-weight: 900;
   color: var(--fg-ink);
+}
+
+.burdenBand {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-t6);
+  white-space: nowrap;
 }
 
 .burdenNote,
