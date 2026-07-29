@@ -800,8 +800,85 @@ def test_goodwill_slim_input_uses_server_sources_and_after_rent_margin(monkeypat
     assert body["benchmarkWarning"]
     assert body["adjustmentFactor"] == 1
     assert body["adjustmentReasons"] == ["v1 미적용 — 데이터 기반 조정 항은 로드맵"]
-    assert len(body["sensitivity"]) == 27
+    assert {row["years"] for row in body["sensitivity"]} == {2, 3}
+    assert len(body["sensitivity"]) == 18
     assert body["bandLow"] <= body["estimatedGoodwill"] <= body["bandHigh"]
+
+
+def test_goodwill_preserves_partial_valuation_years(monkeypatch, tmp_path):
+    source_db = tmp_path / "partial-year-goodwill.db"
+    with sqlite3.connect(source_db) as con:
+        con.execute("CREATE TABLE grid_feature (grid_id TEXT, trdar_cd TEXT)")
+        con.execute("INSERT INTO grid_feature VALUES ('1_1', 'A_TARGET')")
+        con.execute(
+            "CREATE TABLE trdar_sales ("
+            "quarter TEXT, trdar_cd TEXT, induty_cd TEXT, sales_amt REAL)"
+        )
+        con.executemany(
+            "INSERT INTO trdar_sales VALUES (?, ?, ?, ?)",
+            [
+                ("20261", "A_TARGET", "CS100001", 300_000_000),
+                ("20261", "A_BENCH", "CS100001", 150_000_000),
+            ],
+        )
+        con.execute(
+            "CREATE TABLE trdar_store ("
+            "quarter TEXT, trdar_cd TEXT, induty_cd TEXT, stor_co REAL)"
+        )
+        con.executemany(
+            "INSERT INTO trdar_store VALUES (?, ?, ?, ?)",
+            [
+                ("20261", "A_TARGET", "CS100001", 5),
+                ("20261", "A_BENCH", "CS100001", 5),
+            ],
+        )
+    partial_curve = [1.0] + [1.0] * 31 + [0.8] + [0.0] * 4
+    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(
+        api,
+        "grid_detail",
+        lambda _grid_id, _uptae: {"grade": 1, "sales_available": True},
+    )
+    monkeypatch.setattr(
+        "service.goodwill.grade_survival_curves",
+        lambda: {grade: partial_curve for grade in range(1, 11)},
+    )
+
+    def post(lease_years):
+        return client.post(
+            "/api/goodwill",
+            json={
+                "gridId": "1_1",
+                "uptae": "한식",
+                "askingGoodwill": 8_000,
+                "leaseRemainingYears": lease_years,
+            },
+        )
+
+    long_lease = post(10)
+    assert long_lease.status_code == 200
+    long_body = long_lease.json()
+    annual_excess = (
+        long_body["monthlyRevenue"] - long_body["benchmarkMonthlyRevenue"]
+    ) * long_body["operatingMargin"] * 12
+    two_year_value = sum(annual_excess / 1.08**year for year in range(1, 3))
+    expected_long = two_year_value + annual_excess * 0.65 / 1.08**3
+    assert long_body["valuationYears"] == pytest.approx(2.65)
+    assert long_body["estimatedGoodwill"] == pytest.approx(expected_long)
+    assert long_body["estimatedGoodwill"] / two_year_value - 1 == pytest.approx(
+        0.29, abs=0.01
+    )
+    long_sensitivity_years = {row["years"] for row in long_body["sensitivity"]}
+    assert long_body["valuationYears"] in long_sensitivity_years
+    assert max(long_sensitivity_years) == 3
+
+    short_lease = post(1.5)
+    assert short_lease.status_code == 200
+    short_body = short_lease.json()
+    expected_short = annual_excess / 1.08 + annual_excess * 0.5 / 1.08**2
+    assert short_body["valuationYears"] == 1.5
+    assert short_body["estimatedGoodwill"] == pytest.approx(expected_short)
+    assert max(row["years"] for row in short_body["sensitivity"]) == 1.5
 
 
 def test_goodwill_rejects_removed_caller_owned_inputs():

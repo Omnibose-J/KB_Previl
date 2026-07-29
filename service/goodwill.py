@@ -138,9 +138,19 @@ def _intangible_value(
         0.0,
         (monthly_revenue - benchmark_monthly_revenue) * operating_margin * 12,
     )
-    return sum(
-        annual_excess / (1 + discount_rate) ** year for year in range(1, years + 1)
+    full_years = math.floor(years)
+    value = sum(
+        annual_excess / (1 + discount_rate) ** year
+        for year in range(1, full_years + 1)
     )
+    partial_year = years - full_years
+    if partial_year:
+        value += (
+            annual_excess
+            * partial_year
+            / (1 + discount_rate) ** (full_years + 1)
+        )
+    return value
 
 
 def _tangible_values(assets):
@@ -201,7 +211,12 @@ def calculate(
     grade = detail["grade"]
     curve = grade_survival_curves()[grade]
     expected_survival_years = sum(curve[1:]) / 12
-    years = math.floor(min(expected_survival_years, lease_remaining_years))
+    curve_horizon_years = (len(curve) - 1) / 12
+    years = min(
+        expected_survival_years,
+        lease_remaining_years,
+        curve_horizon_years,
+    )
     discount_rate = loan_rate + risk_premium
 
     intangible = _intangible_value(
@@ -220,9 +235,9 @@ def calculate(
     }
     estimated = (intangible + tangible) * adjustment_factor
 
-    year_cap = math.floor(lease_remaining_years)
+    year_cap = min(lease_remaining_years, curve_horizon_years)
     sensitivity_years = sorted(
-        {max(0, min(year_cap, years + offset)) for offset in (-1, 0, 1)}
+        {max(0.0, min(year_cap, years + offset)) for offset in (-1, 0, 1)}
     )
     sensitivity = []
     estimates = []

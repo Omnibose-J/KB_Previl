@@ -392,7 +392,7 @@ class TangibleAssetResult(TangibleAssetInput):
 
 class SensitivityRow(ApiModel):
     operating_margin: float
-    years: int
+    years: float
     discount_rate: float
     estimated_goodwill: float
 
@@ -420,7 +420,7 @@ class GoodwillResponse(ApiModel):
     discount_rate: float
     discount_rate_source: str
     expected_survival_years: float
-    valuation_years: int
+    valuation_years: float
     lease_remaining_years: float
     intangible_value: float
     tangible_value: float
