@@ -84,7 +84,10 @@ def main():
     print("  업태 상위: " + " · ".join(f"{r[0]} {r[1]:,}" for r in top))
     cov = con.execute("SELECT count(DISTINCT grid_id) FROM licence_rest "
                       "WHERE grid_id IS NOT NULL").fetchone()[0]
-    print(f"  커버 격자 {cov:,} / 전체 21,544")
+    # 전체 격자 수를 상수로 박아두면 재구축 때마다 조용히 낡는다(실제로 21,544
+    # 에서 23,572 로 늘었는데 이 줄만 남아 있었다). 그때그때 센다.
+    total = con.execute("SELECT count(*) FROM grid").fetchone()[0]
+    print(f"  커버 격자 {cov:,} / 전체 {total:,}")
     return 0
 
 

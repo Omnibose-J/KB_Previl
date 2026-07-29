@@ -10,9 +10,13 @@
 /** Source-record scale (docs/data-inventory.md). Validation windows are NOT
  *  stated here — they are lineage-dependent and come from the API
  *  (survivalByPeriod.testWindow). */
+/** recordSince 는 «기록이 실제로 쌓이기 시작한» 연대다. DB 의 최소 개업연도는
+ *  1900 이지만 1960년 이전 389건은 «꼬꼬치킨(1900)»·상호 «.» 같은 입력 오류이고
+ *  전부 폐업 상태다. 밀도가 생기는 것은 1980년대(44,211건)부터라 그렇게 적는다.
+ *  이전 표기 «1924년부터» 는 DB 어디에도 근거가 없었다. */
 export const PROVENANCE = {
   recordCount: "53.5만 건",
-  recordSince: "1924년부터",
+  recordSince: "1980년대부터",
 } as const;
 
 /** Data actually used. The mockup listed 인스타·블로그·리뷰 — measured twice,
