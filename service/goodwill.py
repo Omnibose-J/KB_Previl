@@ -8,9 +8,10 @@ from service.economics import grade_survival_curves
 
 
 BENCHMARK_LEVEL = 4
-OPERATING_MARGIN = 0.15
+OPERATING_MARGIN = 0.0701
 OPERATING_MARGIN_SOURCE = (
-    "소상공인실태조사 음식점업 영업이익률 15% (임대료 차감 후, v1 고정)"
+    "외식업체 경영실태조사(농림축산식품부·KREI) 2025년 조사 "
+    "서울 외식업체 영업이익률 7.01% (2024년 실적, n=491, 임대료 차감 후)"
 )
 LOAN_RATE = 0.05
 RISK_PREMIUM = 0.03
@@ -247,9 +248,9 @@ def calculate(
     sensitivity = []
     estimates = []
     for margin in (
-        operating_margin - 0.03,
+        round(operating_margin - 0.015, 4),
         operating_margin,
-        operating_margin + 0.03,
+        round(operating_margin + 0.015, 4),
     ):
         for sensitivity_year in sensitivity_years:
             for rate in (

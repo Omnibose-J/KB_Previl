@@ -781,16 +781,21 @@ def test_goodwill_slim_input_uses_server_sources_and_after_rent_margin(monkeypat
 
     assert response.status_code == 200
     body = response.json()
-    annual_excess = max(0, (expected_monthly - expected_benchmark) * 0.15 * 12)
+    annual_excess = max(
+        0, (expected_monthly - expected_benchmark) * 0.0701 * 12
+    )
     expected = sum(annual_excess / 1.08**year for year in range(1, 4))
     assert body["valuationYears"] == 3
     assert body["monthlyRevenue"] == pytest.approx(expected_monthly)
     assert body["benchmarkMonthlyRevenue"] == pytest.approx(expected_benchmark)
     assert body["intangibleValue"] == pytest.approx(expected)
     assert body["estimatedGoodwill"] == pytest.approx(expected)
-    assert body["operatingMargin"] == 0.15
+    assert body["operatingMargin"] == 0.0701
     assert body["operatingMarginBasis"] == "after_rent"
-    assert "소상공인실태조사" in body["operatingMarginSource"]
+    assert body["operatingMarginSource"] == (
+        "외식업체 경영실태조사(농림축산식품부·KREI) 2025년 조사 "
+        "서울 외식업체 영업이익률 7.01% (2024년 실적, n=491, 임대료 차감 후)"
+    )
     assert body["loanRate"] == 0.05
     assert body["riskPremium"] == 0.03
     assert body["discountRate"] == 0.08
@@ -801,6 +806,11 @@ def test_goodwill_slim_input_uses_server_sources_and_after_rent_margin(monkeypat
     assert body["adjustmentFactor"] == 1
     assert body["adjustmentReasons"] == ["v1 미적용 — 데이터 기반 조정 항은 로드맵"]
     assert {row["years"] for row in body["sensitivity"]} == {2, 3}
+    assert {row["operatingMargin"] for row in body["sensitivity"]} == {
+        0.0551,
+        0.0701,
+        0.0851,
+    }
     assert len(body["sensitivity"]) == 18
     assert body["bandLow"] <= body["estimatedGoodwill"] <= body["bandHigh"]
 
