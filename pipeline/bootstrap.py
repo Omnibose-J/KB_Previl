@@ -25,7 +25,7 @@ import sys
 import time
 
 from .config import (CACHE_DIR, DEFAULT_QUARTER, DB_PATH, ENV_PATH,
-                     load_env)
+                     SEOUL_DAILY_BUDGET, load_env)
 from .db import connect_ro, init
 
 
@@ -42,8 +42,8 @@ OPTIONAL_ENV_KEY = "DATA_GO_KR_SERVICE_KEY"
 # else: an experiment table appearing or disappearing must not look like drift.
 SERVING_TABLES = (
     "grid", "grid_feature", "grid_sgis", "grid_access", "grid_concept",
-    "grid_score", "succession_score", "score_meta", "licence", "store",
-    "station", "trdar_sales", "trdar_store",
+    "grid_score", "succession_score", "score_meta", "licence", "licence_rest",
+    "store", "station", "trdar_sales", "trdar_store",
 )
 
 # Rejected experiments. Recorded in docs/model-findings.md; the data is dead
@@ -95,8 +95,17 @@ def _module(*argv):
 
 
 def _collect(args):
-    from .collect import collect_seoul
+    # SEMAS 도 함께 받는다. 이것이 없으면 store 가 비고, consistency 의
+    # crosssource 검사가 상관 r=0 으로 실패한다 — 게이트 4종을 통과한 DB 를
+    # 만드는 것이 이 스크립트의 계약이므로 선택 항목일 수 없다.
+    # 쿼터는 서울 열린데이터와 별개(data.go.kr)라 일일 900콜에 영향이 없다.
+    from .collect import collect_semas, collect_seoul
     collect_seoul(args.quarter)
+    if load_env().get(OPTIONAL_ENV_KEY):
+        collect_semas()
+    else:
+        print(f"  [건너뜀] SEMAS — {OPTIONAL_ENV_KEY} 없음. "
+              "consistency 의 crosssource 가 실패한다.")
 
 
 def _normalize(_args):
@@ -141,6 +150,11 @@ STEPS = [
          "서울 열린데이터 → pipeline/cache/*.jsonl (일일 900콜)"),
     Step("normalize", "licence", _normalize,
          "인허가·상권·생활인구·점포 적재"),
+    # 휴게음식점. concept_mix 와 service.api 가 licence_rest 를 읽으므로
+    # concept_mix 보다 앞이어야 한다. 캐시만 있으면 되고 다른 표에 기대지 않아
+    # normalize 바로 뒤에 둔다 — 두 인허가 표가 같이 자리 잡는다.
+    Step("tier2", "licence_rest", _module("model.tier2"),
+         "휴게음식점 적재 — 카페·베이커리·패스트푸드"),
     Step("cohort", "cohort_survival", _cohort,
          "개업 코호트 생존율"),
     Step("grid", "grid", _grid,
@@ -213,11 +227,15 @@ def preflight():
             failures += 1
             print(f"[FAIL] {key} — {reason} .env에 값이 없습니다.")
 
-    optional_state = "설정됨" if env.get(OPTIONAL_ENV_KEY) else "미설정"
-    print(
-        f"[선택] {OPTIONAL_ENV_KEY} {optional_state} — "
-        "SEMAS 수집(--semas)에만 필요합니다."
-    )
+    # 예전엔 «--semas 에만 필요» 라고 적혀 있었지만, 이 키가 없으면 store 가
+    # 비고 consistency 의 crosssource(인허가 밀도 ↔ 소상공인 밀도 상관)가
+    # r=0 으로 실패한다. 완주는 되지만 게이트 4종 통과는 안 된다.
+    if env.get(OPTIONAL_ENV_KEY):
+        print(f"[PASS] {OPTIONAL_ENV_KEY} — SEMAS 수집. 없으면 consistency 의 "
+              "crosssource 가 실패합니다.")
+    else:
+        print(f"[경고] {OPTIONAL_ENV_KEY} 미설정 — 완주는 되지만 "
+              "consistency 의 crosssource 검사가 실패합니다.")
 
     if DB_PATH.exists():
         db_writable = DB_PATH.is_file() and os.access(DB_PATH, os.W_OK)
@@ -239,22 +257,31 @@ def preflight():
             "SQLite DB를 생성·갱신할 수 있는 경로가 아닙니다."
         )
 
-    licence_cache = CACHE_DIR / "licence.jsonl"
-    if licence_cache.is_file():
-        print(
-            f"[안내] KB_CACHE: {CACHE_DIR} — "
-            "licence.jsonl 있음, --skip-collect 가능"
-        )
-    elif CACHE_DIR.is_dir():
-        print(
-            f"[안내] KB_CACHE: {CACHE_DIR} — "
-            "licence.jsonl 없음, collect 필요"
-        )
+    # 캐시가 있으면 그만큼 호출을 안 쓴다. 어느 것이 있는지 낱개로 알려준다 —
+    # licence.jsonl 하나만 보고 «캐시 있음» 이라 하면 휴게음식점 147콜이
+    # 남아 있는데도 준비된 줄로 읽힌다.
+    CACHE_CALLS = {
+        "licence.jsonl": 536,
+        "licence_rest.jsonl": 147,
+        "trdar_area.jsonl": 2,
+        f"trdar_sales_{DEFAULT_QUARTER}.jsonl": 35,
+        f"trdar_store_{DEFAULT_QUARTER}.jsonl": 13,
+        f"trdar_flpop_{DEFAULT_QUARTER}.jsonl": 2,
+        "lvpop.jsonl": 72,
+    }
+    if not CACHE_DIR.is_dir():
+        print(f"[안내] KB_CACHE: {CACHE_DIR} — 캐시 디렉터리 없음, 전량 수집 필요")
+        need = sum(CACHE_CALLS.values())
     else:
-        print(
-            f"[안내] KB_CACHE: {CACHE_DIR} — "
-            "캐시 디렉터리와 licence.jsonl 없음, collect 필요"
-        )
+        have = [n for n in CACHE_CALLS if (CACHE_DIR / n).is_file()]
+        need = sum(v for n, v in CACHE_CALLS.items() if n not in have)
+        print(f"[안내] KB_CACHE: {CACHE_DIR} — 캐시 {len(have)}/{len(CACHE_CALLS)}종")
+        for name, calls in CACHE_CALLS.items():
+            mark = "있음" if name in have else f"없음 (약 {calls}콜)"
+            print(f"         {name:<32} {mark}")
+    print(f"[안내] 서울 열린데이터 예상 소요: 약 {need}콜 "
+          f"(일일 한도 {SEOUL_DAILY_BUDGET}). 넘으면 다음 날 같은 명령을 다시 치면 "
+          "이어서 받는다.")
 
     if db_writable:
         try:
@@ -413,17 +440,35 @@ def main():
         step.run(a)
         print(f"      {time.time() - t:.0f}s")
 
+    failed = []
     if a.gates:
         print("\n게이트 4종")
+        # 첫 실패에서 멈추지 않는다. 캐시로 재구축하면 verify 의 counts 가 거의
+        # 항상 어긋나는데(아래), 거기서 끊으면 나머지 셋이 통과하는지조차 알 수
+        # 없다 — 검토자가 «어디까지 멀쩡한가» 를 한 번에 봐야 한다.
         for gate in GATES:
-            print(f"  $ python -m {' '.join(gate)}", flush=True)
-            rc = subprocess.call([sys.executable, "-m", *gate])
-            if rc != 0:
-                raise SystemExit(f"게이트 실패: {' '.join(gate)} (exit {rc})")
+            print(f"\n  $ python -m {' '.join(gate)}", flush=True)
+            if subprocess.call([sys.executable, "-m", *gate]) != 0:
+                failed.append(" ".join(gate))
+
+        print("\n" + "=" * 56)
+        if not failed:
+            print("게이트 4/4 PASS")
+        else:
+            print(f"게이트 {len(GATES) - len(failed)}/{len(GATES)} PASS  "
+                  f"실패: {', '.join(failed)}")
+            if failed == ["pipeline.verify"]:
+                print(
+                    "\n  verify 만 실패했다면 counts 검사일 가능성이 크다. 그 검사는\n"
+                    "  적재 건수를 «라이브 API 총건수» 와 대조하므로, 캐시로 재구축한\n"
+                    "  DB 는 캐시를 받은 뒤 원천에 늘어난 만큼 어긋난다. 수집을 포함한\n"
+                    "  진짜 콜드런에서는 통과한다(README «알아둘 것»).\n"
+                    "  캐시를 지우고 collect 부터 다시 받으면 확인된다."
+                )
 
     print(f"\n총 {time.time() - t0:.0f}s")
     fingerprint()
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

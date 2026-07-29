@@ -17,11 +17,23 @@ from .config import (CACHE_DIR, SEOUL_BASE, SEOUL_DAILY_BUDGET, SEOUL_PAGE,
 from .db import connect, init
 
 
-def _key():
+def api_key():
+    """Seoul Open Data key, looked up at call time.
+
+    Deliberately not a module-level constant: importing this module must not
+    require a populated .env, or every `--help` and every unit test that merely
+    touches the package dies on a missing key. Callers outside this module use
+    this function — `pipeline.access` still imported the removed `KEY` constant
+    and could not be run at all, which no test caught because nothing imports
+    `access` at collection time (found by an actual cold run 2026-07-29).
+    """
     k = load_env().get("SEOUL_OPEN_API_KEY")
     if not k:
         raise RuntimeError("SEOUL_OPEN_API_KEY missing from .env")
     return k
+
+
+_key = api_key      # 내부 호출부가 쓰던 이름
 
 
 TODAY = date.today().isoformat()

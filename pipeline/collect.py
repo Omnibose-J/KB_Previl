@@ -10,8 +10,9 @@ import json
 import requests
 
 from .config import (DEFAULT_QUARTER, SEMAS_BASE, SEMAS_FOOD_LCLS, SVC_LICENCE,
-                     SVC_LVPOP_DONG, SVC_TRDAR_AREA, SVC_TRDAR_FLPOP,
-                     SVC_TRDAR_SALES, SVC_TRDAR_STORE, CACHE_DIR)
+                     SVC_LICENCE_REST, SVC_LVPOP_DONG, SVC_TRDAR_AREA,
+                     SVC_TRDAR_FLPOP, SVC_TRDAR_SALES, SVC_TRDAR_STORE,
+                     CACHE_DIR)
 from .seoul_api import fetch_all, remaining
 from .db import init
 
@@ -19,6 +20,11 @@ from .db import init
 def collect_seoul(quarter=DEFAULT_QUARTER, lvpop_days=7, dry_run=False):
     plan = [
         ("licence",     SVC_LICENCE,     "",            None),
+        # 휴게음식점. 카페·베이커리·패스트푸드가 여기 있고, 서울 영업 중
+        # 음식업의 16.9% 다. 빠지면 model.tier2 가 만들 것이 없고 service.api
+        # 의 까페 집계와 model.concept_mix 가 «no such table: licence_rest» 로
+        # 죽는다 — 예전에 손으로 한 번 받아 캐시에만 있던 것을 체인에 넣는다.
+        ("licence_rest", SVC_LICENCE_REST, "",          None),
         ("trdar_area",  SVC_TRDAR_AREA,  "",            None),
         ("trdar_sales", SVC_TRDAR_SALES, f"{quarter}/", None),
         ("trdar_store", SVC_TRDAR_STORE, f"{quarter}/", None),

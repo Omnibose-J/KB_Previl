@@ -54,9 +54,13 @@ python -m pipeline.bootstrap --preflight    # 키·경로·잔여 쿼터 점검 
 python -m pipeline.bootstrap --gates        # 수집 → … → grid_score → 게이트
 ```
 
-16단계다: `schema → collect → normalize → cohort → grid → geocode → sgis →
-sgis_match → features → access → addr_history → concept → concept_mix →
+17단계다: `schema → collect → normalize → **tier2** → cohort → grid → geocode →
+sgis → sgis_match → features → access → addr_history → concept → concept_mix →
 precompute → ui_curves → succession`.
+
+`tier2`(휴게음식점)는 `concept_mix`보다 앞이어야 한다. 카페·베이커리는 일반
+음식점이 아니라 휴게음식점으로 인허가되고, `concept_mix`와 서비스의 까페 집계가
+그 표를 읽는다 — 빠지면 `no such table: licence_rest`로 죽는다.
 
 **`pipeline.run`은 이 일을 못 한다.** features까지만 돌고 `grid_score`를 만들지
 않아 추천이 빈 목록이 되며, 센서스 단계가 없어 `corp_cnt`가 전부 NULL로 남는다.
@@ -68,7 +72,7 @@ precompute → ui_curves → succession`.
 | `SEOUL_OPEN_API_KEY` | 인허가·상권·생활인구 수집 | collect 불가 |
 | `KAKAO_REST_API_KEY` | 격자 중심 → 행정동 역지오코딩 | geocode 불가 |
 | `SGIS_CONSUMER_KEY` / `_SECRET` | 센서스 | 배후인구 피처 결측 |
-| `DATA_GO_KR_SERVICE_KEY` | SEMAS 점포 (`--semas`) | 선택 — 없어도 완주 |
+| `DATA_GO_KR_SERVICE_KEY` | SEMAS 점포 | 완주는 하나 `consistency`의 `crosssource`가 실패 |
 
 `OPENAI_API_KEY`는 **필요 없다.** 기각된 비정형 실험에서만 쓰였고 콜드스타트
 경로에 없다.
@@ -85,10 +89,15 @@ precompute → ui_curves → succession`.
 | succession (M2) | 68초 |
 | **ui_curves** (1·3·5년 곡선 × 등급 × 면적대) | **895초** |
 
-캐시가 없으면 여기에 수집이 붙는다. 서울 열린데이터는 **일일 900콜**이고 인허가
-한 종만 **536콜**이라, 전량 수집은 약 780콜로 하루 예산 안에 겨우 들어간다.
-중간에 쿼터가 끊기면 같은 명령을 다시 치면 된다 — 각 단계는 출력 테이블이 차
-있으면 건너뛰고, `--from <단계>`로 지점을 지정할 수도 있다.
+캐시가 없으면 여기에 수집이 붙는다. 서울 열린데이터는 **일일 900콜**인데
+일반음식점 인허가 **536콜** + 휴게음식점 **147콜** + 상권·생활인구 약 124콜로
+**약 807콜**이다 — 하루 예산 안에 들어가지만 여유가 100콜이 안 된다.
+**중간에 끊기면 다음 날 같은 명령을 다시 치면 이어서 받는다** — 각 단계는 출력
+테이블이 차 있으면 건너뛰고, 캐시가 있는 수집분은 호출을 다시 쓰지 않는다.
+`--from <단계>`로 지점을 지정할 수도 있다. 어느 캐시가 있고 몇 콜이 남았는지는
+`--preflight`가 낱개로 알려준다.
+
+SEMAS(소상공인 상가업소)는 **data.go.kr 별도 쿼터**라 위 900콜과 무관하다.
 
 ### 알아둘 것
 

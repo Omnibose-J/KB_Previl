@@ -18,7 +18,7 @@ import requests
 
 from .config import GRID_SIZE_M, SEOUL_BASE
 from .db import init
-from .seoul_api import KEY
+from .seoul_api import api_key
 
 SVC = "subwayStationMaster"
 M_PER_DEG_LAT = 111_320.0
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS grid_access (
 def fetch_stations(con):
     rows, start = [], 1
     while True:
-        r = requests.get(f"{SEOUL_BASE}/{KEY}/json/{SVC}/{start}/{start+999}/",
+        r = requests.get(f"{SEOUL_BASE}/{api_key()}/json/{SVC}/{start}/{start+999}/",
                          timeout=60).json().get(SVC) or {}
         got = r.get("row") or []
         rows.extend(got)
