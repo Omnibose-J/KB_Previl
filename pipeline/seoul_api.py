@@ -12,25 +12,18 @@ from datetime import date
 
 import requests
 
-from .config import CACHE_DIR, SEOUL_BASE, SEOUL_DAILY_BUDGET, SEOUL_PAGE
+from .config import (CACHE_DIR, SEOUL_BASE, SEOUL_DAILY_BUDGET, SEOUL_PAGE,
+                     load_env)
 from .db import connect, init
 
 
 def _key():
-    env = {}
-    p = CACHE_DIR.parent.parent / ".env"
-    for line in io.open(p, encoding="utf-8-sig"):
-        s = line.strip()
-        if s and not s.startswith("#") and "=" in s:
-            k, v = s.split("=", 1)
-            env[k.strip()] = v.strip()
-    k = env.get("SEOUL_OPEN_API_KEY")
+    k = load_env().get("SEOUL_OPEN_API_KEY")
     if not k:
         raise RuntimeError("SEOUL_OPEN_API_KEY missing from .env")
     return k
 
 
-KEY = _key()
 TODAY = date.today().isoformat()
 
 
@@ -56,7 +49,7 @@ def remaining():
 
 
 def _get(service, start, end, args=""):
-    url = f"{SEOUL_BASE}/{KEY}/json/{service}/{start}/{end}/{args}"
+    url = f"{SEOUL_BASE}/{_key()}/json/{service}/{start}/{end}/{args}"
     r = requests.get(url, timeout=60)
     j = r.json()
     if "RESULT" in j:
