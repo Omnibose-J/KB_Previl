@@ -411,56 +411,57 @@ def test_same_uptae_count_tracks_the_requested_uptae():
         assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
 
 
-def test_semas_covers_cafes_that_the_licence_table_cannot_see():
-    """카페는 휴게음식점으로 등록돼 인허가 테이블에 거의 없다.
+def test_cafe_count_comes_from_the_rest_licence_table():
+    """카페는 «휴게음식점»으로 인허가돼 licence 테이블에 거의 없다.
 
-    서울 카페 21,619곳 중 인허가에 잡히는 것은 1,239곳(5.7%)이다. 상가업소
-    기준 수가 인허가 기준보다 «크다»는 것이 이 필드의 존재 이유이므로 그것을
-    직접 잰다. 두 값이 같아지면 보강이 죽은 것이다.
+    licence 의 까페는 영업 중 1,239곳뿐이고 licence_rest 의 커피숍 계열은
+    14,366곳이다. 까페를 고르면 후자에서 세야 한다 — 전자로 세면 카페
+    창업자가 보는 경쟁 수가 실제의 9% 가 된다.
     """
     with api.readonly_connection() as con:
         sample = con.execute(
-            "SELECT s.grid_id, COUNT(*) n FROM store s "
-            "JOIN grid_score g ON g.grid_id = s.grid_id AND g.uptae = '까페' "
-            "WHERE s.inds_scls_nm = '카페' GROUP BY s.grid_id "
-            "ORDER BY n DESC LIMIT 1"
+            "SELECT r.grid_id, COUNT(*) n FROM licence_rest r "
+            "JOIN grid_score g ON g.grid_id = r.grid_id AND g.uptae = '까페' "
+            "WHERE r.is_closed = 0 AND r.uptae IN "
+            "  ('커피숍', '다방', '전통찻집', '떡카페', '키즈카페') "
+            "GROUP BY r.grid_id ORDER BY n DESC LIMIT 1"
+        ).fetchone()
+        legacy = con.execute(
+            "SELECT competitor_same_uptae FROM grid_feature WHERE grid_id = ?",
+            (sample["grid_id"],),
         ).fetchone()
     assert sample is not None
 
-    response = client.get(
-        f"/api/grid/{sample['grid_id']}", params={"uptae": "까페"}
-    )
+    response = client.get(f"/api/grid/{sample['grid_id']}", params={"uptae": "까페"})
     assert response.status_code == 200
     cell = response.json()["competition"]
 
-    assert cell["currentStoresHere"] == sample["n"]
-    assert cell["currentStoresHere"] > cell["sameUptaeHere"]
-    assert cell["currentStoresNeighbor"] >= cell["currentStoresHere"]
-    assert cell["currentStoresSource"]
+    assert cell["sameUptaeHere"] == sample["n"]
+    assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
+    # 옛 경로(일반음식점 까페)보다 반드시 크다. 같아지면 보강이 죽은 것이다.
+    assert cell["sameUptaeHere"] > json.loads(legacy[0] or "{}").get("까페", 0)
 
 
-def test_unmapped_uptae_report_no_current_store_count_instead_of_zero():
-    """SEMAS 가 [주점]·[한식] 을 우리와 다르게 자르는 업태는 매핑이 없다.
+def test_other_uptae_still_count_from_the_general_licence_table():
+    """까페 말고는 원천을 바꾸지 않는다.
 
-    없는 매핑을 0 으로 내보내면 «이 근처에 한식이 하나도 없다»가 되어 정확히
-    반대로 읽힌다. 모르는 것은 null 로 나가야 한다.
+    통닭(치킨)은 «누락»이 아니라 분류 경계 차이다 — 인허가는 통닭(치킨)과
+    호프/통닭으로 갈라 놓고 합이 10,435 인데 상가업소는 7,849 로 오히려 적다.
+    여기에 다른 표를 붙이면 지금 맞는 값에 없던 오차가 들어간다.
     """
     with api.readonly_connection() as con:
         row = con.execute(
-            "SELECT grid_id FROM grid_score WHERE uptae = '한식' LIMIT 1"
+            "SELECT f.grid_id, f.competitor_same_uptae FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
+            "WHERE f.food_store_cnt > 20 LIMIT 1"
         ).fetchone()
+    counts = json.loads(row["competitor_same_uptae"] or "{}")
 
-    for uptae in ("한식", "호프/통닭", "정종/대포집/소주방", "기타"):
-        response = client.get(
-            f"/api/grid/{row['grid_id']}", params={"uptae": uptae}
-        )
+    for uptae in ("한식", "통닭(치킨)", "호프/통닭", "기타"):
+        response = client.get(f"/api/grid/{row['grid_id']}", params={"uptae": uptae})
         assert response.status_code == 200
         cell = response.json()["competition"]
-        assert cell["currentStoresHere"] is None, uptae
-        assert cell["currentStoresNeighbor"] is None, uptae
-        assert cell["currentStoresSource"] is None, uptae
-        # 인허가 기준 값은 그대로 살아 있어야 한다 — 대체가 아니라 추가다.
-        assert cell["sameUptaeHere"] is not None, uptae
+        assert cell["sameUptaeHere"] == counts.get(uptae, 0), uptae
 
 
 def test_changes_endpoint_separates_no_baseline_from_no_change():

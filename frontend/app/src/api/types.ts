@@ -128,14 +128,10 @@ export interface Competition {
   /** 업태 무관 — 이 칸에서 영업 중인 «음식점 전체» */
   shopsHere: number | null;
   shopsNeighbor: number | null;
-  /** 선택한 업태만, 인허가(일반음식점) 기준 — 이 칸 / 3x3 링(중심 포함) */
+  /** 선택한 업태로 인허가된 «영업 중» 점포 — 이 칸 / 3x3 링(중심 포함).
+   *  까페는 휴게음식점 표에서 세지만 뜻은 같다(서버가 정한다). */
   sameUptaeHere: number | null;
   sameUptaeNeighbor: number | null;
-  /** 상가업소 기준 «현재 영업 중». 휴게음식점까지 포함하므로 카페·치킨은
-   *  인허가보다 훨씬 크다. 매핑이 없는 업태는 null — 0 이 아니다. */
-  currentStoresHere: number | null;
-  currentStoresNeighbor: number | null;
-  currentStoresSource: string | null;
   /** lane A backlog — null until the 36-month window column lands */
   openings36m: number | null;
   openingsTotal: number | null;

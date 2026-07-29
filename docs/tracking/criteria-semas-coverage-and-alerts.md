@@ -24,16 +24,24 @@
 결론: 누락은 까페·통닭(치킨). 나머지는 분류 경계 차이지 누락이 아니므로
 전부 SEMAS 로 바꾸면 없던 오차가 새로 들어온다. 1:1 매핑만 쓴다.
 
-## (1) 까페 커버리지
+## (1) 까페 커버리지 — 완료 (2026-07-29)
 
-- [ ] 까페 상세의 «현재 영업 중»이 SEMAS 기준 → verify: `/api/grid/{gid}?uptae=까페`
-      의 currentStoresHere 가 sameUptaeHere 보다 크고 store 집계와 일치
-- [ ] 매핑 없는 업태는 NULL, 화면은 인허가 값으로 → verify: 한식·호프/통닭·
-      정종/대포집/소주방·식육(숯불구이)·외국음식전문점·기타 → None
-- [ ] 출처가 화면에 표기 → verify: 실제 브라우저 렌더 확인
-- [ ] 등급·점수·모델 불변 → verify: grid_score 체크섬 전후 동일 ·
-      `python -m pipeline.verify` 8/8 · `python -m pipeline.consistency` 17/17
-- [ ] 회귀 검정 RED->GREEN → verify: `python -m pytest service -q` exit 0
+**원천을 SEMAS 에서 licence_rest 로 바꿨다.** SEMAS 는 21,619곳으로 더 크지만
+개·폐업 이력이 없어 «영업 중»의 정의가 화면의 다른 숫자와 어긋난다.
+licence_rest 는 같은 인허가 계열이라 좌표계·날짜 처리가 licence 와 동일하다.
+그리고 통닭(치킨)은 누락이 아니라 분류 경계 차이로 판명돼 대상에서 뺐다.
+
+- [x] 까페가 licence_rest 커피숍 계열에서 집계 → verify: `pytest service -q`
+      `test_cafe_count_comes_from_the_rest_licence_table` · 격자 9610_19460
+      에서 42곳(옛 경로 3곳). exit 0
+- [x] 까페 외 업태는 원천 불변 → verify:
+      `test_other_uptae_still_count_from_the_general_licence_table` ·
+      한식·통닭(치킨)·호프/통닭·기타가 competitor_same_uptae 와 일치. exit 0
+- [x] 목록(S3)과 상세(S4)가 같은 값 → verify: 추천 상위 3곳 1/5/19곳 일치
+- [x] 등급·점수·모델 불변 → verify: grid_score·grid_feature·licence 체크섬
+      전후 동일(eefc51c4…/f5eff427…/29edb5f6…) · consistency 17/17
+- [x] 회귀 검정 RED→GREEN → verify: REST_UPTAE 를 비우면 `assert 3 == 42`
+      로 실패 · 되돌리면 `pytest service -q` 89 passed exit 0
 
 ## (2) 낡은 수치 문서 갱신
 
