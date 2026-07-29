@@ -404,9 +404,11 @@ def test_same_uptae_count_tracks_the_requested_uptae():
     assert payloads[first]["sameUptaeHere"] != payloads[second]["sameUptaeHere"]
 
     # 업태별 수는 전체 음식점 수의 부분이고, 링은 중심을 포함하므로 그 이상이다.
+    # shopsHere 는 food_store_cnt «이상»이다 — 휴게음식점 음식점류를 함께 세므로
+    # 같지 않다(그 전에는 같았고, 그래서 카페 골목이 텅 빈 것처럼 보였다).
     for uptae in (first, second):
         cell = payloads[uptae]
-        assert cell["shopsHere"] == total
+        assert cell["shopsHere"] >= total
         assert cell["sameUptaeHere"] <= cell["shopsHere"]
         assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
 
@@ -440,6 +442,65 @@ def test_cafe_count_comes_from_the_rest_licence_table():
     assert cell["sameUptaeNeighbor"] >= cell["sameUptaeHere"]
     # 옛 경로(일반음식점 까페)보다 반드시 크다. 같아지면 보강이 죽은 것이다.
     assert cell["sameUptaeHere"] > json.loads(legacy[0] or "{}").get("까페", 0)
+
+
+def test_shop_counts_include_the_rest_licence_eateries():
+    """«영업 중인 음식점»에 휴게음식점(카페·베이커리·패스트푸드)이 들어가야 한다.
+
+    서울 영업 중 음식업 131,153곳 중 22,108곳(16.9%)이 휴게음식점이다. 빼고
+    세면 카페 골목이 텅 빈 것처럼 보인다. 편의점·백화점처럼 «음식점»이 아닌
+    휴게음식점은 여전히 빠진다.
+    """
+    with api.readonly_connection() as con:
+        sample = con.execute(
+            "SELECT r.grid_id, SUM(1 - r.is_closed) alive, COUNT(*) opened "
+            "FROM licence_rest r "
+            "JOIN grid_score g ON g.grid_id = r.grid_id AND g.uptae = '한식' "
+            "WHERE r.uptae IN ('커피숍','일반조리판매','다방','패스트푸드','과자점',"
+            "                  '푸드트럭','아이스크림','전통찻집','떡카페','키즈카페') "
+            "GROUP BY r.grid_id ORDER BY alive DESC LIMIT 1"
+        ).fetchone()
+        base = con.execute(
+            "SELECT food_store_cnt, hist_open_cnt FROM grid_feature WHERE grid_id = ?",
+            (sample["grid_id"],),
+        ).fetchone()
+    assert sample is not None and sample["alive"] > 0
+
+    response = client.get(f"/api/grid/{sample['grid_id']}", params={"uptae": "한식"})
+    assert response.status_code == 200
+    cell = response.json()["competition"]
+
+    assert cell["shopsHere"] == base["food_store_cnt"] + sample["alive"]
+    assert cell["openingsTotal"] == base["hist_open_cnt"] + sample["opened"]
+    # 컬럼 자체는 건드리지 않는다 — consistency 의 cellsum 이 원천과 대조한다.
+    assert cell["shopsHere"] > base["food_store_cnt"]
+
+
+def test_convenience_stores_are_not_counted_as_restaurants():
+    """편의점은 휴게음식점 인허가를 받지만 경쟁 음식점이 아니다."""
+    with api.readonly_connection() as con:
+        sample = con.execute(
+            "SELECT r.grid_id, COUNT(*) n FROM licence_rest r "
+            "JOIN grid_score g ON g.grid_id = r.grid_id AND g.uptae = '한식' "
+            "WHERE r.uptae = '편의점' AND r.is_closed = 0 "
+            "GROUP BY r.grid_id ORDER BY n DESC LIMIT 1"
+        ).fetchone()
+        base = con.execute(
+            "SELECT food_store_cnt FROM grid_feature WHERE grid_id = ?",
+            (sample["grid_id"],),
+        ).fetchone()
+        eatery = con.execute(
+            "SELECT COALESCE(SUM(1 - is_closed), 0) n FROM licence_rest "
+            "WHERE grid_id = ? AND uptae IN ('커피숍','일반조리판매','다방',"
+            "  '패스트푸드','과자점','푸드트럭','아이스크림','전통찻집','떡카페','키즈카페')",
+            (sample["grid_id"],),
+        ).fetchone()
+    assert sample is not None and sample["n"] > 0
+
+    response = client.get(f"/api/grid/{sample['grid_id']}", params={"uptae": "한식"})
+    cell = response.json()["competition"]
+    # 편의점 n 곳이 있는 칸인데도 그만큼은 더해지지 않았다.
+    assert cell["shopsHere"] == base["food_store_cnt"] + eatery["n"]
 
 
 def test_other_uptae_still_count_from_the_general_licence_table():

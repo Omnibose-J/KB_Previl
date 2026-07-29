@@ -83,6 +83,19 @@ REST_UPTAE = {
     "까페": ("커피숍", "다방", "전통찻집", "떡카페", "키즈카페"),
 }
 
+# «영업 중인 음식점»에 함께 세는 휴게음식점. 서울 영업 중 음식업 131,153곳 중
+# 22,108곳(16.9%)이 여기 있는데 화면은 일반음식점 109,045곳만 세고 있었다.
+#
+# 휴게음식점 전부는 아니다. 편의점 5,917 · 백화점 527 · 철도역구내 105 처럼
+# 인허가는 휴게음식점이지만 «경쟁 음식점»이 아닌 것들은 뺀다.
+# «기타 휴게음식점» 7,353 도 뺐다 — 상호를 보면 GS25·씨유 같은 편의점과
+# 카페·도넛이 섞여 있어 어느 쪽으로도 셀 수 없다. 모르는 것을 넣어 숫자를
+# 키우지 않는다.
+REST_EATERY = (
+    "커피숍", "일반조리판매", "다방", "패스트푸드", "과자점",
+    "푸드트럭", "아이스크림", "전통찻집", "떡카페", "키즈카페",
+)
+
 NOT_EVALUATED_DETAIL = "이웃 이력 부족으로 평가하지 않음"
 SURVIVAL_PERIODS = (1, 3, 5)
 GRADE_AREA_KEYS = (
@@ -399,7 +412,12 @@ def _grid_cell(row, uptae):
     }
 
 
-def _grid_detail(row, uptae, same_uptae):
+def _plus(value, extra):
+    """NULL 은 NULL 로 둔다 — 모르는 값에 아는 값을 더하면 «안다»가 된다."""
+    return None if value is None else value + extra
+
+
+def _grid_detail(row, uptae, same_uptae, rest_food):
     district, adm_dong = _location_names(row["sgis_adm_nm"])
     item = _grid_cell(row, uptae)
     item.update(
@@ -415,15 +433,17 @@ def _grid_detail(row, uptae, same_uptae):
                 if row["station_name"] is not None
                 else None
             ),
+            # 음식점 수·개폐업 누계에 휴게음식점(카페·베이커리·패스트푸드 등)을
+            # 함께 센다. 그 전에는 서울 영업 중 음식업의 16.9% 가 빠진 값이었다.
             "competition": {
-                "shops_here": row["food_store_cnt"],
-                "shops_neighbor": row["food_store_cnt_r1"],
+                "shops_here": _plus(row["food_store_cnt"], rest_food["alive"]),
+                "shops_neighbor": _plus(row["food_store_cnt_r1"], rest_food["alive_r1"]),
                 "same_uptae_here": same_uptae["here"],
                 "same_uptae_neighbor": same_uptae["r1"],
                 # Lane A has not landed the trailing-36-month feature yet.
                 "openings_36m": None,
-                "openings_total": row["hist_open_cnt"],
-                "closures_total": row["hist_close_cnt"],
+                "openings_total": _plus(row["hist_open_cnt"], rest_food["opened"]),
+                "closures_total": _plus(row["hist_close_cnt"], rest_food["closed"]),
             },
             "area_survival": {
                 # grid_feature stores this legacy field as 0..100 percent;
@@ -529,10 +549,11 @@ def recommend(uptae, districts=(), top=24):
         grid_ids = [row["grid_id"] for row in rows]
         mix = _concept_mix_batch(con, grid_ids)
         same = _same_uptae_batch(con, grid_ids, uptae)
+        rest = _rest_food_batch(con, grid_ids)
 
     items = []
     for row in rows:
-        item = _grid_detail(row, uptae, same[row["grid_id"]])
+        item = _grid_detail(row, uptae, same[row["grid_id"]], rest[row["grid_id"]])
         item["concept_mix"] = mix.get(row["grid_id"])
         items.append(item)
 
@@ -557,7 +578,8 @@ def grid_detail(grid_id, uptae):
             return None
         mix = _concept_mix_batch(con, [grid_id])
         same = _same_uptae_batch(con, [grid_id], uptae)
-    item = _grid_detail(row, uptae, same[grid_id])
+        rest = _rest_food_batch(con, [grid_id])
+    item = _grid_detail(row, uptae, same[grid_id], rest[grid_id])
     item["concept_mix"] = mix.get(grid_id)
     return item
 
@@ -625,6 +647,55 @@ def _same_uptae_batch(con, grid_ids, uptae):
         gid: {
             "here": counts.get(gid),
             "r1": sum(counts[cell] for cell in neighbors(gid, 1) if cell in counts),
+        }
+        for gid in ids
+    }
+
+
+def _rest_food_batch(con, grid_ids):
+    """휴게음식점 중 «음식점»에 해당하는 것의 칸별 집계 — 영업 중 / 개업 누계 /
+    폐업 누계, 그리고 3x3 링의 영업 중.
+
+    `grid_feature.food_store_cnt` 계열은 일반음식점만 센다. 그 컬럼은 그대로
+    둔다 — `pipeline.consistency` 의 cellsum 이 원천 licence 와 대조하는
+    값이라 여기서 바꾸면 교차검증이 무의미해진다. 대신 API 가 응답을 만들 때
+    더한다.
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+
+    wanted = list({cell for gid in ids for cell in neighbors(gid, 1)})
+    stats = {}
+    kinds = ",".join("?" * len(REST_EATERY))
+    for start in range(0, len(wanted), 500):
+        chunk = wanted[start : start + 500]
+        cells = ",".join("?" * len(chunk))
+        for row in con.execute(
+            f"SELECT grid_id, "
+            f"       SUM(1 - is_closed) alive, "
+            f"       COUNT(*) opened, "
+            f"       SUM(is_closed) closed "
+            f"FROM licence_rest "
+            f"WHERE grid_id IN ({cells}) AND uptae IN ({kinds}) "
+            "GROUP BY grid_id",
+            [*chunk, *REST_EATERY],
+        ):
+            stats[row["grid_id"]] = (
+                row["alive"] or 0,
+                row["opened"] or 0,
+                row["closed"] or 0,
+            )
+
+    def at(gid, index):
+        return stats[gid][index] if gid in stats else 0
+
+    return {
+        gid: {
+            "alive": at(gid, 0),
+            "opened": at(gid, 1),
+            "closed": at(gid, 2),
+            "alive_r1": sum(at(cell, 0) for cell in neighbors(gid, 1)),
         }
         for gid in ids
     }
