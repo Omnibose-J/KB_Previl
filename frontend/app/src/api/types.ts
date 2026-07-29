@@ -307,7 +307,7 @@ export interface GoodwillResponse {
   discountRate: number;
   discountRateSource: string;
   expectedSurvivalYears: number;
-  valuationYears: number; // floor(min(기대 존속, 임대차 잔여))
+  valuationYears: number; // min(기대 존속, 임대차 잔여, 36개월 곡선) — 소수 연차
   leaseRemainingYears: number;
   intangibleValue: number;
   tangibleValue: number;

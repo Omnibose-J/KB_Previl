@@ -20,6 +20,10 @@ export const signedMan = (v: number) => `${v > 0 ? "+" : ""}${man(v)}`;
 
 export const months = (v: number) => `${Math.round(v)}개월`;
 
+/** 연 단위 기간 -> "2년" / "2.7년". 서버가 소수 연차(2.651)를 실으므로 그대로
+ *  toLocaleString에 넘기면 "2.651년"이 나온다. 정수면 소수점을 뗀다. */
+export const yearsLabel = (v: number) => `${Number.isInteger(v) ? v : v.toFixed(1)}년`;
+
 export const meters = (v: number) => `${int(Math.round(v))}m`;
 
 /** 서버 분기 코드 "20261" -> "2026년 1분기". 형식이 다르면 원문을 그대로 둔다 —

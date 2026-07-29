@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { GoodwillAssetInput, GoodwillInput, GridDetail } from "../api/types";
-import { int, man, pct1, signedMan } from "../lib/format";
+import { man, pct1, signedMan, yearsLabel } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./GoodwillCard.module.css";
 
@@ -236,14 +236,14 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
         <div>
           <dt>계산 기간</dt>
           <dd>
-            {int(r.valuationYears)}년{" "}
+            {yearsLabel(r.valuationYears)}{" "}
             {/* «둘 중 짧은 쪽»만 말하면 어느 쪽이 물렸는지가 안 보인다. 계약이
                 짧아서 짧은 것과, 기록이 3년치뿐이라 더 못 세는 것은 사용자가
                 할 수 있는 일이 다르다(전자는 협상, 후자는 판단 보정). */}
             <em>
               {r.leaseRemainingYears < r.expectedSurvivalYears
-                ? `남은 계약 ${int(r.leaseRemainingYears)}년이 더 짧아서 그만큼만 셌어요`
-                : `이런 자리가 버티는 기간이 ${r.expectedSurvivalYears.toFixed(1)}년이라 거기서 멈췄어요`}
+                ? `남은 계약 ${yearsLabel(r.leaseRemainingYears)}이 더 짧아서 그만큼만 셌어요`
+                : `이런 자리가 버티는 기간이 ${yearsLabel(r.expectedSurvivalYears)}이라 거기서 멈췄어요`}
             </em>
           </dd>
         </div>
@@ -369,7 +369,7 @@ function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse })
         <div className={s.yearChips}>
           {years.map((v) => (
             <button key={v} className={v === y ? s.yearOn : s.year} onClick={() => setYr(v)}>
-              {int(v)}년
+              {yearsLabel(v)}
             </button>
           ))}
         </div>
@@ -401,7 +401,7 @@ function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse })
           ))}
         </tbody>
       </table>
-      <p className={s.sensCap}>산정 기간 {int(y)}년 기준 · 굵은 칸이 이 리포트의 가정</p>
+      <p className={s.sensCap}>산정 기간 {yearsLabel(y)} 기준 · 굵은 칸이 이 리포트의 가정</p>
     </div>
   );
 }
