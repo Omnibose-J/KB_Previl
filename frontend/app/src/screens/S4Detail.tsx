@@ -660,9 +660,9 @@ function shortJibun(jibun: string): string {
   return jibun.replace(/^서울특별시\s*/, "");
 }
 
-/** grade → holdout band row (1 = top band, 10 = bottom, rest middle). */
+/** grade → holdout band row (1 = top band, 9 = bottom, rest middle). */
 function bandIndex(grade: number): number {
-  return grade === 1 ? 0 : grade === 10 ? 2 : 1;
+  return grade === 1 ? 0 : grade === 9 ? 2 : 1;
 }
 
 function periodOf(meta: Meta, years: 1 | 2 | 3 | 5) {

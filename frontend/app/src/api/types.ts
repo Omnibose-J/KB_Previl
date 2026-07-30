@@ -12,7 +12,7 @@
 // common NULL pattern rather than substituting anything.
 
 /** grade 1 = best (top 10%). Direction is part of the API contract. */
-export type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 /** [lon, lat] — EPSG:5179 never crosses the API. */
 export type Point = [number, number];

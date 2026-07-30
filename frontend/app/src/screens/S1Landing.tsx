@@ -40,7 +40,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
     el.current?.scrollIntoView({ behavior: "smooth" });
 
   const top = meta.data?.observedByGrade.find((g) => g.grade === 1);
-  const bottom = meta.data?.observedByGrade.find((g) => g.grade === 10);
+  const bottom = meta.data?.observedByGrade.find((g) => g.grade === 9);
 
   const start = () => go({ name: "input" });
 
@@ -148,7 +148,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
             <Metric
               v={top && bottom ? `${pct0(top.survival)} vs ${pct0(bottom.survival)}` : "…"}
             />
-            <span>1등급과 10등급의 실제 3년 생존율</span>
+            <span>1등급과 9등급의 실제 3년 생존율</span>
           </div>
         </div>
 
@@ -195,7 +195,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
               <p>{f.body}</p>
               {i === 0 && top && bottom ? (
                 <p className={s.featProof}>
-                  1등급 자리는 {pct0(top.survival)}, 10등급 자리는 {pct0(bottom.survival)} 버텼어요
+                  1등급 자리는 {pct0(top.survival)}, 9등급 자리는 {pct0(bottom.survival)} 버텼어요
                 </p>
               ) : null}
             </div>

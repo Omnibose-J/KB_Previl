@@ -9,19 +9,30 @@ import type { Grade } from "../api/types";
 export const gradeLabel = (grade: Grade) => `${grade}등급`;
 
 /** Legend labels every other step — 10 labels are unreadable (ui-spec §3-S3). */
-export const LEGEND_STEPS: Grade[] = [1, 3, 5, 7, 10];
+export const LEGEND_STEPS: Grade[] = [1, 3, 5, 7, 9];
 
-/** Recommendation bar (owner call 2026-07-27, widened 2026-07-30): a spot is
- *  RECOMMENDED at grade 1-2. The bar was grade 1 alone while grades were equal
- *  deciles — grade 1 then held 10% of cells, enough to fill a 20-card page in
- *  most scopes (7/25 districts for 한식 already needed grade-2 padding).
+/** Recommendation bar (owner call 2026-07-27, widened 2026-07-31 for 9등급).
  *
- *  Under the normal-shaped grades, grade 1 holds 2.3%. A 자치구 of ~800 cells
- *  yields ~18 of them, so the cap of 20 could no longer be filled ANYWHERE and
- *  nearly every scope would fall back to padding. Grades 1-2 together are 6.7%
- *  — still stricter than the old bar — and both bands measure at or above the
- *  survival the old grade 1 did (80.6% / 76.5% vs 76.8%), so the promise behind
- *  "추천" does not weaken. The grade is the server-validated unit, so this is a
- *  cut on served data, not a client-invented score threshold (§3-S3).
- *  Non-passing cells stay reachable through the map as 진단 entries. */
+ *  This is not a badge filter — S3Results DROPS non-passing cells from the list
+ *  (S3Results.tsx), so the bar decides whether a scope shows anything at all.
+ *
+ *  Grade 1 alone was right while grades were equal deciles (10% of cells). The
+ *  내신형 9등급 move cut it to 4.5%, and measured per 자치구 that leaves 7 of 28
+ *  scopes with ZERO grade-1 cells for 한식 (5 for 까페, 3 for 일식) and 21 of 28
+ *  unable to fill the 20-card page. An empty results screen for a whole 자치구
+ *  is worse than a slightly wider bar.
+ *
+ *  Grades 1-2 cut the empty scopes to 3/28, and those three stay empty even at
+ *  grade 3 — they genuinely have no strong cell, so showing nothing there is
+ *  the honest answer, not a bug. Grade 3 buys nothing further (3/28 either way)
+ *  while admitting the 70.1% band, so the bar stops at 2.
+ *
+ *  The cost is real and should not be dressed up: grade 2 measures 72.7%, below
+ *  the 76.8% the old decile grade 1 did, so the badge promises a little less
+ *  than it used to. The better design is to keep the bar at grade 1 and render
+ *  the rest as unbadged 진단 cards instead of dropping them — that is a new card
+ *  state, not a one-line change, and it is not being built before the deadline.
+ *
+ *  The grade is the server-validated unit, so this is a cut on served data, not
+ *  a client-invented score threshold (§3-S3). */
 export const isRecommendable = (c: { grade: Grade }) => c.grade <= 2;
