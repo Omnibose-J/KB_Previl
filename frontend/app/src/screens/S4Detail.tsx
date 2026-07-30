@@ -4,6 +4,7 @@ import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import AiSummaryCard from "../components/AiSummaryCard";
+import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
 import EconomicsCard from "../components/EconomicsCard";
@@ -568,7 +569,7 @@ function ChangesCard({ gridId, uptae }: { gridId: string; uptae: string }) {
   });
   if (q.isPending || q.isError) return null;
 
-  const { available, event, sentence, baselineAsOf, currentAsOf } = q.data;
+  const { available, event, sentence, baselineAsOf, currentAsOf, history } = q.data;
   return (
     <div className={s.alarm}>
       <strong>이 자리, 그새 달라졌나요?</strong>
@@ -588,6 +589,10 @@ function ChangesCard({ gridId, uptae }: { gridId: string; uptae: string }) {
           </span>
         </>
       )}
+      {/* 한 문장 알림 아래 10년 추이. 등급이 아니라 실제 개·폐업이다 — 등급은
+          십분위라 남이 움직여도 바뀌고, 그걸 선으로 그리면 순위 요동이 추세로
+          읽힌다(docs: service/alerts.py 상단 실측). */}
+      {history ? <ChangeHistoryChart history={history} /> : null}
     </div>
   );
 }

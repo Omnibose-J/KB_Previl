@@ -114,6 +114,32 @@ export interface ChangeEvent {
   scoreShift: number | null;
 }
 
+export interface ChangeBucket {
+  /** 6개월 구간. 경계는 고정(1~6월 / 7~12월) */
+  from: string;
+  to: string;
+  opened: number;
+  closed: number;
+}
+
+/**
+ * 주변 300m 에서 실제로 열고 닫은 가게 수 — 사실이지 예측이 아니다.
+ *
+ * **등급 시계열이 아니다.** 등급은 십분위(상대 순위)라 내 자리가 그대로여도
+ * 남이 움직이면 바뀐다(`service/alerts.py`: 6개월에 등급 폭의 61% 이동, 1칸
+ * 변동 58%). 그걸 선으로 그리면 순위 요동이 추세로 읽힌다.
+ *
+ * `null` = 이 링에 인허가 이력이 아예 없음. 사건이 0 인 구간은 행으로 온다 —
+ * 0 과 결측은 다르고, 빠진 행은 화면에서 «그때는 데이터가 없었다» 로 읽힌다.
+ */
+export interface ChangeHistory {
+  unit: string;
+  bucketMonths: number;
+  buckets: ChangeBucket[];
+  /** 점수를 다시 매긴 시점. 막대 위에 표시해 «자를 바꾼 때» 를 알린다. */
+  runs: { asOf: string }[];
+}
+
 export interface ChangesResponse {
   /** false = «변동 없음»이 아니라 «견줄 이전 판이 아직 없음» */
   available: boolean;
@@ -122,6 +148,7 @@ export interface ChangesResponse {
   currentAsOf: string | null;
   event: ChangeEvent | null;
   sentence: string | null;
+  history: ChangeHistory | null;
 }
 
 export interface Competition {

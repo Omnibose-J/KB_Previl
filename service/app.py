@@ -253,6 +253,24 @@ class ChangeEvent(ApiModel):
     score_shift: float | None
 
 
+class ChangeHistoryBucket(ApiModel):
+    from_month: str = Field(alias="from")
+    to: str
+    opened: Annotated[int, Field(ge=0)]
+    closed: Annotated[int, Field(ge=0)]
+
+
+class ChangeHistoryRun(ApiModel):
+    as_of: str
+
+
+class ChangeHistory(ApiModel):
+    unit: str
+    bucket_months: Literal[6]
+    buckets: list[ChangeHistoryBucket]
+    runs: list[ChangeHistoryRun]
+
+
 class ChangesResponse(ApiModel):
     """available=False 는 «변동 없음»이 아니라 «견줄 이전 판이 아직 없음»이다.
     둘을 한 모양으로 답하면 화면이 구분할 수 없다."""
@@ -265,6 +283,7 @@ class ChangesResponse(ApiModel):
     current_as_of: str | None = None
     event: ChangeEvent | None = None
     sentence: str | None = None
+    history: ChangeHistory | None
 
 
 class UptaeMix(ApiModel):

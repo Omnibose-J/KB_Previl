@@ -153,6 +153,28 @@ export default function GridMap({
         // roads/labels legible under dense grade-1 areas (UX critique).
         paint: { "fill-color": ["get", "color"], "fill-opacity": 0.8 },
       });
+      // 평가 구역의 바깥 가장자리만 «안쪽으로» 흐린다. 100m 칸이라 경계가
+      // 계단으로 읽히는데, 그 계단은 데이터 해상도지 등급 차이가 아니다.
+      //
+      // 밖으로는 한 픽셀도 나가지 않아야 한다 — 점수가 없는 칸에 색을 얹는 것은
+      // 이 프로젝트가 금지한 거짓이고, 번짐층을 두 번 기각한 이유가 그것이다.
+      // 그래서 blur 를 중앙에 두지 않고 line-offset 으로 선 전체를 안쪽에 넣는다
+      // (offset > width/2 + blur/2). 등급 경계는 손대지 않으므로 각 칸의 등급
+      // 값은 화면에서도 그대로다.
+      m.addSource("grid-edge", { type: "geojson", data: emptyFc() });
+      m.addLayer({
+        id: "grid-silhouette",
+        type: "line",
+        source: "grid-edge",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 4,
+          "line-blur": 5,
+          // 칸이 화면에서 충분히 커야 안쪽 여백(EDGE_INSET)이 선 두께를 담는다.
+          // 멀리서 보면 칸이 몇 px 이라 선이 밖으로 넘치므로 그냥 끈다.
+          "line-opacity": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, 0.5],
+        },
+      });
       // Ranked candidates get a dark outline: the ramp itself is now brand
       // yellow (figma heatmap), so yellow outlines would vanish into it.
       m.addLayer({
@@ -208,7 +230,10 @@ export default function GridMap({
   useEffect(() => {
     const src = map.current?.getSource("grids") as GeoJSONSource | undefined;
     if (!src) return;
-    src.setData(q.data ? toFc(q.data.items) : emptyFc());
+    const cells = q.data ? q.data.items : [];
+    src.setData(cells.length ? toFc(cells) : emptyFc());
+    const edge = map.current?.getSource("grid-edge") as GeoJSONSource | undefined;
+    edge?.setData(cells.length ? toEdgeFc(cells, makeColorOf()) : emptyFc());
   }, [q.data, ready]);
 
   useEffect(() => {
@@ -317,11 +342,74 @@ function Legend() {
 
 const emptyFc = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
 
-function toFc(cells: GridCell[]): FeatureCollection {
-  // One style lookup per update, not one per cell.
+/**
+ * 평가 구역의 «바깥 실루엣»만 뽑는다 — 계단 모양을 누그러뜨리는 데 쓴다.
+ *
+ * 셀은 개별 사각형이라 폴리곤 외곽선을 그대로 그리면 칸마다 선이 생겨 체스판이
+ * 된다. 그래서 변 하나하나를 세어 **딱 한 번 나오는 변만** 남긴다: 이웃한 두 칸이
+ * 맞대고 있는 변은 두 번 나오고(내부), 바깥과 접한 변은 한 번 나온다.
+ *
+ * 격자 인덱스(X_Y)로 이웃을 찾지 않는 이유는 X 가 경도인지 위도인지, 부호가
+ * 어느 쪽인지에 코드가 의존하게 되기 때문이다. 좌표만 세면 그 가정이 필요 없다.
+ *
+ * 선은 `line-offset` 으로 밀지 않고 **좌표를 셀 중심 쪽으로 직접 당겨** 넣는다.
+ * offset 은 «선 진행 방향의 오른쪽»이라 어느 쪽이 안인지가 ring 감김과 화면
+ * y 반전에 동시에 걸린다 — 부호를 잘못 잡으면 색이 평가 밖으로 나가고, 그게
+ * 정확히 이 프로젝트가 금지한 것이다. 좌표를 옮기면 규약에 기대지 않고
+ * «모든 점이 자기 칸 안에 있다» 를 숫자로 확인할 수 있다.
+ */
+// 셀 한 변 대비. 실측(zoom 15, 100m 칸 ≈ 50px): 0.18 이면 여백이 약 7m ≈ 3.5px
+// 인데 line-width 4 + blur 5 의 절반이 그 위에 얹혀 빠듯했다. 0.3 이면 약 12m
+// ≈ 6px 로, 선이 칸 안에 온전히 들어간다.
+const EDGE_INSET = 0.3;
+
+function toEdgeFc(cells: GridCell[], colorOf: (g: number) => string): FeatureCollection {
+  const seen = new Map<string, { count: number; a: number[]; b: number[]; grade: number; c: number[] }>();
+  const key = (a: number[], b: number[]) => {
+    // 소수점 흔들림으로 같은 변이 다른 변이 되지 않게 고정 자릿수로 맞춘다.
+    const p = (c: number[]) => `${c[0].toFixed(7)},${c[1].toFixed(7)}`;
+    const [x, y] = [p(a), p(b)];
+    return x < y ? `${x}|${y}` : `${y}|${x}`;   // 방향 무관하게 같은 변
+  };
+  for (const c of cells) {
+    const ring = closeRing(c.polygon);
+    const pts = ring.slice(0, -1);
+    const centroid = [
+      pts.reduce((s, p) => s + p[0], 0) / pts.length,
+      pts.reduce((s, p) => s + p[1], 0) / pts.length,
+    ];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const k = key(ring[i], ring[i + 1]);
+      const hit = seen.get(k);
+      if (hit) hit.count += 1;
+      else seen.set(k, { count: 1, a: ring[i], b: ring[i + 1], grade: c.grade, c: centroid });
+    }
+  }
+  const pull = (p: number[], c: number[]) => [
+    p[0] + (c[0] - p[0]) * EDGE_INSET,
+    p[1] + (c[1] - p[1]) * EDGE_INSET,
+  ];
+  return {
+    type: "FeatureCollection",
+    features: [...seen.values()]
+      .filter((e) => e.count === 1)
+      .map((e) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: [pull(e.a, e.c), pull(e.b, e.c)],
+        },
+        properties: { color: colorOf(e.grade) },
+      })),
+  };
+}
+
+/** One style lookup per update, not one per cell. 채우기와 실루엣이 같은 램프를
+ *  읽어야 두 층의 색이 갈라지지 않는다. */
+function makeColorOf() {
   const rootStyle = getComputedStyle(document.documentElement);
   const ramp = new Map<number, string>();
-  const colorOf = (g: number) => {
+  return (g: number) => {
     let c = ramp.get(g);
     if (!c) {
       c = rootStyle.getPropertyValue(`--color-heatmap-${g}`).trim();
@@ -329,6 +417,10 @@ function toFc(cells: GridCell[]): FeatureCollection {
     }
     return c;
   };
+}
+
+function toFc(cells: GridCell[]): FeatureCollection {
+  const colorOf = makeColorOf();
   return {
     type: "FeatureCollection",
     features: cells.map((c) => ({

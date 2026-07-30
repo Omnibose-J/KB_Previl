@@ -571,6 +571,151 @@ def test_changes_endpoint_separates_no_baseline_from_no_change():
         assert body["reason"]
 
 
+def _create_changes_history_db(path, licence_rows=(), rest_rows=()):
+    with sqlite3.connect(path) as con:
+        con.executescript(
+            """
+            CREATE TABLE grid_score (
+              grid_id TEXT,
+              uptae TEXT
+            );
+            CREATE TABLE score_run (
+              run_id TEXT,
+              as_of TEXT,
+              is_current INTEGER
+            );
+            CREATE TABLE licence (
+              grid_id TEXT,
+              open_y INTEGER,
+              open_m INTEGER,
+              close_y INTEGER,
+              close_m INTEGER
+            );
+            CREATE TABLE licence_rest (
+              grid_id TEXT,
+              uptae TEXT,
+              open_y INTEGER,
+              open_m INTEGER,
+              close_y INTEGER,
+              close_m INTEGER
+            );
+            INSERT INTO grid_score VALUES ('100_100', '한식');
+            INSERT INTO score_run VALUES ('before', '2026-01', 0);
+            INSERT INTO score_run VALUES ('current', '2026-07', 1);
+            """
+        )
+        con.executemany(
+            "INSERT INTO licence VALUES (?, ?, ?, ?, ?)",
+            licence_rows,
+        )
+        con.executemany(
+            "INSERT INTO licence_rest VALUES (?, ?, ?, ?, ?, ?)",
+            rest_rows,
+        )
+
+
+def _changes_history(monkeypatch, db_path):
+    monkeypatch.setattr(api, "DB_PATH", db_path)
+    monkeypatch.setattr(
+        api.alerts,
+        "changes_for",
+        lambda *_args: {
+            "baseline_run": "before",
+            "current_run": "current",
+            "baseline_as_of": "2026-01",
+            "current_as_of": "2026-07",
+            "event": None,
+            "sentence": None,
+        },
+    )
+    response = client.get(
+        "/api/grid/100_100/changes",
+        params={"uptae": "한식"},
+    )
+    assert response.status_code == 200
+    return response.json()["history"]
+
+
+def test_changes_history_keeps_zero_event_buckets(monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    _create_changes_history_db(
+        source_db,
+        licence_rows=[("100_100", 2016, 2, None, None)],
+    )
+
+    history = _changes_history(monkeypatch, source_db)
+
+    assert history["unit"] == api.RESOLUTION["competition.shopsNeighbor"]
+    assert history["bucketMonths"] == 6
+    assert len(history["buckets"]) == 20
+    assert history["buckets"][0]["from"] == "2016-01"
+    assert history["buckets"][-1]["to"] == "2025-12"
+    empty_half = next(
+        bucket for bucket in history["buckets"] if bucket["from"] == "2016-07"
+    )
+    assert empty_half["opened"] == 0
+    assert empty_half["closed"] == 0
+    assert history["runs"] == [
+        {"asOf": "2026-01"},
+        {"asOf": "2026-07"},
+    ]
+
+
+def test_changes_history_counts_all_eight_neighbor_cells(monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    ring = [
+        grid_id
+        for grid_id in api.neighbors("100_100", ring=1)
+        if grid_id != "100_100"
+    ]
+    assert len(ring) == 8
+    _create_changes_history_db(
+        source_db,
+        licence_rows=[
+            (grid_id, 2018, 4, None, None)
+            for grid_id in ring
+        ],
+    )
+
+    history = _changes_history(monkeypatch, source_db)
+    event_half = next(
+        bucket for bucket in history["buckets"] if bucket["from"] == "2018-01"
+    )
+
+    assert event_half["opened"] == len(ring)
+
+
+def test_changes_history_includes_rest_licences(monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    _create_changes_history_db(
+        source_db,
+        licence_rows=[("100_100", 2019, 8, 2020, 3)],
+        rest_rows=[
+            ("100_100", api.REST_EATERY[0], 2019, 9, 2020, 4),
+        ],
+    )
+
+    history = _changes_history(monkeypatch, source_db)
+    opened_half = next(
+        bucket for bucket in history["buckets"] if bucket["from"] == "2019-07"
+    )
+    closed_half = next(
+        bucket for bucket in history["buckets"] if bucket["from"] == "2020-01"
+    )
+
+    assert opened_half["opened"] == 2
+    assert closed_half["closed"] == 2
+
+
+def test_changes_history_is_null_without_ring_history(monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    _create_changes_history_db(source_db)
+
+    history = _changes_history(monkeypatch, source_db)
+
+    assert history is None
+
+
 ESTIMATE_INPUT = {
     "deposit": 5000, "monthlyRent": 250, "askingGoodwill": 12000,
     "areaM2": 66, "floor": 1,
@@ -2529,6 +2674,8 @@ def test_demo_db_audit_reports_unloaded_reference_without_import_noise(
     service_dir.mkdir()
     (service_dir / "probe.py").write_text(
         "from collections import defaultdict\n"
+        'ALIAS = "from"\n'
+        'FIELD = "expectedProfit3y"\n'
         'QUERY = "SELECT * FROM trdar_party"\n'
         'SCHEMA = "SELECT name FROM sqlite_master"\n',
         encoding="utf-8",
@@ -2545,6 +2692,7 @@ def test_demo_db_audit_reports_unloaded_reference_without_import_noise(
     output = capsys.readouterr().out
     assert "미적재 참조: trdar_party — 코드가 읽는데 DB에 없다" in output
     assert "collections" not in output
+    assert "expectedprofit3y" not in output
     assert "sqlite_master" not in output
 
 

@@ -84,8 +84,11 @@ def referenced_tables(con):
             and isinstance(node.value, str)
             and node.value not in docstrings
         )
-    src = " ".join(strings)
-    names = {m.lower() for m in _SQL_REF.findall(src)}
+    names = {
+        match.lower()
+        for string in strings
+        for match in _SQL_REF.findall(string)
+    }
     return names - _NON_TABLE_TOKENS
 
 

@@ -1,0 +1,148 @@
+/* 개·폐업 추이 — 축을 가운데 두고 위로 열림, 아래로 닫힘. 쌓지 않는다. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-ink);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-t6);
+  font-variant-numeric: tabular-nums;
+}
+
+.dotOpen,
+.dotClose {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.dotOpen {
+  background: var(--fg-y-deep);
+}
+
+.dotClose {
+  background: var(--fg-t6);
+  margin-left: 8px;
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+}
+
+/* 0 선. 위아래 막대가 여기서 갈린다. */
+.axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--fg-line);
+}
+
+.col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.up,
+.down {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  display: block;
+  border-radius: 2px;
+}
+
+.up {
+  bottom: 50%;
+  margin-bottom: 1px;
+  background: var(--fg-y-deep);
+}
+
+.down {
+  top: 50%;
+  margin-top: 1px;
+  background: var(--fg-t6);
+  opacity: 0.55;
+}
+
+/* 재산정 시점 — 막대가 아니라 «자를 바꾼 때» 라서 점선으로 구분한다. */
+.run {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed var(--fg-t6);
+  opacity: 0.7;
+}
+
+.run em {
+  position: absolute;
+  top: -2px;
+  left: 3px;
+  font-size: 10px;
+  font-style: normal;
+  color: var(--fg-t6);
+  white-space: nowrap;
+}
+
+/* 오른쪽 끝 선의 라벨은 밖으로 나가 잘린다. 안쪽으로 붙인다. */
+.runEnd em {
+  left: auto;
+  right: 3px;
+}
+
+.ticks {
+  position: relative;
+  height: 14px;
+}
+
+.tick {
+  position: absolute;
+  font-size: 11px;
+  color: var(--fg-t6);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg-t6);
+}
+
+/* 막대는 aria-hidden 이므로 표가 유일한 접근 경로다. 보이지 않게만 둔다. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
