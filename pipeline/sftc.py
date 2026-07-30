@@ -663,6 +663,164 @@ def _report(accepted, rejected, unstable, duplicated, table):
         print(f"    … 외 {len(rejected)+len(duplicated)-8}행")
 
 
+# ------------------------------------------------------------------ compare
+
+SAMPLE_PER_UPTAE = 150
+SAMPLE_SEED = 0
+# Any value at or above the survival curve's horizon leaves N decided by the
+# grade curve rather than by an arbitrary lease assumption.
+LEASE_YEARS = 5.0
+
+
+def _spearman(a, b):
+    """Rank correlation for a handful of points. No scipy — this runs on four
+    industries and importing a stack for it would be its own liability."""
+    n = len(a)
+    if n < 2:
+        return None
+    ra = {v: i for i, v in enumerate(sorted(a))}
+    rb = {v: i for i, v in enumerate(sorted(b))}
+    d2 = sum((ra[x] - rb[y]) ** 2 for x, y in zip(a, b))
+    return 1 - 6 * d2 / (n * (n * n - 1))
+
+
+# 「2천만원 미만 | 2천~4천 | 4천~6천 | 6천~8천 | 8천~1억 | 1억 이상」, 단위 만원.
+BAND_EDGES = (0, 2000, 4000, 6000, 8000, 10000, None)
+
+
+def median_from_bands(bands):
+    """Median of the published distribution by linear interpolation inside the
+    band that crosses 50%.
+
+    The published headline is a mean, and goodwill is right-tailed — the 2022
+    한식 mean is 6,165 while its median lands near 4,400. Comparing our median
+    against their mean would charge the estimate for a skew it never claimed to
+    model. Returns None if the median falls in the open-ended top band, where
+    interpolation would be invention.
+    """
+    cum = 0.0
+    for i, b in enumerate(bands):
+        b = float(b)
+        if cum + b >= 50.0:
+            lo, hi = BAND_EDGES[i], BAND_EDGES[i + 1]
+            if hi is None or b <= 0:
+                return None
+            return lo + (50.0 - cum) / b * (hi - lo)
+        cum += b
+    return None
+
+
+def _quantile(sorted_vals, q):
+    if not sorted_vals:
+        return None
+    i = min(len(sorted_vals) - 1, max(0, int(round(q * (len(sorted_vals) - 1)))))
+    return sorted_vals[i]
+
+
+def _sample_grids(con, n, seed):
+    import random
+    ids = [r[0] for r in con.execute(
+        "SELECT grid_id FROM grid_feature WHERE has_sales_data = 1 "
+        "ORDER BY grid_id")]
+    rng = random.Random(seed)
+    return ids if len(ids) <= n else rng.sample(ids, n)
+
+
+def compare(year=2022, sample=SAMPLE_PER_UPTAE, verbose=True):
+    """Our intangible estimate against the published goodwill, by industry.
+
+    Read-only. Runs `service.goodwill` exactly as the product does — asking
+    price and tangible assets are user inputs that do not enter the estimate,
+    so they are left at their empty values rather than invented.
+    """
+    from pipeline.config import UPTAE_INDUTY
+    from service import api
+    from service import goodwill as gw
+
+    path = DIR / f"sftc-{year}-uptae.json"
+    if not path.is_file():
+        raise SftcError(f"{path.name} 없음 — 먼저 --extract {year} --table uptae")
+    survey = {r["uptae"].replace(" ", ""): r
+              for r in json.loads(path.read_text(encoding="utf-8"))["accepted"]}
+
+    with api.readonly_connection() as con:
+        grids = _sample_grids(con, sample, SAMPLE_SEED)
+
+    rows = []
+    for survey_name, codes in SURVEY_UPTAE_TO_INDUTY.items():
+        ours = [u for u, c in UPTAE_INDUTY.items() if c in codes]
+        vals, unavailable = [], 0
+        for uptae in ours:
+            for gid in grids:
+                try:
+                    r = gw.calculate_from_sources(
+                        grid_id=gid, uptae=uptae, asking_goodwill=0,
+                        lease_remaining_years=LEASE_YEARS, assets=[])
+                except (gw.GoodwillUnavailableError, api.ApiInputError,
+                        api.ResourceNotFoundError):
+                    unavailable += 1
+                    continue
+                vals.append(r["intangible_value"])
+        key = survey_name.replace(" ", "")
+        pub = survey.get(key)
+        allv = sorted(vals)
+        nonzero = sorted(v for v in vals if v > 0)
+        rows.append({
+            "survey_uptae": survey_name,
+            "our_uptae": ours,
+            "n": len(vals),
+            "unavailable": unavailable,
+            "nonzero_rate": (len(nonzero) / len(vals)) if vals else None,
+            "our_median_nonzero": _quantile(nonzero, 0.5),
+            # Prediction 3 said the two denominators differ, so the like-for-like
+            # reading is our top 26.5% — the same share of locations that the
+            # survey observed paying anything at all.
+            "our_median_top_payers": _quantile(
+                allv, 1.0 - SURVEY_PAYER_RATE / 2),
+            "published_mean": (pub["mean"] if pub else None),
+            "published_median": (median_from_bands(pub["bands"]) if pub else None),
+        })
+
+    if verbose:
+        _compare_report(rows, survey)
+    (DIR / f"compare-{year}.json").write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    return rows
+
+
+# Measured in the same edition (2022 p.58): 3,258 of 12,296 surveyed shops paid
+# goodwill. The published averages are conditional on paying, so our unconditional
+# estimates are not on the same footing and the report has to say so.
+SURVEY_PAYER_RATE = 0.265
+
+
+def _compare_report(rows, survey):
+    print(f"\n업종별 대조 (표본 {SAMPLE_PER_UPTAE}격자/업태 · "
+          f"임대차 잔여 {LEASE_YEARS:.0f}년)")
+    print(f"{'업종':<14}{'표본':>6}{'비영':>7}"
+          f"{'우리 중앙':>10}{'공표 중앙':>10}{'배율':>7}"
+          f"{'분모맞춤':>10}{'배율':>7}")
+    ours, pubs = [], []
+    for r in rows:
+        med, pmed = r["our_median_nonzero"], r["published_median"]
+        top = r["our_median_top_payers"]
+        f1 = f"{med/pmed:.2f}x" if (med and pmed) else "—"
+        f2 = f"{top/pmed:.2f}x" if (top and pmed) else "—"
+        print(f"{r['survey_uptae']:<14}{r['n']:>6,}"
+              f"{(r['nonzero_rate'] or 0)*100:>6.1f}%"
+              f"{(med or 0):>10,.0f}{(pmed or 0):>10,.0f}{f1:>7}"
+              f"{(top or 0):>10,.0f}{f2:>7}")
+        if med and pmed:
+            ours.append(med)
+            pubs.append(pmed)
+    rho = _spearman(ours, pubs)
+    print(f"\n  순위상관(우리 ↔ 공표 중앙값) rho = "
+          f"{'%.3f' % rho if rho is not None else '—'}  (n={len(ours)})")
+    print("  공표 중앙값은 구간분포에서 보간 — 헤드라인 평균은 우측 꼬리에 끌린다")
+    print(f"  공표 분모 = 권리금 지불자 {SURVEY_PAYER_RATE*100:.1f}% "
+          f"(2022 p.58: 3,258/12,296호) · «분모맞춤» = 우리 상위 {SURVEY_PAYER_RATE*100:.1f}%의 중앙값")
+
+
 # --------------------------------------------------------------------- cli
 
 def main():
@@ -674,6 +832,8 @@ def main():
     ap.add_argument("--extract", type=int, metavar="YEAR", help="표 추출 + 검산")
     ap.add_argument("--table", choices=TABLES, help="trdar(상권별) / uptae(업종별)")
     ap.add_argument("--year", type=int, help="--fetch 대상 연도")
+    ap.add_argument("--compare", action="store_true",
+                    help="우리 추정가 분포 vs 공표 권리금 (읽기 전용)")
     a = ap.parse_args()
 
     try:
@@ -687,7 +847,9 @@ def main():
             if not a.table:
                 ap.error("--extract 는 --table 이 필요하다")
             extract(a.extract, a.table)
-        if not any([a.discover, a.fetch, a.locate, a.extract]):
+        if a.compare:
+            compare()
+        if not any([a.discover, a.fetch, a.locate, a.extract, a.compare]):
             ap.print_help()
     except SftcError as exc:
         print(f"실패: {exc}", file=sys.stderr)

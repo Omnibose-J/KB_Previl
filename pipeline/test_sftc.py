@@ -10,7 +10,8 @@ on its own; this is the step that could fail quietly.
 """
 import sys
 
-from .sftc import TRDAR_TOL, UPTAE_TOL, _dedupe, agree, classify, verify_rows
+from .sftc import (TRDAR_TOL, UPTAE_TOL, _dedupe, agree, classify,
+                   median_from_bands, verify_rows)
 
 
 def _trdar(total, deposit, goodwill, fitout, name="테스트상권"):
@@ -243,6 +244,38 @@ def an_identical_repeat_is_merged_not_dropped():
     kept, dupes = _dedupe([row, dict(row)], "trdar")
     assert len(kept) == 1 and not dupes, (kept, dupes)
     assert kept[0]["goodwill"] == 4762
+
+
+# --- published median: the headline mean is not comparable ----------------
+
+@case
+def median_lands_in_the_band_that_crosses_fifty():
+    """한식 2022: cumulative 23.2, 45.3, 66.5 — the median is 4.7 points into
+    the 4,000~6,000 band, which is 21.2 points wide."""
+    got = median_from_bands([23.2, 22.1, 21.2, 10.1, 5.2, 18.2])
+    assert abs(got - (4000 + 4.7 / 21.2 * 2000)) < 1, got
+    assert 4400 < got < 4500, got
+
+
+@case
+def median_is_well_below_the_published_mean():
+    """Goodwill is right-tailed: the same industry's published mean is 6,165.4
+    against a median near 4,443. Comparing our median to their mean would charge
+    the estimate for a skew it does not model."""
+    assert median_from_bands([23.2, 22.1, 21.2, 10.1, 5.2, 18.2]) < 6165.4
+
+
+@case
+def a_first_band_over_fifty_gives_a_median_inside_it():
+    got = median_from_bands([60.0, 20.0, 10.0, 5.0, 3.0, 2.0])
+    assert abs(got - (50.0 / 60.0 * 2000)) < 1, got
+
+
+@case
+def open_top_band_returns_none_rather_than_a_guess():
+    """If the median sits in 「1억원 이상」 there is no upper edge to interpolate
+    against, and inventing one would put a made-up number in the control."""
+    assert median_from_bands([5.0, 5.0, 5.0, 5.0, 5.0, 75.0]) is None
 
 
 def main():
