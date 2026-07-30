@@ -133,6 +133,12 @@ def targets(n=PILOT_TRDAR):
     return out[:n]
 
 
+class QuotaExhausted(RuntimeError):
+    """The LLM account is out of credit. Not a transient limit — retrying and
+    resuming both produce the same result until it is topped up, so this has to
+    stop the run instead of being absorbed as a per-district failure."""
+
+
 class CollectFailed(RuntimeError):
     """The search API could not be reached for this district.
 
@@ -206,7 +212,14 @@ def _complete(client, model, prompt, tries=6):
                 model=model, response_format={"type": "json_object"},
                 messages=[{"role": "user", "content": prompt}])
         except Exception as exc:
-            if "rate_limit" not in str(exc) and "429" not in str(exc):
+            text = str(exc)
+            # 잔액 소진은 429 로 오지만 기다린다고 풀리지 않는다. «재시도 가능»
+            # 으로 묶었다가 1,650 상권을 6 회씩 되풀이하며 23 분을 태우고 라벨을
+            # 한 건도 만들지 못했다 — 회복 가능한 한도 초과와 구분해야 한다.
+            if "insufficient_quota" in text:
+                raise QuotaExhausted(
+                    "OpenAI 크레딧이 소진됐다 — 충전 전에는 재실행해도 같다") from exc
+            if "rate_limit" not in text and "429" not in text:
                 raise
             if attempt == tries - 1:
                 raise
@@ -455,6 +468,15 @@ def full(workers=3, verbose=True):
             try:
                 _, got = fut.result()
                 n_lab += got
+            except QuotaExhausted as exc:
+                # 계속 돌려봐야 전부 같은 실패다. 남은 상권마다 한 번씩 더
+                # 확인하는 것은 시간만 쓴다.
+                for rest in futs[i:]:
+                    rest.cancel()
+                print(f"\n중단 — {exc}", flush=True)
+                print(f"  {i-1:,}개 처리 후 멈췄다. 충전 뒤 같은 명령을 다시 치면 "
+                      f"이어받는다.", flush=True)
+                return 2
             except Exception as exc:
                 n_fail += 1
                 print(f"  [실패] {type(exc).__name__}: {exc}", flush=True)
