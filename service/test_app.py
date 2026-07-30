@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from service import api
+from service import demo_db
 from service import economics as economics_service
 from service import estimation as estimation_service
 from service import goodwill as goodwill_service
@@ -345,6 +346,7 @@ def test_recommend_grid_and_at_share_the_same_real_cell():
     )
     _assert_score_hidden(body)
     _assert_score_hidden(detail.json())
+    assert resolutions["visitor_party"] == "상권"
 
 
 def test_trade_area_coverage_and_sales_value_availability_are_distinct():
@@ -1727,6 +1729,48 @@ def test_recommend_carries_concept_mix_without_extra_round_trips():
     assert any(item["concept_mix"]["items"] for item in body["items"])
 
 
+def test_recommend_carries_visitor_party_without_extra_round_trips():
+    """S3 후보 수가 늘어도 방문객 동반자 조회는 배치 횟수 그대로여야 한다."""
+    queries = []
+    original_connection = api.readonly_connection
+
+    class CountingConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, statement, parameters=()):
+            if "trdar_party" in statement:
+                queries.append(statement)
+            return self.connection.execute(statement, parameters)
+
+        def __getattr__(self, name):
+            return getattr(self.connection, name)
+
+    @contextmanager
+    def counting():
+        with original_connection() as connection:
+            yield CountingConnection(connection)
+
+    def count_for(top):
+        queries.clear()
+        api.readonly_connection = counting
+        try:
+            response = client.get(
+                "/api/recommend", params={"uptae": "한식", "top": top})
+            assert response.status_code == 200
+            return response.json(), len(queries)
+        finally:
+            api.readonly_connection = original_connection
+
+    _, few = count_for(3)
+    body, many = count_for(20)
+
+    assert few > 0
+    assert few == many, f"후보 수에 비례해 조회가 늘었다: {few} -> {many}"
+    assert body["count"] == 20
+    assert all(item["visitorParty"] is not None for item in body["items"])
+
+
 def _estimate_payload(sample, **overrides):
     payload = {
         "gridId": sample["grid_id"],
@@ -2262,6 +2306,31 @@ def test_floor_key_negative():
 
 
 # --- 방문객 동반자 (§J-1) ---------------------------------------------------
+
+def test_demo_db_audit_reports_unloaded_reference_without_import_noise(
+        monkeypatch, tmp_path, capsys):
+    service_dir = tmp_path / "service"
+    service_dir.mkdir()
+    (service_dir / "probe.py").write_text(
+        "from collections import defaultdict\n"
+        'QUERY = "SELECT * FROM trdar_party"\n'
+        'SCHEMA = "SELECT name FROM sqlite_master"\n',
+        encoding="utf-8",
+    )
+    empty_db = tmp_path / "empty.db"
+    sqlite3.connect(empty_db).close()
+    monkeypatch.setattr(demo_db, "ROOT", tmp_path)
+    monkeypatch.setattr(demo_db, "TABLES", [])
+
+    with sqlite3.connect(empty_db) as connection:
+        assert demo_db.referenced_tables(connection) == {"trdar_party"}
+    assert demo_db.audit(empty_db) == 1
+
+    output = capsys.readouterr().out
+    assert "미적재 참조: trdar_party — 코드가 읽는데 DB에 없다" in output
+    assert "collections" not in output
+    assert "sqlite_master" not in output
+
 
 def _grid_in_a_trade_area():
     with api.readonly_connection() as connection:

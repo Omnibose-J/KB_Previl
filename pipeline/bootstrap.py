@@ -143,6 +143,14 @@ def _features(args):
     build_features(init(), args.quarter)
 
 
+def _party(args):
+    """수집과 적재를 한 단계로 묶는다 — 수집만 하고 적재를 잊으면 캐시에는
+    데이터가 있는데 서빙은 비어 있고, 그 상태가 «수집 안 됨» 과 구분되지 않는다.
+    수집은 이어받기 되므로 중간에 끊겨도 같은 명령을 다시 치면 된다."""
+    _module("model.party", "--full")(args)
+    _module("model.party", "--load")(args)
+
+
 STEPS = [
     Step("schema", None, lambda a: init(),
          "테이블 생성"),
@@ -188,6 +196,12 @@ STEPS = [
     # precompute 는 succession_score 를 읽지 않는다.
     Step("succession", "succession_score", _module("model.recovery", "--build-serving"),
          "승계 확률 m2 — grid_score 의 쌍을 채운다"),
+    # 마지막에 둔다. 방문객 동반자는 점수에 들어가지 않고(§J-1-④) 서빙이
+    # trdar_party 를 직접 읽으므로 뒤따라 재실행할 단계가 없다. 중간에 넣으면
+    # 이 단계를 갱신할 때마다 precompute(가장 긴 단계)가 헛돈다.
+    # trdar_area 만 있으면 되므로 normalize 뒤 어디든 놓을 수 있다.
+    Step("party", "trdar_party", _party,
+         "방문객 동반자 수집·적재 — 상권 1,650개, 약 1시간 (§J-1)"),
 ]
 
 GATES = (
@@ -393,6 +407,10 @@ def main():
     ap.add_argument("--only", metavar="STEP", help="이 단계만 실행")
     ap.add_argument("--force", action="store_true",
                     help="출력 테이블이 이미 차 있어도 다시 실행")
+    ap.add_argument("--refresh", metavar="STEP",
+                    help="갱신: 이 단계부터 끝까지 다시 실행한다 "
+                         "(= --from STEP --force). 뒤따르는 단계가 자동으로 "
+                         "따라온다 — STEPS 가 의존 순서다")
     ap.add_argument("--gates", action="store_true", help="마지막에 게이트 4종 실행")
     ap.add_argument("--fingerprint", action="store_true",
                     help="제품 경로 테이블 행수와 score_meta 헤드라인만 출력")
@@ -403,6 +421,14 @@ def main():
                     help="긴 단계나 네트워크 호출 없이 콜드스타트 조건 점검")
     a = ap.parse_args()
 
+    # 갱신은 새 실행 경로가 아니라 이름이다. --from + --force 가 이미 그 동작인데
+    # 그 조합이 «갱신» 으로 읽히지 않아, 다시 눌러도 전부 건너뛰는 것을 정상으로
+    # 오해하기 쉽다. 동작을 늘리지 않고 의도만 이름 붙인다.
+    if a.refresh:
+        if a.start or a.only:
+            raise SystemExit("--refresh 는 --from·--only 와 함께 쓸 수 없다")
+        a.start, a.force = a.refresh, True
+
     if a.preflight:
         return preflight()
     if a.fingerprint:
@@ -412,7 +438,10 @@ def main():
         return prune(a.dry_run)
 
     names = [s.name for s in STEPS]
-    for label, value in (("--from", a.start), ("--only", a.only)):
+    # --refresh 는 a.start 로 접히므로, 그대로 두면 --refresh 를 친 사람에게
+    # «--from 알 수 없는 단계» 라고 답한다. 치지도 않은 플래그를 고치라는 말이 된다.
+    start_label = "--refresh" if a.refresh else "--from"
+    for label, value in ((start_label, a.start), ("--only", a.only)):
         if value and value not in names:
             raise SystemExit(f"{label} 알 수 없는 단계 '{value}' — {', '.join(names)}")
 

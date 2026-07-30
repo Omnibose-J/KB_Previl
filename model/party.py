@@ -165,7 +165,29 @@ def _client():
     if not key:
         raise RuntimeError("OPENAI_API_KEY 없음")
     from openai import OpenAI
-    return OpenAI(api_key=key)
+    return OpenAI(api_key=key, max_retries=0)   # retry is handled below
+
+
+def _complete(client, model, prompt, tries=6):
+    """One chat call with backoff on the org's token-per-minute limit.
+
+    Measured: five concurrent districts against a 200k TPM ceiling failed 177 of
+    408 attempts. Those districts were simply dropped — recoverable only because
+    `full()` skips what is already on disk, but 43% of the run was being spent
+    producing nothing. Backing off here is what makes the concurrency usable.
+    """
+    for attempt in range(tries):
+        try:
+            return client.chat.completions.create(
+                model=model, response_format={"type": "json_object"},
+                messages=[{"role": "user", "content": prompt}])
+        except Exception as exc:
+            if "rate_limit" not in str(exc) and "429" not in str(exc):
+                raise
+            if attempt == tries - 1:
+                raise
+            time.sleep(min(30, 2 ** attempt) * (1 + 0.3 * (attempt % 3)))
+    return None
 
 
 def extract(client, posts, model=EXTRACT_MODEL, batch=10):
@@ -174,9 +196,7 @@ def extract(client, posts, model=EXTRACT_MODEL, batch=10):
     for start in range(0, len(posts), batch):
         chunk = posts[start:start + batch]
         body = "\n\n".join(f"[{start + i}] {p['text']}" for i, p in enumerate(chunk))
-        r = client.chat.completions.create(
-            model=model, response_format={"type": "json_object"},
-            messages=[{"role": "user", "content": EXTRACT_PROMPT + body}])
+        r = _complete(client, model, EXTRACT_PROMPT + body)
         try:
             got = json.loads(r.choices[0].message.content).get("items", [])
         except json.JSONDecodeError:
@@ -225,9 +245,7 @@ def evidence_pass(client, labelled, model=EVIDENCE_MODEL, batch=20):
         body = "\n".join(
             f'[{start + i}] 라벨={r["label"]} 인용=«{r["quote"]}»'
             for i, r in enumerate(chunk))
-        r = client.chat.completions.create(
-            model=model, response_format={"type": "json_object"},
-            messages=[{"role": "user", "content": EVIDENCE_PROMPT + body}])
+        r = _complete(client, model, EVIDENCE_PROMPT + body)
         try:
             got = json.loads(r.choices[0].message.content).get("items", [])
         except json.JSONDecodeError:
@@ -383,7 +401,7 @@ def _one_district(headers, client, cd, nm, se):
     return cd, sum(1 for r in records if r["label"])
 
 
-def full(workers=5, verbose=True):
+def full(workers=3, verbose=True):
     """All 1,649 districts. Appends per district and skips what is already on
     disk, so an interrupted run resumes instead of starting over."""
     import sqlite3
@@ -524,9 +542,7 @@ def _judge(client, rows, model, reverse, batch=15):
     for start in range(0, len(idx), batch):
         chunk = idx[start:start + batch]
         body = "\n\n".join(f"[{i}] {rows[i]['text']}" for i in chunk)
-        r = client.chat.completions.create(
-            model=model, response_format={"type": "json_object"},
-            messages=[{"role": "user", "content": JUDGE_PROMPT + body}])
+        r = _complete(client, model, JUDGE_PROMPT + body)
         try:
             got = json.loads(r.choices[0].message.content).get("items", [])
         except json.JSONDecodeError:
