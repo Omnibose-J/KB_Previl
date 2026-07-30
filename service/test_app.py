@@ -571,7 +571,8 @@ def test_changes_endpoint_separates_no_baseline_from_no_change():
         assert body["reason"]
 
 
-def _create_changes_history_db(path, licence_rows=(), rest_rows=()):
+def _create_changes_history_db(
+        path, licence_rows=(), rest_rows=(), current_as_of="2026-07"):
     with sqlite3.connect(path) as con:
         con.executescript(
             """
@@ -601,8 +602,11 @@ def _create_changes_history_db(path, licence_rows=(), rest_rows=()):
             );
             INSERT INTO grid_score VALUES ('100_100', '한식');
             INSERT INTO score_run VALUES ('before', '2026-01', 0);
-            INSERT INTO score_run VALUES ('current', '2026-07', 1);
             """
+        )
+        con.execute(
+            "INSERT INTO score_run VALUES ('current', ?, 1)",
+            (current_as_of,),
         )
         con.executemany(
             "INSERT INTO licence VALUES (?, ?, ?, ?, ?)",
@@ -640,7 +644,10 @@ def test_changes_history_keeps_zero_event_buckets(monkeypatch, tmp_path):
     source_db = tmp_path / "changes.db"
     _create_changes_history_db(
         source_db,
-        licence_rows=[("100_100", 2016, 2, None, None)],
+        licence_rows=[
+            ("100_100", 2016, 2, None, None),
+            ("100_100", 2026, 8, None, None),
+        ],
     )
 
     history = _changes_history(monkeypatch, source_db)
@@ -648,17 +655,52 @@ def test_changes_history_keeps_zero_event_buckets(monkeypatch, tmp_path):
     assert history["unit"] == api.RESOLUTION["competition.shopsNeighbor"]
     assert history["bucketMonths"] == 6
     assert len(history["buckets"]) == 20
-    assert history["buckets"][0]["from"] == "2016-01"
-    assert history["buckets"][-1]["to"] == "2025-12"
+    assert history["buckets"][0]["from"] == "2016-07"
+    assert history["buckets"][-1]["to"] == "2026-06"
     empty_half = next(
-        bucket for bucket in history["buckets"] if bucket["from"] == "2016-07"
+        bucket for bucket in history["buckets"] if bucket["from"] == "2017-01"
     )
     assert empty_half["opened"] == 0
     assert empty_half["closed"] == 0
+    assert sum(bucket["opened"] for bucket in history["buckets"]) == 0
     assert history["runs"] == [
         {"asOf": "2026-01"},
         {"asOf": "2026-07"},
     ]
+
+
+def test_changes_history_places_completed_run_in_exactly_one_bucket(
+        monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    _create_changes_history_db(
+        source_db,
+        licence_rows=[("100_100", 2025, 8, None, None)],
+    )
+
+    history = _changes_history(monkeypatch, source_db)
+    matching = [
+        bucket
+        for bucket in history["buckets"]
+        if bucket["from"] <= "2026-01" <= bucket["to"]
+    ]
+
+    assert len(matching) == 1
+
+
+def test_changes_history_uses_previous_half_for_first_half_current_run(
+        monkeypatch, tmp_path):
+    source_db = tmp_path / "changes.db"
+    _create_changes_history_db(
+        source_db,
+        licence_rows=[("100_100", 2025, 8, None, None)],
+        current_as_of="2026-03",
+    )
+
+    history = _changes_history(monkeypatch, source_db)
+
+    assert len(history["buckets"]) == 20
+    assert history["buckets"][0]["from"] == "2016-01"
+    assert history["buckets"][-1]["to"] == "2025-12"
 
 
 def test_changes_history_counts_all_eight_neighbor_cells(monkeypatch, tmp_path):

@@ -794,8 +794,19 @@ def _changes_history(con, grid_id):
         raise DatabaseUnavailableError(
             "현재 채점 판이 없어 개·폐업 이력 기간을 정할 수 없습니다."
         )
-    end_year = int(current_as_of[:4]) - 1
-    start_year = end_year - 9
+    try:
+        current_year, current_month = map(int, current_as_of.split("-"))
+    except (AttributeError, ValueError):
+        raise DatabaseUnavailableError(
+            "현재 채점 판의 기준월로 개·폐업 이력 기간을 정할 수 없습니다."
+        ) from None
+    if not 1 <= current_month <= 12:
+        raise DatabaseUnavailableError(
+            "현재 채점 판의 기준월로 개·폐업 이력 기간을 정할 수 없습니다."
+        )
+    current_period = current_year * 2 + (current_month > 6)
+    end_period = current_period - 1
+    start_period = end_period - 19
 
     counts = {}
     for table, rest_filter, rest_params in (
@@ -810,31 +821,38 @@ def _changes_history(con, grid_id):
             ("opened", "open_y", "open_m"),
             ("closed", "close_y", "close_m"),
         ):
+            period = (
+                f"{year_column} * 2 "
+                f"+ CASE WHEN {month_column} <= 6 THEN 0 ELSE 1 END"
+            )
             for row in con.execute(
                 f"SELECT {year_column} year, "
                 f"       CASE WHEN {month_column} <= 6 THEN 1 ELSE 2 END half, "
                 f"       COUNT(*) n "
                 f"FROM {table} "
                 f"WHERE grid_id IN ({cell_slots}) "
-                f"  AND {year_column} BETWEEN ? AND ? "
                 f"  AND {month_column} BETWEEN 1 AND 12 "
+                f"  AND ({period}) BETWEEN ? AND ? "
                 f"  {rest_filter} "
                 f"GROUP BY {year_column}, half",
-                [*cells, start_year, end_year, *rest_params],
+                [*cells, start_period, end_period, *rest_params],
             ):
                 key = (row["year"], row["half"])
                 counts.setdefault(key, {"opened": 0, "closed": 0})
                 counts[key][event] += row["n"]
 
     buckets = []
-    for year in range(start_year, end_year + 1):
-        for half, first_month, last_month in ((1, 1, 6), (2, 7, 12)):
-            events = counts.get((year, half), {"opened": 0, "closed": 0})
-            buckets.append({
-                "from": f"{year:04d}-{first_month:02d}",
-                "to": f"{year:04d}-{last_month:02d}",
-                **events,
-            })
+    for period in range(start_period, end_period + 1):
+        year, half_index = divmod(period, 2)
+        half, first_month, last_month = (
+            (1, 1, 6) if half_index == 0 else (2, 7, 12)
+        )
+        events = counts.get((year, half), {"opened": 0, "closed": 0})
+        buckets.append({
+            "from": f"{year:04d}-{first_month:02d}",
+            "to": f"{year:04d}-{last_month:02d}",
+            **events,
+        })
     return {
         "unit": RESOLUTION["competition.shopsNeighbor"],
         "bucket_months": 6,
