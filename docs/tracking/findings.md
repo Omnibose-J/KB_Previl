@@ -496,3 +496,31 @@ known direction: an address states its floor mainly when the shop is *not* on th
 ground floor, so 1층 is 62% of the token subset against a much higher true share.
 Any conditional display built on it needs that bias stated, exactly as the
 등급×면적 table states its legacy bench.
+
+---
+
+## F-C3. 화면이 클래스별 정밀도를 병기하지 않는다 — 검토 후 반려 (2026-07-30)
+
+**제기**: 외부 리뷰(Codex, 2026-07-30). `service/api.py` 의 `PARTY_PRECISION` 은
+`family` 0.633 · `work` 0.700 을 항목마다 실어 보내는데,
+`frontend/app/src/components/VisitorPartyCard.tsx` 는 둘 중 **최솟값 하나**로
+「10건 중 4건쯤은 틀려요」 문장을 만들고 각 행에는 값을 적지 않는다. 두 클래스의
+서로 다른 검정 결과가 화면에서 사라진다는 지적.
+
+**반려. 근거 셋.**
+
+1. **계약이 보내는 필드를 화면이 전부 그려야 하는 것은 아니다.** 같은 응답의
+   `source`·`unit`·`claim` 도 그리지 않는다. 계약은 무엇을 줄 수 있는지를 정하지
+   무엇을 그려야 하는지를 정하지 않는다.
+2. **최솟값 사용은 보수적인 방향이다.** 좋은 쪽(`work` 0.700)을 나쁜 쪽 기준으로
+   말하므로 정확도가 **과장되는 경우가 없다.** 반대 방향이었다면 반려하지 않았다.
+3. **0.633 과 0.700 의 차이는 창업자의 판단을 바꾸지 않는다.** 둘 다 «열 번에
+   서너 번 틀린다»이고, 화면에 «63.3%»를 적는 것은 고객 카피 규칙(기술 설명 0,
+   `frontend/design/ui-spec.md`)에 걸린다.
+
+**다시 열어야 하는 조건**: 승인 클래스가 셋 이상이 되거나 클래스 간 정밀도 차가
+0.15 를 넘으면 «하나의 문장»이 어느 쪽도 대표하지 못한다. 그때는 행별 표기로
+바꾼다.
+
+**반려했다고 없어지는 문제는 아니다** — 정밀도는 `docs/unstructured-plan.md`
+§J-1 파일럿 결과에 클래스별로 남아 있고, 재검정 시 그 표가 기준이다.
