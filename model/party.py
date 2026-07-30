@@ -38,7 +38,10 @@ from pipeline.config import CACHE_DIR, DB_PATH, load_env
 
 SEED = 0
 PILOT_TRDAR = 30
-PER_TRDAR = 60              # 판정 대상 글 수 (검색 API 상한 100)
+# 검색 API 상한과 같게 둔다. 60 으로 돌린 1 차 전량 수집은 커버리지 31.5% 로
+# §J-1-③ 기준(40%)에 미달했다 — 문턱을 내리는 대신 데이터를 늘린다. 검색 호출
+# 수는 그대로고(이미 display=100 을 받아 40 건을 버리고 있었다) LLM 추출만 는다.
+PER_TRDAR = 100
 SEARCH_DISPLAY = 100
 EXTRACT_MODEL = "gpt-5.4-mini"
 # A different model for the evidence pass. Same model judging its own output is
@@ -140,7 +143,7 @@ class CollectFailed(RuntimeError):
     """
 
 
-def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
+def fetch_posts(headers, name, want=PER_TRDAR, tries=5):
     """Blog snippets for one commercial district. The API returns a
     search-relevance-selected 147-char description, which is exactly the corpus
     §19-A found too thin — that limitation is inherited, not solved.
@@ -148,6 +151,7 @@ def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
     Raises CollectFailed when every retry failed; returns [] only when the API
     answered and had nothing.
     """
+    last = "이유 미상"
     for attempt in range(tries):
         try:
             # "서울" is not decoration. The pilot pulled 광주 송정역 posts for
@@ -157,7 +161,12 @@ def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
                 "query": f"서울 {name} 맛집", "display": SEARCH_DISPLAY,
                 "sort": "sim"})
             if r.status_code != 200:
-                time.sleep(1 + attempt)
+                # Exponential, not linear. Measured: 59 districts exhausted three
+                # 1~2s retries and were written off, yet the same queries each
+                # returned 100 items when retried later. A retry policy too
+                # shallow for the API turns a blip into a permanent data gap.
+                last = f"HTTP {r.status_code}"
+                time.sleep(min(30, 2 ** attempt))
                 continue
             out = []
             for it in r.json().get("items", []):
@@ -169,9 +178,10 @@ def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
                 if len(out) >= want:
                     break
             return out
-        except requests.RequestException:
-            time.sleep(1 + attempt)
-    raise CollectFailed(f"검색 API 응답 없음: {name}")
+        except requests.RequestException as exc:
+            last = type(exc).__name__
+            time.sleep(min(30, 2 ** attempt))
+    raise CollectFailed(f"검색 API 실패({tries}회): {name} — 마지막 사유 {last}")
 
 
 def _client():
