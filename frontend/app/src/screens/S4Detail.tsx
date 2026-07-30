@@ -440,7 +440,13 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {meta && meta.survivalByPeriod.length > 0 ? (
             <section className={s.card} data-reveal>
               <div className={s.cardHead}>
-                <h2>1년, 3년, 5년 뒤에는</h2>
+                {/* 제목이 2년 열을 빼먹고 있었다. 열에 있는 것을 제목에서
+                    지우지 않는다.
+                    3년을 헤드라인으로 두는 근거는 계약 실태다 — 중기부·소진공
+                    2025 상가건물임대차 실태조사에서 임차인 평균 계약기간이
+                    42.2개월(약 3.5년)이다. «임차는 보통 1~2년» 은 최초 계약의
+                    인상이고, 갱신요구권까지 포함한 실제 체류는 3년대다. */}
+                <h2>1년, 2년, 3년, 5년 뒤에는</h2>
                 <p>시간이 지날수록 얼마나 남았는지예요.</p>
               </div>
               <PeriodTable meta={meta} grade={d.grade} />
