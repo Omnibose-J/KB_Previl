@@ -29,10 +29,15 @@ export default function ChangeHistoryChart({ history }: { history: ChangeHistory
 
   // 그리는 구간 밖의 재산정은 표시할 자리가 없다. 목록에 있다고 문구를 내보내면
   // 화면에 없는 세로선을 설명하게 되므로, 실제로 그린 것만 세어 문구를 정한다.
+  // 선은 구간 경계가 아니라 «그 달» 에 세운다. 6개월 구간의 끝에 몰아 세우면
+  // 1월에 다시 매긴 것이 6월로 보이고, 그 구간 막대가 통째로 재산정 이전인 것처럼
+  // 읽힌다. 구간 안에서 달 수만큼 비례해 밀어 준다.
   const marks = runs
     .map((r) => {
       const i = buckets.findIndex((b) => b.from <= r.asOf && r.asOf <= b.to);
-      return i < 0 ? null : { asOf: r.asOf, x: (i + 1) * w };   // 그 구간의 오른쪽 끝
+      if (i < 0) return null;
+      const into = Number(r.asOf.slice(5, 7)) - Number(buckets[i].from.slice(5, 7));
+      return { asOf: r.asOf, x: (i + into / 6) * w };
     })
     .filter((m): m is { asOf: string; x: number } => m !== null);
 
