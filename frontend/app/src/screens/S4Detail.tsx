@@ -4,6 +4,7 @@ import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import ConceptMixCard from "../components/ConceptMixCard";
+import VisitorPartyCard from "../components/VisitorPartyCard";
 import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
 import OccupancyCostCard from "../components/OccupancyCostCard";
@@ -269,6 +270,10 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </section>
 
           <ConceptMixCard mix={d.conceptMix} />
+
+          {/* «주변에 어떤 가게가 있나» 바로 뒤 — 둘 다 관측 집계라 나란히 둔다.
+              등급·생존율 블록에서 떼어 놓아야 예측처럼 읽히지 않는다. */}
+          <VisitorPartyCard party={d.visitorParty} />
 
           {/* ── 경쟁 + 위험 pair ─────────────────────────────────── */}
           <div className={s.pair}>

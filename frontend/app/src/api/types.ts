@@ -175,6 +175,35 @@ export interface ConceptMix {
   claim: string | null;
 }
 
+export interface PartyCount {
+  party: "family" | "work";
+  label: string;
+  posts: number;
+  share: number | null;
+  /** 이 라벨의 실측 정밀도(§J-1). 화면에 반드시 함께 나가야 한다 — 정확도를
+   *  빼고 라벨만 보이면 «측정했다» 가 «맞다» 로 읽힌다. */
+  precision: number;
+}
+
+/**
+ * 방문객이 쓴 글에서 뽑은 «누구와 왔는가». 상권 resolution — 같은 상권 안
+ * 격자는 같은 값이다. 관측 집계이지 예측이 아니고, 등급·순위에 쓰이지 않는다.
+ *
+ * 서버는 표기 문턱을 통과한 두 클래스만 보낸다(§J-1). alone·couple·friend 는
+ * 정밀도 미달로 아예 오지 않으므로 화면이 거를 필요가 없다.
+ *
+ * `available: false` = 수집 미실행, `items: []` = 글이 모자라 판단 불가.
+ */
+export interface VisitorParty {
+  available: boolean;
+  items: PartyCount[];
+  postsScanned: number;
+  labelled: number;
+  unit: string;
+  source: string | null;
+  claim: string | null;
+}
+
 /** All 행정동-resolution: identical for every grid in the same dong. */
 export interface Demand {
   dayPopulation: number | null;
@@ -202,6 +231,7 @@ export interface GridDetail extends GridCell {
   nearestStation: StationAnchor | null;
   competition: Competition;
   conceptMix: ConceptMix | null;
+  visitorParty: VisitorParty | null;
   areaSurvival: AreaSurvival;
   demand: Demand;
   sales: Sales;
