@@ -2,7 +2,7 @@
 // goodwill-report-design §8-A slim input).
 //
 // JSON is camelCase, coordinates are [lon, lat] WGS84, rates are 0..1, money is
-// 만원 unless stated. grade is 1..10 and 1 IS BEST. No response ever carries
+// 만원 unless stated. grade is 1..9 and 1 IS BEST. No response ever carries
 // `score` — the model probability runs 2.7~6.7%p optimistic, so the screen
 // shows the survival actually observed in that grade instead.
 //
@@ -11,7 +11,8 @@
 // (openings36m, signal, n/ciLow/ciHigh) arrive as null and the screen draws the
 // common NULL pattern rather than substituting anything.
 
-/** grade 1 = best (top 10%). Direction is part of the API contract. */
+/** grade 1 = best. Shares are 내신형 (4/7/12/17/20/17/12/7/4%), so grade 1 is
+ *  the top ~4%, not a decile. Direction is part of the API contract. */
 export type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 /** [lon, lat] — EPSG:5179 never crosses the API. */
