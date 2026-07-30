@@ -1,0 +1,253 @@
+{
+ "model": "gbm",
+ "features": "DEPLOY",
+ "n_features": 20,
+ "val_years": [
+  2021,
+  2022
+ ],
+ "wide_start": 2000,
+ "val_n": 24599,
+ "rows": [
+  {
+   "label": "num_leaves=7",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.7462383082553884,
+   "val_auc": 0.622314272977365,
+   "val_gap": 0.41900253589766484,
+   "tr_top": 0.8054794520547945,
+   "tr_auc": 0.6053482302522906
+  },
+  {
+   "label": "num_leaves=15",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.7437982919886132,
+   "val_auc": 0.622841337398586,
+   "val_gap": 0.4096519505251986,
+   "tr_top": 0.8310502283105022,
+   "tr_auc": 0.6253727907394111
+  },
+  {
+   "label": "num_leaves=31",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "num_leaves=63",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.7332248881659211,
+   "val_auc": 0.6144295351863011,
+   "val_gap": 0.3848509044260837,
+   "tr_top": 0.9223744292237442,
+   "tr_auc": 0.7119655241115127
+  },
+  {
+   "label": "num_leaves=127",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.733631557543717,
+   "val_auc": 0.6104745530816552,
+   "val_gap": 0.384851069738839,
+   "tr_top": 0.972478206724782,
+   "tr_auc": 0.7931000934470759
+  },
+  {
+   "label": "num_leaves=255",
+   "axis": "regular:num_leaves",
+   "n": 240909,
+   "val_top": 0.7263115087433917,
+   "val_auc": 0.6083490031491606,
+   "val_gap": 0.37265297215802584,
+   "tr_top": 0.9945620589456206,
+   "tr_auc": 0.890979628350682
+  },
+  {
+   "label": "min_child_samples=10",
+   "axis": "regular:min_child_samples",
+   "n": 240909,
+   "val_top": 0.7283448556323708,
+   "val_auc": 0.615489476031206,
+   "val_gap": 0.39785705075432204,
+   "tr_top": 0.8802407638024077,
+   "tr_auc": 0.6602204441964606
+  },
+  {
+   "label": "min_child_samples=20",
+   "axis": "regular:min_child_samples",
+   "n": 240909,
+   "val_top": 0.7267181781211874,
+   "val_auc": 0.6150920760842465,
+   "val_gap": 0.3860677716171224,
+   "tr_top": 0.8797011207970112,
+   "tr_auc": 0.6602849076020184
+  },
+  {
+   "label": "min_child_samples=100",
+   "axis": "regular:min_child_samples",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "min_child_samples=400",
+   "axis": "regular:min_child_samples",
+   "n": 240909,
+   "val_top": 0.7393249288328589,
+   "val_auc": 0.6202155992776961,
+   "val_gap": 0.404365579239363,
+   "tr_top": 0.8652137816521378,
+   "tr_auc": 0.6526527689734507
+  },
+  {
+   "label": "min_child_samples=1600",
+   "axis": "regular:min_child_samples",
+   "n": 240909,
+   "val_top": 0.7433916226108174,
+   "val_auc": 0.6215605438829461,
+   "val_gap": 0.42062739496854096,
+   "tr_top": 0.852096305520963,
+   "tr_auc": 0.6436890541145432
+  },
+  {
+   "label": "reg_lambda=0.0",
+   "axis": "regular:reg_lambda",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "reg_lambda=1.0",
+   "axis": "regular:reg_lambda",
+   "n": 240909,
+   "val_top": 0.7340382269215128,
+   "val_auc": 0.6196163777163581,
+   "val_gap": 0.3897292838320819,
+   "tr_top": 0.8735990037359901,
+   "tr_auc": 0.6576643511553348
+  },
+  {
+   "label": "reg_lambda=10.0",
+   "axis": "regular:reg_lambda",
+   "n": 240909,
+   "val_top": 0.7356649044326962,
+   "val_auc": 0.6197209355722071,
+   "val_gap": 0.3994860426440783,
+   "tr_top": 0.8662515566625155,
+   "tr_auc": 0.6527596854445522
+  },
+  {
+   "label": "reg_lambda=100.0",
+   "axis": "regular:reg_lambda",
+   "n": 240909,
+   "val_top": 0.7490849938999593,
+   "val_auc": 0.6222113512447064,
+   "val_gap": 0.41981670121703246,
+   "tr_top": 0.8469074304690744,
+   "tr_auc": 0.6401374686412171
+  },
+  {
+   "label": "reg_lambda=1000.0",
+   "axis": "regular:reg_lambda",
+   "n": 240909,
+   "val_top": 0.74705164701098,
+   "val_auc": 0.6240849895486641,
+   "val_gap": 0.4080272567670776,
+   "tr_top": 0.8244499792444998,
+   "tr_auc": 0.623760322485377
+  },
+  {
+   "label": "subsample=0.5",
+   "axis": "regular:subsample",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "subsample=0.7",
+   "axis": "regular:subsample",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "subsample=0.9",
+   "axis": "regular:subsample",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "subsample=1.0",
+   "axis": "regular:subsample",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "colsample_bytree=0.4",
+   "axis": "regular:colsample_bytree",
+   "n": 240909,
+   "val_top": 0.7425782838552257,
+   "val_auc": 0.6224650804075822,
+   "val_gap": 0.4072124301966891,
+   "tr_top": 0.8688252386882523,
+   "tr_auc": 0.6521079445121793
+  },
+  {
+   "label": "colsample_bytree=0.6",
+   "axis": "regular:colsample_bytree",
+   "n": 240909,
+   "val_top": 0.7482716551443677,
+   "val_auc": 0.6198812243020839,
+   "val_gap": 0.41575132994111563,
+   "tr_top": 0.8738895807388958,
+   "tr_auc": 0.6556397232219301
+  },
+  {
+   "label": "colsample_bytree=0.9",
+   "axis": "regular:colsample_bytree",
+   "n": 240909,
+   "val_top": 0.7372915819438797,
+   "val_auc": 0.6189823902486511,
+   "val_gap": 0.3929826388544488,
+   "tr_top": 0.8734329597343296,
+   "tr_auc": 0.6586125721523692
+  },
+  {
+   "label": "colsample_bytree=1.0",
+   "axis": "regular:colsample_bytree",
+   "n": 240909,
+   "val_top": 0.7332248881659211,
+   "val_auc": 0.6189412441464098,
+   "val_gap": 0.38607041662120567,
+   "tr_top": 0.8726442507264425,
+   "tr_auc": 0.6593507353155941
+  }
+ ]
+}

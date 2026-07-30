@@ -187,7 +187,20 @@ def build_model(kind, seed=0, params=None):
         return lgb.LGBMClassifier(
             n_estimators=p.get("n_estimators", 400), learning_rate=p.get("learning_rate", 0.05),
             num_leaves=p.get("num_leaves", 31), min_child_samples=p.get("min_child_samples", 100),
-            subsample=0.9, colsample_bytree=0.9, random_state=seed, verbose=-1, n_jobs=8)
+            # These three were literals until 2026-07-30. Any caller passing them
+            # in `params` was silently ignored, so tune.py's random search moved
+            # three dead dimensions and a regularisation scan over them returned
+            # five identical rows - which is how the bug was found.
+            subsample=p.get("subsample", 0.9), colsample_bytree=p.get("colsample_bytree", 0.9),
+            # LightGBM's sklearn API ignores `subsample` unless `subsample_freq`
+            # (bagging_freq) is >= 1. The default has always been 0, so the
+            # long-standing `subsample=0.9` never bagged anything: the deployed
+            # model behaves as subsample=1.0. Default stays 0 to keep every
+            # existing number reproducible; a caller that wants bagging must ask
+            # for the frequency too.
+            subsample_freq=p.get("subsample_freq", 0),
+            reg_lambda=p.get("reg_lambda", 0.0),
+            random_state=seed, verbose=-1, n_jobs=8)
 
     if kind in ("rf", "et"):
         # rf defaults ARE the E-M winner's settings, so `--model rf` anywhere in
