@@ -168,7 +168,7 @@ STEPS = [
     Step("grid", "grid", _grid,
          "100m 격자 생성"),
     Step("geocode", None, _geocode,
-         "격자 중심 역지오코딩 → 행정동 (KAKAO, 격자 23,572)"),
+         "격자 중심 역지오코딩 → 행정동 (KAKAO, 격자 23,573)"),
     Step("sgis", "sgis_dong", _module("pipeline.sgis", "--both"),
          "SGIS 센서스 — features 보다 먼저여야 한다"),
     Step("sgis_match", "grid_sgis", _module("pipeline.sgis_match"),

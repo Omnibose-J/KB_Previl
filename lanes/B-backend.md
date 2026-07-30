@@ -202,7 +202,7 @@ interface MetaResponse {
   }>;
   overallSurvival: number | null;
   survivalByPeriod: Array<{
-    years: 1 | 3 | 5;
+    years: 1 | 2 | 3 | 5;
     cohort: string | null;
     testWindow: string | null;
     overall: number | null;

@@ -524,3 +524,66 @@ Any conditional display built on it needs that bias stated, exactly as the
 
 **반려했다고 없어지는 문제는 아니다** — 정밀도는 `docs/unstructured-plan.md`
 §J-1 파일럿 결과에 클래스별로 남아 있고, 재검정 시 그 표가 기준이다.
+
+---
+
+## F-A6. Offline economics curve collapses duplicate cohort keys (2026-07-31)
+
+**Found** while regenerating post-refresh documentation inputs.
+
+**Symptom:** `model/economics.py:67-71` indexes licence rows only by
+`(grid_id, open_ym)` and then selects `cands[0]`. The key omits `uptae`, and
+multiple shops can share a grid and opening month. This both attaches an
+arbitrary closure to a holdout row and discards the remaining shops. Running
+`python -m model.ui_inputs` therefore produced 3-year economics values that do
+not match the deployed batch curve.
+
+**Verified serving contrast:** `service/precompute.py:218` uses
+`(grid_id, uptae, open_ym)`, checks that each key has one grade, and extends the
+curve with every matching licence duration. `service/economics.py` consumes
+that precomputed curve rather than fitting on an HTTP request. The refreshed
+canonical scenario is grade 1 `+360`, grade 9 `-5,638`, a `5,998` difference
+in ten-thousand won units; the offline script printed a different lineage.
+
+**Why it is out of scope here:** The requested work refreshes the licence
+source and every deployed downstream artifact. Changing the offline analysis
+implementation would be a separate model-code correction and is not required
+to restore the source-count gate. The serving path is unaffected.
+
+**Blast radius:** `model.ui_inputs` must not be used to refresh economics
+documentation until its cohort identity and duplicate handling match
+`service.precompute`. Current documentation uses the deployed `score_meta`
+curve and `service.economics` calculation instead.
+
+---
+
+## F-A7. Source refresh is not self-invalidating (2026-07-31)
+
+**Found** while reviewing the completed licence refresh.
+
+**Symptom 1:** `pipeline.bootstrap --refresh collect` sets the orchestration
+`force` flag, but `pipeline/seoul_api.py:94` returns an existing JSONL cache
+before any HTTP request. The flag is not passed into `fetch_all`, so a command
+named refresh can silently reuse the old raw source.
+
+**Symptom 2:** `model/cache.py:43` keys split caches by years, horizon,
+options, and source-code fingerprint only. It does not include a database or
+licence-data fingerprint. A refreshed database can therefore reuse a split
+built from the previous source snapshot.
+
+**Current-run mitigation:** The 535,603-row raw JSONL was archived before
+collection, forcing a fresh 535,715-row download. Existing split caches were
+also moved out of the active cache directory before `precompute` and
+`ui_curves`. Independent refits reproduce the deployed AUC and grade metrics,
+so the current artifacts are not stale.
+
+**Why it is out of scope here:** The task explicitly allowed manual cache
+invalidation when the key did not reflect data contents. Making refresh
+self-invalidating changes two reusable cache contracts and needs dedicated
+failure-path tests; it is not required to restore the current count gate.
+
+**Blast radius:** A future operator who trusts `--refresh collect` without
+manually removing both cache layers can get a false-green rebuild. Fix by
+passing an explicit raw-cache refresh policy through collection and including
+a stable source/database fingerprint in split-cache keys, or by making
+bootstrap invalidate that cache at the dependency boundary.

@@ -32,16 +32,16 @@ from pipeline.config import DB_PATH, ROOT
 # Serving dependencies, largest first. Row counts are informational only - the
 # build copies whatever is there.
 TABLES = [
-    "licence",            # 535,603  건물 기록 (S4 «이 자리의 건물 이력»)
+    "licence",            # 535,715  건물 기록 (S4 «이 자리의 건물 이력»)
     "grid_score",         # 241,776  등급 — 제품의 중심
     "succession_score",   # 241,776  M2 승계확률
     "grid_score_prev",    # 241,404  직전 점수 (변화 표시)
-    "grid_concept",       # 157,878  «주변에 많은 가게»
+    "grid_concept",       # 157,862  «주변에 많은 가게»
     "licence_rest",       # 146,184  휴게음식점 (까페 경쟁 수)
-    "grid",               #  23,572  격자 좌표·상권 매핑
-    "grid_feature",       #  23,572  격자 피처
-    "grid_access",        #  23,572  지하철 접근성
-    "grid_sgis",          #  23,552  배후 인구·행정동명
+    "grid",               #  23,573  격자 좌표·상권 매핑
+    "grid_feature",       #  23,573  격자 피처
+    "grid_access",        #  23,573  지하철 접근성
+    "grid_sgis",          #  23,553  배후 인구·행정동명
     "trdar_store",        #  12,204  상권 점포 수
     "trdar_sales",        #   6,573  상권 추정매출
     "trdar_party",        #           trade-area visitor party labels
