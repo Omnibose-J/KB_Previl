@@ -6,8 +6,11 @@ import re
 import sqlite3
 import shutil
 import statistics
+from types import SimpleNamespace
 
+import httpx
 import numpy as np
+from openai import OpenAIError, RateLimitError
 import pytest
 from fastapi.testclient import TestClient
 
@@ -1475,6 +1478,186 @@ def test_report_omits_nullable_overall_survival_from_evidence(monkeypatch):
     assert "gradeTopPercent" not in evidence
 
 
+class _StubReportCompletions:
+    def __init__(self, outcomes):
+        self.outcomes = list(outcomes)
+        self.calls = 0
+
+    def parse(self, **_kwargs):
+        self.calls += 1
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        message = SimpleNamespace(
+            refusal=None,
+            parsed=reporting.GeneratedReport(sentences=outcome),
+        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+
+def _rate_limit_error(error_type, error_code):
+    request = httpx.Request(
+        "POST",
+        "https://api.openai.com/v1/chat/completions",
+    )
+    response = httpx.Response(429, request=request)
+    return RateLimitError(
+        "429",
+        response=response,
+        body={"type": error_type, "code": error_code},
+    )
+
+
+def _stub_report_openai(monkeypatch, outcomes):
+    completions = _StubReportCompletions(outcomes)
+    client_stub = SimpleNamespace(
+        beta=SimpleNamespace(
+            chat=SimpleNamespace(completions=completions),
+        ),
+    )
+    client_options = []
+
+    def openai_stub(**options):
+        client_options.append(options)
+        return client_stub
+
+    waits = []
+    monkeypatch.setattr(reporting, "OpenAI", openai_stub)
+    monkeypatch.setattr(
+        reporting,
+        "load_env",
+        lambda: {"OPENAI_API_KEY": "test-key"},
+    )
+    monkeypatch.setattr(
+        reporting,
+        "time",
+        SimpleNamespace(sleep=waits.append),
+        raising=False,
+    )
+    return completions, waits, client_options
+
+
+def test_report_retries_transient_rate_limit_then_succeeds(monkeypatch):
+    sample = _sample_grid()
+    outcomes = [
+        _rate_limit_error("rate_limit_exceeded", "rate_limit_exceeded")
+        for _ in range(3)
+    ]
+    outcomes.append([
+        "{{grade}}등급 자리입니다.",
+        "실측 생존율은 {{observedSurvivalPercent}}%입니다.",
+    ])
+    completions, waits, client_options = _stub_report_openai(
+        monkeypatch,
+        outcomes,
+    )
+
+    response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    assert response.status_code == 200
+    assert completions.calls == 4
+    assert len(waits) == 3
+    assert all(later == earlier * 2 for earlier, later in zip(waits, waits[1:]))
+    assert max(waits) < 30
+    assert client_options[0]["max_retries"] == 0
+
+
+def test_report_distinguishes_exhausted_rate_limit_from_quota(monkeypatch):
+    sample = _sample_grid()
+    transient = [
+        _rate_limit_error("rate_limit_exceeded", "rate_limit_exceeded")
+        for _ in range(4)
+    ]
+    transient_calls, transient_waits, _options = _stub_report_openai(
+        monkeypatch,
+        transient,
+    )
+    transient_response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    quota_calls, quota_waits, quota_options = _stub_report_openai(
+        monkeypatch,
+        [_rate_limit_error("insufficient_quota", "insufficient_quota")],
+    )
+    quota_response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    assert transient_response.status_code == 503
+    assert transient_calls.calls == 4
+    assert len(transient_waits) == 3
+    assert "일시적" in transient_response.json()["detail"]
+    assert quota_response.status_code == 503
+    assert quota_calls.calls == 1
+    assert quota_waits == []
+    assert quota_options[0]["max_retries"] == 0
+    assert "잔액" in quota_response.json()["detail"]
+    assert quota_response.json()["detail"] != transient_response.json()["detail"]
+
+
+def test_report_does_not_retry_billing_hard_limit(monkeypatch):
+    sample = _sample_grid()
+    completions, waits, _options = _stub_report_openai(
+        monkeypatch,
+        [_rate_limit_error("billing_error", "billing_hard_limit_reached")],
+    )
+
+    response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    assert response.status_code == 503
+    assert completions.calls == 1
+    assert waits == []
+    assert "잔액" in response.json()["detail"]
+
+
+def test_report_distinguishes_other_openai_failures(monkeypatch):
+    sample = _sample_grid()
+    completions, waits, _options = _stub_report_openai(
+        monkeypatch,
+        [OpenAIError("unexpected")],
+    )
+
+    response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    assert response.status_code == 503
+    assert completions.calls == 1
+    assert waits == []
+    detail = response.json()["detail"]
+    assert "일시적" not in detail
+    assert "잔액" not in detail
+    assert "OpenAIError" not in detail
+    assert "서비스" in detail
+
+
+def test_report_does_not_retry_non_korean_generated_sentence(monkeypatch):
+    sample = _sample_grid()
+    completions, waits, _options = _stub_report_openai(
+        monkeypatch,
+        [["Need final answer.", "근거를 확인하세요."]],
+    )
+
+    response = client.post(
+        "/api/report",
+        json={"gridId": sample["grid_id"], "uptae": sample["uptae"]},
+    )
+
+    assert response.status_code == 502
+    assert completions.calls == 1
+    assert waits == []
+
+
 @pytest.mark.parametrize("grade", (1, 10))
 def test_report_appends_observed_grade_risk_after_whitelist(monkeypatch, grade):
     sample = _sample_grid_by_grade(grade)
@@ -1518,16 +1701,25 @@ def test_report_has_no_fallback_when_api_key_is_missing(monkeypatch):
     )
 
     assert response.status_code == 503
+    assert "키" in response.json()["detail"]
+    assert "잔액" in response.json()["detail"]
 
 
 def test_report_returns_bad_gateway_for_an_unapproved_generated_number(
     monkeypatch,
 ):
     sample = _sample_grid()
+    calls = 0
+
+    def generated(_evidence):
+        nonlocal calls
+        calls += 1
+        return ["999점입니다.", "근거를 확인하세요."]
+
     monkeypatch.setattr(
         reporting,
         "_generate_sentences",
-        lambda _evidence: ["999점입니다.", "근거를 확인하세요."],
+        generated,
     )
 
     response = client.post(
@@ -1536,6 +1728,7 @@ def test_report_returns_bad_gateway_for_an_unapproved_generated_number(
     )
 
     assert response.status_code == 502
+    assert calls == 1
 
 
 def _create_building_facts_db(path, licence_rows):

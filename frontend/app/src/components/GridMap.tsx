@@ -258,7 +258,11 @@ export default function GridMap({
 
   return (
     <div className={s.wrap}>
-      <div ref={holder} className={s.canvas} />
+      {/* Lenis 가 휠 이벤트를 가로채 페이지를 대신 굴린다. MapLibre 가
+          preventDefault 를 걸어도 소용없어서, 지도에서 줌하려고 휠을 돌리면
+          지도도 줌되고 페이지도 같이 내려간다(실측: 휠 240 에 235px 스크롤).
+          이 속성이 Lenis 쪽에 «여기 안에서는 손대지 마라» 를 알린다. */}
+      <div ref={holder} className={s.canvas} data-lenis-prevent />
       <div className={s.overlay}>
         {q.isPending && bbox ? <Loading label="격자 불러오는 중…" /> : null}
         {/* 413 is not a failure to explain away: the server refuses to thin the

@@ -7,6 +7,7 @@ responses expose observed grade survival, never the model score, and all map
 coordinates are WGS84.
 """
 
+import mimetypes
 import pathlib                    # not `from pathlib import Path` - fastapi.Path is taken
 from typing import Annotated, Literal
 
@@ -778,6 +779,14 @@ def report(payload: ReportInput) -> dict:
 # A checkout that never ran `vite build` simply has no UI route and the API
 # still serves. No placeholder page is generated: a blank shell that looks like
 # the product is worse than an honest 404.
+# `.mjs` is not in the Windows registry that Python's `mimetypes` reads, so
+# StaticFiles serves it as text/plain. Browsers refuse to execute a module
+# script with that type, and MapLibre's GeoJSON parser is exactly such a module
+# worker — the map then renders raster tiles and NO grade cells, which is the
+# whole screen. Registering the type before the mount is what makes the built
+# demo (and therefore the submitted zip) show the grid at all.
+mimetypes.add_type("application/javascript", ".mjs")
+
 _DIST = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "app" / "dist"
 if (_DIST / "index.html").is_file():
     app.mount("/", StaticFiles(directory=_DIST, html=True), name="ui")

@@ -2,9 +2,10 @@
 
 import json
 import re
+import time
 from typing import Annotated
 
-from openai import OpenAI, OpenAIError
+from openai import AuthenticationError, OpenAI, OpenAIError, RateLimitError
 from pydantic import BaseModel, Field
 
 from pipeline.config import load_env
@@ -12,6 +13,28 @@ from service import api
 
 
 REPORT_MODEL = "gpt-5.4-mini"
+REPORT_CALL_ATTEMPTS = 4
+_REPORT_BACKOFF_BASE_SECONDS = 2.0
+_REPORT_BACKOFF_CAP_SECONDS = 29.0
+_TRANSIENT_RATE_LIMIT_CODES = frozenset({"rate_limit_exceeded"})
+_QUOTA_ERROR_CODES = frozenset({
+    "insufficient_quota",
+    "credit_balance_exhausted",
+    "billing_hard_limit_reached",
+    "organization_spend_limit_exceeded",
+    "project_spend_limit_exceeded",
+    "organization_usage_limit_exceeded",
+})
+_REPORT_TEMPORARY_DETAIL = (
+    "OpenAI 보고서 생성이 일시적으로 막혔습니다. 잠시 후 다시 시도해 주세요."
+)
+_REPORT_ACCOUNT_DETAIL = (
+    "OpenAI API 키가 없거나 사용 가능 잔액이 없습니다. "
+    "설정 또는 결제 상태를 확인해 주세요."
+)
+_REPORT_OTHER_DETAIL = (
+    "OpenAI 보고서 생성 호출에 실패했습니다. 서비스 설정과 상태를 확인해 주세요."
+)
 
 _PLACEHOLDER = re.compile(r"\{\{([A-Za-z][A-Za-z0-9]*)\}\}")
 # 한국어 문장에 한자는 섞이지 않는다. 추론 흔적이 새면 여기로 나타난다("重新").
@@ -245,53 +268,84 @@ def reject_non_korean(sentences):
             raise NonKoreanSentenceError(sentence)
 
 
+def _openai_error_codes(exc):
+    values = {
+        getattr(exc, "code", None),
+        getattr(exc, "type", None),
+    }
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        error = body.get("error", body)
+        if isinstance(error, dict):
+            values.update({error.get("code"), error.get("type")})
+    return values - {None}
+
+
+def _request_completion(client, evidence):
+    for attempt in range(REPORT_CALL_ATTEMPTS):
+        try:
+            return client.beta.chat.completions.parse(
+                model=REPORT_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "당신은 서울 요식업 입지 리포트 작성자입니다. "
+                            "JSON 근거만 사용해 짧은 한국어 근거 문장을 작성하세요. "
+                            "근거 값을 인용할 때는 JSON key를 {{grade}}처럼 "
+                            "중괄호 2개의 placeholder로만 쓰세요. "
+                            "숫자 글리프를 직접 쓰거나 계산하거나 반올림하지 마세요. "
+                            "인과관계나 성공 보장을 주장하지 마세요."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        # 인용 가능한 항목만 보낸다. 인용 못 하는 키를 보여 주면
+                        # 모델은 그것도 근거로 알고 인용하고, 그 순간 거부당한다.
+                        "content": json.dumps(
+                            quotable_evidence(evidence),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                    },
+                ],
+                response_format=GeneratedReport,
+            )
+        except RateLimitError as exc:
+            error_codes = _openai_error_codes(exc)
+            if error_codes & _QUOTA_ERROR_CODES:
+                raise ReportUnavailableError(_REPORT_ACCOUNT_DETAIL) from exc
+            if not error_codes & _TRANSIENT_RATE_LIMIT_CODES:
+                raise ReportUnavailableError(_REPORT_OTHER_DETAIL) from exc
+            if attempt == REPORT_CALL_ATTEMPTS - 1:
+                raise ReportUnavailableError(_REPORT_TEMPORARY_DETAIL) from exc
+            delay = min(
+                _REPORT_BACKOFF_CAP_SECONDS,
+                _REPORT_BACKOFF_BASE_SECONDS * (2 ** attempt),
+            )
+            time.sleep(delay)
+        except AuthenticationError as exc:
+            raise ReportUnavailableError(_REPORT_ACCOUNT_DETAIL) from exc
+        except OpenAIError as exc:
+            raise ReportUnavailableError(_REPORT_OTHER_DETAIL) from exc
+
+
 def _generate_sentences(evidence):
     try:
         api_key = load_env().get("OPENAI_API_KEY")
     except (OSError, UnicodeError) as exc:
-        raise ReportUnavailableError(
-            f"OpenAI 설정을 읽지 못했습니다: {type(exc).__name__}"
-        ) from exc
+        raise ReportUnavailableError(_REPORT_ACCOUNT_DETAIL) from exc
     if not api_key:
-        raise ReportUnavailableError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        raise ReportUnavailableError(_REPORT_ACCOUNT_DETAIL)
 
     client = OpenAI(
         api_key=api_key,
         timeout=30.0,
-        max_retries=1,
+        # The SDK retries every 429 alike. We have to see the first response to
+        # distinguish transient rate limits from non-retryable quota failures.
+        max_retries=0,
     )
-    try:
-        completion = client.beta.chat.completions.parse(
-            model=REPORT_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 서울 요식업 입지 리포트 작성자입니다. "
-                        "JSON 근거만 사용해 짧은 한국어 근거 문장을 작성하세요. "
-                        "근거 값을 인용할 때는 JSON key를 {{grade}}처럼 "
-                        "중괄호 2개의 placeholder로만 쓰세요. "
-                        "숫자 글리프를 직접 쓰거나 계산하거나 반올림하지 마세요. "
-                        "인과관계나 성공 보장을 주장하지 마세요."
-                    ),
-                },
-                {
-                    "role": "user",
-                    # 인용 가능한 항목만 보낸다. 인용 못 하는 키를 보여 주면
-                    # 모델은 그것도 근거로 알고 인용하고, 그 순간 거부당한다.
-                    "content": json.dumps(
-                        quotable_evidence(evidence),
-                        ensure_ascii=False,
-                        sort_keys=True,
-                    ),
-                },
-            ],
-            response_format=GeneratedReport,
-        )
-    except OpenAIError as exc:
-        raise ReportUnavailableError(
-            f"OpenAI 보고서 생성 호출이 실패했습니다: {type(exc).__name__}"
-        ) from exc
+    completion = _request_completion(client, evidence)
 
     message = completion.choices[0].message
     if getattr(message, "refusal", None):
@@ -302,29 +356,15 @@ def _generate_sentences(evidence):
     return message.parsed.sentences
 
 
-REPORT_ATTEMPTS = 2
-
-
 def _generate_verified(evidence):
-    """가드에 걸리면 한 번 더 받아 본다.
+    """Reject an invalid model response without asking the model to replace it.
 
-    모델 출력은 확률적이라 같은 입력에도 다음 시도가 통과하는 경우가 많다
-    (실측: 후보 3곳 중 1곳이 «3년»의 3 을 placeholder 없이 직접 써서 숫자
-    가드에 걸렸다). 두 번 다 실패하면 그대로 올린다 — 가드를 느슨하게 풀어
-    통과시키는 것보다 502 가 낫다. 화면은 근거 없는 문장을 실을 바에야
-    아무것도 안 싣는 쪽이다.
-
-    ReportUnavailableError(키 없음·API 장애)는 잡지 않는다. 다시 물어봐야
-    같은 답이고, 재시도는 장애를 늦게 알리는 것 말고는 하는 일이 없다.
+    Retries belong only to transient call failures in `_request_completion`.
+    Numeric, placeholder, and language violations are contract failures, so a
+    second generated answer must not hide the first rejected response.
     """
-    failure = None
-    for _ in range(REPORT_ATTEMPTS):
-        try:
-            generated = _generate_sentences(evidence)
-            return render_evidence_placeholders(generated, evidence)
-        except ReportGenerationError as exc:
-            failure = exc
-    raise failure
+    generated = _generate_sentences(evidence)
+    return render_evidence_placeholders(generated, evidence)
 
 
 def generate(grid_id, uptae):
