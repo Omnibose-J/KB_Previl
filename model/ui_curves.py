@@ -10,9 +10,9 @@
    그 등급 집단의 실측 곡선을 붙인다. 이렇게 하면 ρ 논쟁이 UI 결정에 영향을 주지
    않으면서도, "1년 순위는 다르다"는 사실을 숨기지도 않는다(§8-D에 남아 있다).
 
-   구현 주의: 등급 경계는 3년 홀드아웃에서 얻고, 1년·5년 코호트는 **같은 적합 모델로
-   점수만 매겨 같은 경계에 태운다.** 행을 매칭하지 않는다 — (격자, 개업월) 키가 유일하지
-   않아 매칭이 조용히 다른 점포를 집는다(§8-F가 겪은 문제).
+   구현 주의: 등급 경계는 3년 홀드아웃에서 얻고, 1년·2년·5년 코호트는 **같은 적합
+   모델로 점수만 매겨 같은 경계에 태운다.** 행을 매칭하지 않는다 — (격자, 개업월) 키가
+   유일하지 않아 매칭이 조용히 다른 점포를 집는다(§8-F가 겪은 문제).
 
 ④ 면적을 순위에서 뺐지만 사용자에게는 줘야 한다
    절제표에서 면적군(G6)은 ΔAUC +0.0477 · 단독 0.6325로 순위 모델 전체보다 크다.
@@ -37,8 +37,16 @@ from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LEGACY_
 # 판정이 가능한 개업(<=2021-07)이 전부 학습에 들어간다 — 같은 벤치에서 5년을 재면
 # in-sample이 된다. 그래서 5년만 구 벤치의 별도 적합이고, 표에 그렇게 표기한다.
 BENCH = {1: (CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS),
+         2: (CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS),
          3: (CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS),
          5: (LEGACY_TRAIN_YEARS, [2019, 2020, 2021])}
+
+# 2년이 여기 있는 이유: 상가 임대차는 1~2년 계약이 흔해 «계약기간 안에 버티는가»가
+# 실제 질문인데, 2년만 비어 있었다. in-sample 문제도 없다 — 2년 판정이 가능한 개업은
+# <=2024-07 이고 학습창은 2022 까지라 검증 코호트가 학습에 들어가지 않는다.
+# 표본은 오히려 3년보다 크다: 2023 코호트가 2년은 전량 판정되고 3년은 상반기만 된다.
+HORIZONS = (1, 2, 3, 5)
+CONTINUOUS = (1, 2, 3)      # 같은 코호트(2023)라 곡선으로 이어 읽을 수 있는 구간
 
 BANDS = [(0, 25), (25, 37), (37, 56), (56, 90), (90, 10 ** 6)]
 BAND_LABEL = ["~25㎡", "25~37㎡", "37~56㎡", "56~90㎡", "90㎡~"]
@@ -86,11 +94,11 @@ def main():
     print("③ 등급별 horizon 실측 곡선 — 등급은 하나(3년 모델), 곡선만 horizon별")
     print("=" * 78)
     curves = {}
-    for h in (1, 3, 5):
+    for h in HORIZONS:
         if h == 3:
             y, g = te3[1], g3
-        elif h == 1:
-            _, teh = cached_split(con, *BENCH[1], 1)
+        elif h in (1, 2):
+            _, teh = cached_split(con, *BENCH[h], h)
             ph = m3.predict_proba(enc.transform(teh[0], scale=WINNER in ("logit", "mlp")))[:, 1]
             y, g = teh[1], grade_of(ph, edges)
         else:
@@ -119,11 +127,11 @@ def main():
         for label, v, lo, hi, tot in row:
             print(f"    {label:<14} {v*100:>5.1f}%  [{lo*100:.1f}, {hi*100:.1f}]  n={tot:,}")
 
-    print(f"\n  곡선 — 1년·3년만 같은 코호트(2023)라 이어 읽을 수 있다")
+    print(f"\n  곡선 — 1·2·3년은 같은 코호트(2023)라 이어 읽을 수 있다")
     for label, _ in GRADE_BANDS:
-        v1, v3, v5 = (next(v for l, v, *_ in curves[h]["rows"] if l == label) for h in (1, 3, 5))
-        print(f"    {label:<14} 1년 {v1*100:.1f}% → 3년 {v3*100:.1f}%"
-              f"      (참고·구 벤치 5년 {v5*100:.1f}%)")
+        vals = {h: next(v for l, v, *_ in curves[h]["rows"] if l == label) for h in HORIZONS}
+        chain = " → ".join(f"{h}년 {vals[h]*100:.1f}%" for h in CONTINUOUS)
+        print(f"    {label:<14} {chain}      (참고·구 벤치 5년 {vals[5]*100:.1f}%)")
 
     print(f"\n  ** 5년을 곡선에 잇지 말 것 **")
     print(f"  배포 학습창이 2022까지 가므로 5년 판정이 가능한 개업(<=2021-07)이 전부 학습에")
@@ -188,7 +196,7 @@ def main():
 
     if a.write:
         rows = []
-        for h in (1, 3, 5):
+        for h in HORIZONS:
             c = curves[h]
             rows.append((f"observed_by_gradeband_{h}y",
                          ",".join(f"{v:.4f}:{lo:.4f}:{hi:.4f}:{t}" for _, v, lo, hi, t in c["rows"])))

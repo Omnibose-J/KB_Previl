@@ -38,9 +38,9 @@ export interface SurvivalBand {
   n: number | null;
 }
 
-/** 5y is a SEPARATE cohort (2019-2021) — never drawn as one curve with 1·3y. */
+/** 5y is a SEPARATE cohort (2019-2021) — never drawn as one curve with 1·2·3y. */
 export interface SurvivalPeriod {
-  years: 1 | 3 | 5;
+  years: 1 | 2 | 3 | 5;
   cohort: string | null;
   testWindow: string | null;
   overall: number | null;

@@ -97,7 +97,7 @@ REST_UPTAE = {
 REST_EATERY = REST_EATERY_UPTAE
 
 NOT_EVALUATED_DETAIL = "이웃 이력 부족으로 평가하지 않음"
-SURVIVAL_PERIODS = (1, 3, 5)
+SURVIVAL_PERIODS = (1, 2, 3, 5)
 GRADE_AREA_KEYS = (
     "gradeband_labels",
     "area_bands",

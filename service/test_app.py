@@ -149,7 +149,7 @@ def test_meta_exposes_period_and_grade_area_values_from_score_meta():
     assert response.status_code == 200
     payload = response.json()
     periods = payload["survivalByPeriod"]
-    assert [period["years"] for period in periods] == [1, 3, 5]
+    assert [period["years"] for period in periods] == [1, 2, 3, 5]
     for period in periods:
         years = period["years"]
         cells = [
@@ -175,9 +175,13 @@ def test_meta_exposes_period_and_grade_area_values_from_score_meta():
             int(cell[3]) for cell in cells
         ]
 
-    assert periods[0]["cohort"] == "2023"
-    assert periods[1]["cohort"] == "2023"
-    assert periods[2]["cohort"] == "2019-2021 (코로나기)"
+    # 1·2·3년은 같은 2023 코호트라 곡선으로 이어 읽을 수 있고, 5년만 구 벤치의
+    # 코로나기 코호트다 — 라벨이 그 차이를 화면까지 들고 가는지 검사한다.
+    by_years = {period["years"]: period for period in periods}
+    assert by_years[1]["cohort"] == "2023"
+    assert by_years[2]["cohort"] == "2023"
+    assert by_years[3]["cohort"] == "2023"
+    assert by_years[5]["cohort"] == "2019-2021 (코로나기)"
 
     grade_area = payload["gradeArea"]
     expected_matrix = [

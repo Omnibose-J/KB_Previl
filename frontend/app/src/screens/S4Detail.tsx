@@ -649,14 +649,17 @@ function bandIndex(grade: number): number {
   return grade === 1 ? 0 : grade === 10 ? 2 : 1;
 }
 
-function periodOf(meta: Meta, years: 1 | 3 | 5) {
+function periodOf(meta: Meta, years: 1 | 2 | 3 | 5) {
   return meta.survivalByPeriod.find((p) => p.years === years) ?? null;
 }
 
-/** 1·3y share the 2023 cohort; 5y is a separate fit and gets a starred column
- *  instead of a shared axis (serving-design §5-5). */
+/** 1·2·3y share the 2023 cohort; 5y is a separate fit and gets a starred column
+ *  instead of a shared axis (serving-design §5-5). 2y is here because shop
+ *  leases are commonly 1-2 years, so it is the horizon most tenants actually
+ *  ask about — and it carries the largest sample (the 2023 cohort is fully
+ *  judged at 2 years but only half-judged at 3). */
 function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
-  const periods = ([1, 3, 5] as const).map((y) => periodOf(meta, y));
+  const periods = ([1, 2, 3, 5] as const).map((y) => periodOf(meta, y));
   const bandLabels = periods.find((p) => p?.bands)?.bands?.map((b) => b.band) ?? [];
   if (bandLabels.length === 0) return null;
   return (

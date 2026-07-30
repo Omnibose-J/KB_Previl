@@ -74,7 +74,7 @@ class SurvivalBand(ApiModel):
 
 
 class SurvivalPeriod(ApiModel):
-    years: Literal[1, 3, 5]
+    years: Literal[1, 2, 3, 5]
     cohort: str | None
     test_window: str | None
     overall: Annotated[float | None, Field(ge=0, le=1)]
