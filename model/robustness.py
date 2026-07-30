@@ -27,11 +27,13 @@ from pipeline.db import init
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LOC2, LOC3, NUM, NUM2, NUM3,
-                    fit_predict)
+from .train import (CBD, CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LOC2, LOC2_CBD,
+                    LOC2_OSM, LOC3, NUM, NUM2, NUM3, OSM, fit_predict)
 
 FEATURE_SETS = {"NUM": NUM, "NUM2": NUM2, "NUM3": NUM3,
-                "LOC2": LOC2, "LOC3": LOC3, "DEPLOY": DEPLOY}
+                "LOC2": LOC2, "LOC3": LOC3, "DEPLOY": DEPLOY,
+                "OSM": OSM, "LOC2_OSM": LOC2_OSM,
+                "CBD": CBD, "LOC2_CBD": LOC2_CBD}
 
 
 def lift(y, p, q=0.10):

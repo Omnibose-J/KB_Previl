@@ -19,8 +19,8 @@ from functools import lru_cache
 
 from pipeline.db import init
 
-from .asof import (AccessIndex, AsOf, ExtraIndex, MentionIndex, RestIndex, RideIndex,
-                   TrendIndex, load_shops, ym)
+from .asof import (AccessIndex, AsOf, CbdIndex, ExtraIndex, MentionIndex, OsmIndex,
+                   RestIndex, RideIndex, TrendIndex, load_shops, ym)
 
 
 def observation_cut(con):
@@ -31,11 +31,17 @@ def observation_cut(con):
 
 
 def build(con, year, horizon=3, verbose=False, with_trend=False,
-          with_mention=False, gu=None, exclude_succession=False):
+          with_mention=False, gu=None, exclude_succession=False, with_osm=False,
+          with_cbd=False):
     shops = load_shops(con)
     ao = AsOf(shops)
     ti = TrendIndex(con) if with_trend else None
     mi = MentionIndex(con) if with_mention else None
+    # OsmIndex raises when grid_osm is absent rather than degrading quietly - an
+    # OSM run that silently produced no OSM columns would report "no gain" for an
+    # experiment that never ran.
+    oi = OsmIndex(con) if with_osm else None
+    ci = CbdIndex(con) if with_cbd else None
     ai = AccessIndex(con)
     xi = ExtraIndex(con)
     ri = RestIndex(con)
@@ -90,6 +96,10 @@ def build(con, year, horizon=3, verbose=False, with_trend=False,
         f["uptae"] = ut
         if ai.available:
             f.update(ai.features(r["grid_id"]))
+        if oi is not None:
+            f.update(oi.features(r["grid_id"]))
+        if ci is not None:
+            f.update(ci.features(r["grid_id"]))
         if ti is not None:
             f.update(ti.features(r["grid_id"], o))
         if mi is not None:

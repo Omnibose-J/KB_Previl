@@ -17,6 +17,11 @@ from collections import defaultdict
 from pipeline.db import connect_ro
 from pipeline.grid import neighbors
 
+# Single source for the OSM column set - osm.py builds the table, this module
+# reads it, and a mismatch between the two would be a silent column shift.
+from .osm import COLUMNS as OSM_COLUMNS
+from .osm import FEATURES as OSM_FEATURES
+
 # horizon (months) used for "recent" windows
 RECENT_M = 36
 
@@ -271,6 +276,93 @@ ACCESS_FEATURES = {
     "stations_1km":    "반경 1km 내 역 수",
     "transfer_dist_m": "최근접 환승역까지 거리 (m)",
 }
+
+
+# Seoul's three designated city centres (2030 서울플랜 3도심). Representative
+# points, not polygon centroids - the feature is "how far from a centre", and a
+# few hundred metres of centre definition does not change a 100m-grid ranking.
+CBD = {"jongno": (126.9784, 37.5665),    # 한양도성 (서울시청)
+       "gangnam": (127.0276, 37.4979),   # 강남 (강남역)
+       "yeouido": (126.9244, 37.5215)}   # 여의도·영등포 (여의도역)
+
+CBD_LAT_M = 111_320.0
+CBD_LON_M = 111_320.0 * 0.79281          # cos(37.55 deg)
+
+
+class CbdIndex:
+    """Straight-line distance from each cell to Seoul's three city centres.
+
+    Why this source: a three-city panel study of retail decline ranks centrality
+    (metric distance to downtown) second only to agglomeration, ahead of street
+    connectivity. Our 20 features cover agglomeration thoroughly and centrality
+    not at all - and unlike road geometry, centrality is not implied by shop
+    density, because a dense outer 상권 and a dense downtown block look the same
+    to a count of neighbours.
+
+    Time-invariant: Seoul's three centres were established well before the 2005
+    study window, so `<=T` truncation is vacuous.
+
+    This is metric distance, matching the cited study - not network distance.
+    """
+
+    def __init__(self, con):
+        self.by_cell = {}
+        for grid_id, lon, lat in con.execute(
+                "SELECT grid_id, center_lon, center_lat FROM grid"):
+            if lon is None or lat is None:
+                continue
+            d = {}
+            for name, (clon, clat) in CBD.items():
+                dx = (lon - clon) * CBD_LON_M
+                dy = (lat - clat) * CBD_LAT_M
+                d[f"cbd_dist_{name}"] = (dx * dx + dy * dy) ** 0.5
+            d["cbd_dist_min"] = min(d.values())
+            self.by_cell[grid_id] = d
+        if not self.by_cell:
+            raise RuntimeError("grid table is empty - cannot build CBD distances")
+
+    def features(self, cell, t=None):
+        v = self.by_cell.get(cell)
+        if v is None:
+            return dict.fromkeys(CBD_COLUMNS)
+        return dict(v)
+
+
+CBD_COLUMNS = [f"cbd_dist_{n}" for n in CBD] + ["cbd_dist_min"]
+
+CBD_FEATURES = {
+    "cbd_dist_jongno":  "한양도성 도심까지 직선거리 (m)",
+    "cbd_dist_gangnam": "강남 도심까지 직선거리 (m)",
+    "cbd_dist_yeouido": "여의도·영등포 도심까지 직선거리 (m)",
+    "cbd_dist_min":     "3도심 중 최근접까지 직선거리 (m)",
+}
+
+
+class OsmIndex:
+    """Road geometry per cell, built by `model/osm.py`.
+
+    Time-invariant over the study window, so `<=T` truncation is vacuous and the
+    as-of self-test passes by construction. The cost of that is an anachronism -
+    a road built in 2015 is credited to a 2010 opening - documented in osm.py.
+
+    Unlike AccessIndex this raises when the table is missing instead of degrading
+    to `available=False`. A run that asked for OSM features and silently got none
+    would report "no contribution" for an experiment that never happened.
+    """
+
+    def __init__(self, con):
+        cols = ", ".join(OSM_COLUMNS)
+        self.by_cell = {r[0]: tuple(r[1:]) for r in
+                        con.execute(f"SELECT grid_id, {cols} FROM grid_osm")}
+        if not self.by_cell:
+            raise RuntimeError(
+                "grid_osm is empty - run `python -m model.osm --build` first")
+
+    def features(self, cell, t=None):
+        v = self.by_cell.get(cell)
+        if v is None:
+            return dict.fromkeys(OSM_COLUMNS)   # cell outside the built set: missing, not zero
+        return dict(zip(OSM_COLUMNS, v))
 
 
 CHAIN_N = 3          # shops under one 상호 before it counts as a chain

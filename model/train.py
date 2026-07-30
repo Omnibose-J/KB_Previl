@@ -106,6 +106,21 @@ WINNER = "gbm"
 # Changing it requires re-running precompute and updating §4-C.
 DEPLOY = LOC2
 
+# R10-B candidate. Measurement set only: deployment requires clearing the
+# pre-registered bundle gate (paired bootstrap CI lower > 0, point >= +0.002,
+# no top-decile drop >= 0.5%p). DEPLOY is untouched until that gate passes.
+from .osm import COLUMNS as OSM   # noqa: E402  (kept beside the sets it extends)
+
+LOC2_OSM = LOC2 + OSM
+
+# R11 candidate — centrality, which the three-city retail-decline panel ranks
+# second only to agglomeration. Distinct from OSM: shop density cannot stand in
+# for "how far from a city centre", because a dense outer 상권 and a dense
+# downtown block are indistinguishable to a neighbour count.
+from .asof import CBD_COLUMNS as CBD   # noqa: E402
+
+LOC2_CBD = LOC2 + CBD
+
 
 class Encoder:
     """Fit on train: median imputation + category vocabulary + scaling."""

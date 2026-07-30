@@ -30,7 +30,7 @@ TEST_YEARS = list(range(2019, 2023))      # 2019-2022
 
 def load_split(con, train_years, test_years, horizon=3, verbose=True,
                with_trend=False, with_mention=False, gu=None,
-               exclude_succession=False):
+               exclude_succession=False, with_osm=False, with_cbd=False):
     overlap = set(train_years) & set(test_years)
     if overlap:
         raise ValueError(f"train/test 연도 겹침: {sorted(overlap)}")
@@ -43,7 +43,8 @@ def load_split(con, train_years, test_years, horizon=3, verbose=True,
         for yr in years:
             a, b, m, _ = build(con, yr, horizon, with_trend=with_trend,
                                with_mention=with_mention, gu=gu,
-                               exclude_succession=exclude_succession)
+                               exclude_succession=exclude_succession,
+                               with_osm=with_osm, with_cbd=with_cbd)
             X += a
             y += b
             meta += m
