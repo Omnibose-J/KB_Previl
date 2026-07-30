@@ -7,11 +7,13 @@ responses expose observed grade survival, never the model score, and all map
 coordinates are WGS84.
 """
 
+import pathlib                    # not `from pathlib import Path` - fastapi.Path is taken
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
@@ -23,7 +25,7 @@ from service import goodwill as goodwill_service
 from service import reporting
 
 
-app = FastAPI(title="KB TEO API")
+app = FastAPI(title="KB Previl API")
 
 # Vite dev server origin; the built demo is served same-origin.
 app.add_middleware(
@@ -736,3 +738,17 @@ def report(payload: ReportInput) -> dict:
         payload.grid_id,
         payload.uptae,
     )
+
+
+# --- built frontend --------------------------------------------------------
+# Mounted LAST so every /api route matches first - a mount at "/" would
+# otherwise swallow them. This is what lets the submitted zip run with one
+# command instead of two (uvicorn + vite); docs/submission.md §1 counts a
+# judge's failed `npm install` as a real risk.
+#
+# A checkout that never ran `vite build` simply has no UI route and the API
+# still serves. No placeholder page is generated: a blank shell that looks like
+# the product is worse than an honest 404.
+_DIST = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "app" / "dist"
+if (_DIST / "index.html").is_file():
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="ui")

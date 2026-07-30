@@ -15,7 +15,38 @@
 | 심사자가 파이프라인 전체를 재현할 수 없음 | README에 3단 구분: ① 데모 실행(경량 DB, 2분) ② 검증 재현(공개 API 키 필요, 캐시 없이 수 시간) ③ 전체 결과는 `docs/model-findings.md` 참조 |
 | 심사 환경에서 실행 실패 리스크 | **화면 녹화 데모 영상(2~3분)을 zip에 동봉** — 실행이 안 돼도 심사가 가능하게. 본선(9/2 오프라인, 이대 ECC)도 로컬 실행(FastAPI+SQLite)이라 인터넷 불안정에 강함 |
 
-**일정**: 8/1 패키징 리허설(깨끗한 환경에서 zip 풀고 데모 실행 — 리허설 없이 제출 금지) · 8/2 영상 녹화 + 최종 zip.
+**일정**: ~~8/1 패키징 리허설~~ **완료 (2026-07-30)** · 8/2 영상 녹화 + 최종 zip.
+
+### 패키징 — 완료 (2026-07-30)
+
+```bash
+python scripts/package_submission.py --rehearse
+```
+
+**실측: `submission/KB_Previl_prototype.zip` 90.5MB · 1,218파일.** 리허설은
+임시 폴더에 zip 을 풀고 **그 안에서** API 를 띄운다(`cwd` 를 옮기고 `PYTHONPATH`
+를 비운다) — 작업 트리에만 있고 zip 에는 없는 파일이 실행을 구제하지 못하게
+하려는 것이다. 결과: 필수 5파일 PASS · `/api/meta` 200 · `/api/recommend` 200
+(24건) · UI 200.
+
+**심사자는 명령 하나면 된다**: `python -m uvicorn service.app:app --port 8000`
+→ http://localhost:8000. 이를 위해 `service/app.py` 가 `frontend/app/dist` 를
+같은 origin 에서 서빙하도록 마운트를 추가했다(파일 맨 끝 — `/api` 라우트가 먼저
+매칭돼야 한다). `npm install` 이 필요 없다.
+
+**포함 목록은 allowlist 다.** denylist 는 패턴 하나를 빠뜨리면 `.env` 가 나가고,
+allowlist 는 빠뜨리면 빌드가 실패한다 — 둘 중 복구 가능한 실패만 택한다. 빌드
+후 `.env`·`kb.db`·캐시·`node_modules` 가 없는지 경로 구조로 재검사하며, 걸리면
+zip 을 지운다.
+
+의존성은 두 단계로 나눴다: `requirements.txt`(데모 전용 — fastapi·uvicorn·
+pydantic·numpy·pyproj·openai) / `requirements-full.txt`(파이프라인·모델 재현 —
+lightgbm·sklearn·scipy·pandas·shapely·catboost·torch·matplotlib). 서빙 계층은
+모델을 적합하지도 호출하지도 않으므로 심사자가 lightgbm 을 깔 이유가 없다.
+
+**남은 크기 문제**: 90.5MB 중 `kb-demo.db` 가 69MB 다. 영상을 같은 zip 에 넣으면
+총량이 커지므로, 영상 화질·길이 예산을 정하거나 `licence`(535,603행, 서빙은
+건물 이력에만 쓴다) 의 컬럼을 줄이는 선택이 남아 있다.
 
 ## 2. 기술설명서(PPT) — 기획안 서사를 그대로 쓰면 안 된다
 
