@@ -76,19 +76,6 @@
   /* color / map */
   --color-map-water: #D9E4EC;
 
-  /* color / heatmap */
-  --color-heatmap-1: #123A6B;
-  --color-heatmap-2: #17498A;
-  --color-heatmap-3: #1D5AA8;
-  --color-heatmap-4: #2A6DC0;
-  --color-heatmap-5: #4083D0;
-  --color-heatmap-6: #5E9ADB;
-  --color-heatmap-7: #85B3E6;
-  --color-heatmap-8: #AACCF0;
-  --color-heatmap-9: #CCE0F7;
-  --color-heatmap-10: #E8F1FB;
-  --color-heatmap-null: #C9C6C0;
-
   /* font family */
   --font-family-base: 'KBFG Text', 'KBFGText', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-family-display: 'KBFG Display', 'KBFGDisplay', 'KBFG Text', 'Noto Sans KR', sans-serif;
