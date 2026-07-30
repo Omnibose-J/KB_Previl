@@ -608,7 +608,11 @@
   background: var(--fg-y-bg);
 }
 
+/* 좁은 첫 칸에서 배지 «이 자리» 가 공백에서 갈라져 «이 / 자리» 로 끊겼다.
+   덩어리째 다음 줄로 내려가게 둔다 — 붙이려고 칸을 넓히면 표가 밀린다. */
 .rowTag {
+  display: inline-block;
+  white-space: nowrap;
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 5px;
