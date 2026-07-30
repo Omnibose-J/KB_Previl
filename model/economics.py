@@ -2,9 +2,9 @@
 
 The usual break-even calculation divides upfront cost by monthly profit and
 stops there. It implicitly assumes the shop is still open when the money comes
-back, which is exactly the assumption this project can test: 3-year survival in
-Seoul is 61.7% overall and ranges from 37.7% to 77.0% depending on the location
-grade. A 30-month break-even means something very different at each end.
+back, which is exactly the assumption this project can test: measured 3-year
+survival differs sharply by location grade. A 30-month break-even means
+something very different at each end.
 
 So the expected recovery here is
     Σ_t  S(t) × monthly_profit  −  upfront
@@ -22,13 +22,11 @@ import argparse
 import sys
 from collections import defaultdict
 
-import numpy as np
-
 from pipeline.db import init
+from pipeline.grade_bands import GRADE_COUNT, grade_edges, grade_numbers
 
 from .asof import ym
 from .cache import cached_split
-from .evaluate import TEST_YEARS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, WINNER, fit_predict
 
 # Margin BEFORE rent, not operating margin. The published 음식점업 operating
@@ -45,23 +43,15 @@ HORIZON_M = 36
 def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
     """Measured S(t): share of a cohort still open t months after opening.
 
-    Computed per location grade using held-out predictions, so the curve for
-    "top 10%" reflects shops that a model trained on earlier years would have
-    ranked top 10% - not hindsight.
+    Computed per location grade using held-out predictions, so each curve
+    reflects shops assigned by a model trained on earlier years, not hindsight.
     """
     train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     Xte, yte, mte = test
     p, _ = fit_predict(WINNER, train, test, num=list(DEPLOY))
 
-    order = np.argsort(-p)
-    n = len(p)
-    grade_of = {}
-    edges = []
-    for i in range(10):
-        seg = order[int(n * i / 10):int(n * (i + 1) / 10)]
-        edges.append(p[seg].min())
-        for j in seg:
-            grade_of[j] = i + 1
+    edges = grade_edges(p)
+    grades = grade_numbers(p, edges)
 
     # durations from the licence table, keyed by (cell, opening month)
     lic = defaultdict(list)
@@ -80,7 +70,7 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
             continue
         c = cands[0]
         d = (c - m["open_ym"]) if c is not None else None
-        by_grade[grade_of[i]].append(d)
+        by_grade[int(grades[i])].append(d)
 
     curves = {}
     for g, ds in by_grade.items():
@@ -112,7 +102,7 @@ def scenario(monthly_sales, margin, upfront, monthly_rent, curve, months=HORIZON
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--uptae-cd", default="CS100001", help="CS100001 한식 등")
-    ap.add_argument("--grade", type=int, help="입지 등급 1(상위10%)~10")
+    ap.add_argument("--grade", type=int, help=f"입지 등급 1~{GRADE_COUNT}")
     ap.add_argument("--rent", type=float, required=True, help="월 임대료 (만원)")
     ap.add_argument("--upfront", type=float, required=True,
                     help="초기투자 = 보증금+권리금+인테리어+집기 (만원)")
@@ -135,7 +125,7 @@ def main():
         sales = a.sales
 
     curves, _ = survival_curve(con)
-    grades = [a.grade] if a.grade else [1, 5, 10]
+    grades = [a.grade] if a.grade else [1, 5, GRADE_COUNT]
 
     print(f"\n조건: 매출 {sales:,.0f}만/월 · 임대료전 마진 {a.margin*100:.0f}% · "
           f"임대료 {a.rent:,.0f}만/월 · 초기투자 {a.upfront:,.0f}만")
@@ -149,7 +139,7 @@ def main():
         if not c:
             continue
         s = scenario(sales, a.margin, a.upfront, a.rent, c)
-        label = {1: "상위 10%", 5: "중간(5분위)", 10: "하위 10%"}.get(g, f"{g}분위")
+        label = f"{g}등급"
         nb = f"{s['naive_be']:.0f}개월" if s["naive_be"] else "회수불가"
         rb = f"{s['risk_be']}개월" if s["risk_be"] else "36개월내 불가"
         print(f"  {label:<12} {s['survive_36m']*100:>9.1f}% {nb:>10} {rb:>12} "

@@ -5,7 +5,7 @@ evaluate.py reports AUC/Brier/lift, which are the right technical measures but
 do not answer the question a judge will ask. This restates the same held-out
 predictions as the decision they imply: rank every held-out opening
 (train.CONFIRMED_TEST_YEARS) by the model, then read off what actually happened
-to the top decile versus the bottom.
+in each served grade.
 
 Nothing new is fitted here - it consumes the same time-split predictions - so it
 cannot be more optimistic than the headline numbers. It is a translation, not a
@@ -13,25 +13,38 @@ second experiment.
 """
 import argparse
 import sys
-from collections import defaultdict
 
 import numpy as np
 
 from pipeline.db import init
+from pipeline.grade_bands import GRADE_COUNT, grade_edges, grade_numbers
 
 from .cache import cached_split
 from .robustness import FEATURE_SETS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
 
+def grades(y, p):
+    y = np.asarray(y)
+    assigned = grade_numbers(p, grade_edges(p))
+    out = []
+    for grade in range(1, GRADE_COUNT + 1):
+        segment = assigned == grade
+        if not segment.any():
+            raise ValueError(f"{grade}등급 표본이 없습니다.")
+        out.append((grade, int(segment.sum()), y[segment].mean()))
+    return out
+
+
 def deciles(y, p, k=10):
+    """Equal-width rank bins retained for historical recency diagnostics."""
     order = np.argsort(-np.asarray(p))
     y = np.asarray(y)[order]
     n = len(y)
     out = []
     for i in range(k):
-        seg = y[int(n * i / k):int(n * (i + 1) / k)]
-        out.append((i + 1, len(seg), seg.mean()))
+        segment = y[int(n * i / k):int(n * (i + 1) / k)]
+        out.append((i + 1, len(segment), segment.mean()))
     return out
 
 
@@ -69,15 +82,19 @@ def main():
           f"· 모델 {a.model} · 피처셋 {a.features}({len(cols)})")
     print(f"실제 3년 생존율(전체): {overall*100:.1f}%\n")
 
-    print("모델 점수 십분위별 실제 생존율")
-    print(f"  {'십분위':<8} {'건수':>7} {'실제 생존율':>12} {'전체 대비':>10}")
-    ds = deciles(yte, p)
+    print("모델 점수 등급별 실제 생존율")
+    print(f"  {'등급':<8} {'건수':>7} {'실제 생존율':>12} {'전체 대비':>10}")
+    ds = grades(yte, p)
     for i, n, r in ds:
-        tag = " ← 상위 10%" if i == 1 else (" ← 하위 10%" if i == 10 else "")
-        print(f"  {i:>2}분위   {n:>7,} {r*100:>11.1f}% {r/overall:>9.2f}x{tag}")
+        tag = (
+            " ← 1등급"
+            if i == 1
+            else (f" ← {GRADE_COUNT}등급" if i == GRADE_COUNT else "")
+        )
+        print(f"  {i:>2}등급   {n:>7,} {r*100:>11.1f}% {r/overall:>9.2f}x{tag}")
 
     top, bot = ds[0][2], ds[-1][2]
-    print(f"\n상위 10% {top*100:.1f}%  vs  하위 10% {bot*100:.1f}%"
+    print(f"\n1등급 {top*100:.1f}%  vs  {GRADE_COUNT}등급 {bot*100:.1f}%"
           f"   격차 {(top-bot)*100:.1f}%p")
 
     # what a user actually experiences: pick from the top N% of locations
@@ -94,7 +111,10 @@ def main():
     for pm, ym_, n in calibration(yte, p):
         print(f"  {pm*100:>9.1f}% {ym_*100:>9.1f}% {(ym_-pm)*100:>+7.1f}%p {n:>8,}")
 
-    print("\n읽는 법: 상위 십분위가 하위보다 높으면 순위가 유효하다. 보정표에서")
+    print(
+        f"\n읽는 법: 1등급이 {GRADE_COUNT}등급보다 높으면 순위가 유효하다. "
+        "보정표에서"
+    )
     print("        예측 평균과 실제가 벌어지면 확률 절대값은 신뢰하지 말 것.")
     return 0
 

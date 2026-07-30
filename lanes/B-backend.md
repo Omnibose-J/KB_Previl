@@ -46,7 +46,7 @@ score_meta(k, v)                                     -- as_of, observed_by_grade
 }
 ```
 
-실제 응답에서는 `rankFeatures` 전체와 등급 1~10 각각의 `survival` 37개
+실제 응답에서는 `rankFeatures` 전체와 등급 1~9 각각의 `survival` 37개
 값(0개월부터 36개월까지)을 싣는다. 위 예시는 구조만 보이도록 배열을 줄였다.
 서빙은 JSON의 `rankModel`·`rankFeatures`를 같은 행의 `score_meta.rank_model`·
 `rank_features`와 대조하고, `trainYears`·`testYears`도
@@ -96,7 +96,7 @@ C는 **목업 데이터 금지** 정책이라 실 API만 소비한다. `api.py` 
 
 기본 경로는 `/api`다. JSON 필드는 **camelCase**, 좌표는 `[lon, lat]` WGS84,
 생존율·비율은 `0..1`, 금액은 별도 표기가 없으면 **만원**이다.
-`grade`는 `1..10`이며 **1이 최상**이다. 어떤 응답에도 `score`는 없다.
+`grade`는 `1..9`이며 **1이 최상**이다. 어떤 응답에도 `score`는 없다.
 
 없는 값은 `null`이며 0으로 대체하지 않는다. 아직 A가 만들지 않은
 `openings36m`·`signal`·A1의 `n/ciLow/ciHigh`도 `null`이다. C는 목업·폴백을
@@ -230,11 +230,11 @@ interface MetaResponse {
 ```
 
 A1이 적재할 `score_meta` 키는 `observed_by_grade_n`,
-`observed_by_grade_ci_low`, `observed_by_grade_ci_high`(등급 1→10 CSV)로
+`observed_by_grade_ci_low`, `observed_by_grade_ci_high`(등급 1→9 CSV)로
 확정한다. 키가 없으면 해당 필드는 `null`이다.
 
-기간별 필드는 항상 1·3·5년 객체를 각각 유지한다. 1·3년 `cohort`는 `2023`,
-5년은 `2019-2021 (코로나기)`다. 5년은 별도 코호트이므로 C는 1·3년 곡선과
+기간별 필드는 항상 1·2·3·5년 객체를 각각 유지한다. 1·2·3년 `cohort`는 `2023`,
+5년은 `2019-2021 (코로나기)`다. 5년은 별도 코호트이므로 C는 1·2·3년 곡선과
 이어 그리지 않는다. 기간별 원천 키가 없으면 해당 `bands`·`overall`·
 `testWindow`·`bench`만 `null`이다. `testWindow`가 없으면 `cohort`도 `null`이다.
 
@@ -255,25 +255,55 @@ A1이 적재할 `score_meta` 키는 `observed_by_grade_n`,
       "bench": "deploy",
       "bands": [
         {
-          "band": "상위 10%",
-          "survival": 0.9274,
-          "ciLow": 0.9121,
-          "ciHigh": 0.9402,
-          "n": 1322
+          "band": "1등급",
+          "survival": 0.9238,
+          "ciLow": 0.8979,
+          "ciHigh": 0.9436,
+          "n": 525
         },
         {
-          "band": "중간 (2~9분위)",
-          "survival": 0.8615,
-          "ciLow": 0.8548,
-          "ciHigh": 0.8679,
-          "n": 10634
+          "band": "중간 (2~8등급)",
+          "survival": 0.854,
+          "ciLow": 0.8477,
+          "ciHigh": 0.8602,
+          "n": 12263
         },
         {
-          "band": "하위 10%",
-          "survival": 0.511,
-          "ciLow": 0.4857,
-          "ciHigh": 0.5363,
-          "n": 1499
+          "band": "9등급",
+          "survival": 0.2924,
+          "ciLow": 0.2591,
+          "ciHigh": 0.328,
+          "n": 667
+        }
+      ]
+    },
+    {
+      "years": 2,
+      "cohort": "2023",
+      "testWindow": "2023-2023",
+      "overall": 0.689,
+      "bench": "deploy",
+      "bands": [
+        {
+          "band": "1등급",
+          "survival": 0.8381,
+          "ciLow": 0.8041,
+          "ciHigh": 0.8671,
+          "n": 525
+        },
+        {
+          "band": "중간 (2~8등급)",
+          "survival": 0.7112,
+          "ciLow": 0.7032,
+          "ciHigh": 0.7192,
+          "n": 12263
+        },
+        {
+          "band": "9등급",
+          "survival": 0.1529,
+          "ciLow": 0.1276,
+          "ciHigh": 0.1822,
+          "n": 667
         }
       ]
     },
@@ -285,25 +315,25 @@ A1이 적재할 `score_meta` 키는 `observed_by_grade_n`,
       "bench": "deploy",
       "bands": [
         {
-          "band": "상위 10%",
-          "survival": 0.7547,
-          "ciLow": 0.7236,
-          "ciHigh": 0.7834,
-          "n": 791
+          "band": "1등급",
+          "survival": 0.8013,
+          "ciLow": 0.7538,
+          "ciHigh": 0.8415,
+          "n": 317
         },
         {
-          "band": "중간 (2~9분위)",
-          "survival": 0.602,
-          "ciLow": 0.5899,
-          "ciHigh": 0.614,
-          "n": 6332
+          "band": "중간 (2~8등급)",
+          "survival": 0.5976,
+          "ciLow": 0.5863,
+          "ciHigh": 0.6088,
+          "n": 7281
         },
         {
-          "band": "하위 10%",
-          "survival": 0.2917,
-          "ciLow": 0.2611,
-          "ciHigh": 0.3243,
-          "n": 792
+          "band": "9등급",
+          "survival": 0.1104,
+          "ciLow": 0.0805,
+          "ciHigh": 0.1497,
+          "n": 317
         }
       ]
     },
@@ -315,36 +345,36 @@ A1이 적재할 `score_meta` 키는 `observed_by_grade_n`,
       "bench": "legacy",
       "bands": [
         {
-          "band": "상위 10%",
-          "survival": 0.6214,
-          "ciLow": 0.6045,
-          "ciHigh": 0.6381,
-          "n": 3204
+          "band": "1등급",
+          "survival": 0.6508,
+          "ciLow": 0.6243,
+          "ciHigh": 0.6764,
+          "n": 1283
         },
         {
-          "band": "중간 (2~9분위)",
-          "survival": 0.4684,
-          "ciLow": 0.4623,
-          "ciHigh": 0.4745,
-          "n": 25639
+          "band": "중간 (2~8등급)",
+          "survival": 0.4697,
+          "ciLow": 0.464,
+          "ciHigh": 0.4754,
+          "n": 29483
         },
         {
-          "band": "하위 10%",
-          "survival": 0.3264,
-          "ciLow": 0.3103,
-          "ciHigh": 0.3428,
-          "n": 3205
+          "band": "9등급",
+          "survival": 0.2839,
+          "ciLow": 0.2599,
+          "ciHigh": 0.3092,
+          "n": 1282
         }
       ]
     }
   ],
   "gradeArea": {
-    "gradeBands": ["상위 10%", "중간 (2~9분위)", "하위 10%"],
+    "gradeBands": ["1등급", "중간 (2~8등급)", "9등급"],
     "areaBands": ["~25㎡", "25~37㎡", "37~56㎡", "56~90㎡", "90㎡~"],
     "survival": [
-      [0.5491, 0.7023, 0.7318, 0.7706, 0.8106],
-      [0.4663, 0.569, 0.6415, 0.7022, 0.733],
-      [0.2701, 0.4726, 0.5671, 0.6392, 0.6561]
+      [0.5385, 0.7126, 0.7664, 0.7872, 0.82],
+      [0.4555, 0.5675, 0.643, 0.7042, 0.7388],
+      [0.183, 0.4181, 0.504, 0.6584, 0.6917]
     ],
     "bench": "legacy train 2005-2018 / test 2019-2022"
   }

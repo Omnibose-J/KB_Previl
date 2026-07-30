@@ -11,16 +11,16 @@
 | | |
 |---|---|
 | 순수 입지 모델 | **LightGBM (현행 유지)** · AUC **0.6369** (최고 베이스라인 0.5669) · seed=0 = 배포분 |
-| 상위 10% 자리 | 실측 3년 생존율 **76.9%** (73.8–79.7) · 전체 58.6% |
-| 하위 10% | **28.4%** (25.4–31.6) · 십분위 격차 48.4%p |
+| 1등급 자리 | 실측 3년 생존율 **80.1%** (75.4–84.1) · n=317 · 전체 58.6% |
+| 9등급 자리 | **11.0%** (8.0–15.0) · n=317 · 양끝 격차 69.1%p |
 | 학습/검증 | 2005–2022 / **2023**, 교집합 0 · 순위 세트 LOC2(20) |
 | 누수 가드 | RED(오염 AUC 1.0000 탐지) → GREEN PASS · 신규 피처 ≤T 셀프테스트 PASS |
 
 강건성: 연도별 1.18~1.25x(코로나 포함) · 업태 8종 전부 1.12~1.28x · **자치구 24/25 개선**
 (25/25는 면적 포함 NUM 계보의 값이다 — 순수 입지 계보에서는 성북구가 0.98x로 빠진다)
-변인통제: 면적 25㎡ 미만 격차 **28.0%p** ↔ 90㎡ 이상 **15.1%p** (`score_meta.grade_area`,
-legacy 벤치 train 2005–2018 / test 2019–2022 — 화면이 내보내는 값이 이것이다).
-이전에 적혀 있던 37.6 / 14.3 은 출처와 계보가 어디에도 기록돼 있지 않아 지웠다.
+변인통제: 면적 25㎡ 미만의 1·9등급 격차 **35.5%p** ↔ 90㎡ 이상
+**12.8%p** (`score_meta.grade_area`, legacy 벤치 train 2005–2018 /
+test 2019–2022 — 화면이 내보내는 값이 이것이다).
 
 ## 알아야 할 제약 — 어기면 결과가 조용히 거짓이 된다
 
@@ -61,7 +61,7 @@ legacy 벤치 train 2005–2018 / test 2019–2022 — 화면이 내보내는 �
 python -m model.asof --selftest --describe   # 시간의존성 · 피처 관측시점
 python -m model.test_leakage                 # 누수 가드
 python -m model.evaluate --models logit,gbm --assert-beats-baseline
-python -m model.backtest                     # 십분위 실측
+python -m model.backtest                     # 9등급 실측
 python -m model.robustness                   # 상식규칙·연도·업태·지역
 python -m model.stratified                   # 면적 통제
 python -m service.precompute                 # grid_score 재계산 (84초)

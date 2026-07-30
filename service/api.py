@@ -19,6 +19,7 @@ from pipeline.config import (
     REST_EATERY_UPTAE,
     UPTAE_INDUTY,
 )
+from pipeline.grade_bands import GRADE_COUNT
 from pipeline.grid import in_seoul, neighbors, to_grid_id
 from service import alerts
 
@@ -318,8 +319,11 @@ def meta():
             "score_meta.observed_by_grade가 없어 등급 실측치를 제공할 수 없습니다."
         )
     observed = _csv_floats(raw_meta.get("observed_by_grade"))
-    if len(observed) != 10:
-        _meta_error("observed_by_grade", "1~10등급 값 10개가 필요합니다.")
+    if len(observed) != GRADE_COUNT:
+        _meta_error(
+            "observed_by_grade",
+            f"1~{GRADE_COUNT}등급 값 {GRADE_COUNT}개가 필요합니다.",
+        )
     sample_sizes = _csv_ints(raw_meta.get("observed_by_grade_n"))
     ci_low = _csv_floats(raw_meta.get("observed_by_grade_ci_low"))
     ci_high = _csv_floats(raw_meta.get("observed_by_grade_ci_high"))

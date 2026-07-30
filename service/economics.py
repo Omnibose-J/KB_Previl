@@ -2,6 +2,7 @@
 
 from service import api
 from service.curve_contract import (
+    CURVE_GRADES,
     CURVE_KEY,
     CURVE_MONTHS,
     parse_curve_payload,
@@ -129,7 +130,7 @@ def calculate(
     margin_sensitive = min(low_margin, high_margin) <= 0 <= max(low_margin, high_margin)
 
     comparison = []
-    for comparison_grade in (1, 5, 10):
+    for comparison_grade in (CURVE_GRADES[0], 5, CURVE_GRADES[-1]):
         comparison_result = _scenario(
             revenue_monthly,
             margin,

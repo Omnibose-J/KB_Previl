@@ -35,6 +35,9 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
   `pipeline/addr_history.py`.
 - Feature verification and consistency gates: `pipeline/verify.py`,
   `pipeline/consistency.py`.
+- Shared served-grade shares and cumulative boundaries:
+  `pipeline/grade_bands.py`; both offline analysis and service contracts import
+  this pure module.
 - Cached source material and generated runtime data stay outside tracked source.
 
 ## Model ownership

@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
+from pipeline.grade_bands import GRADE_COUNT
 from service import api
 from service import buildings as buildings_service
 from service import economics as economics_service
@@ -54,7 +55,7 @@ class ViewportErrorResponse(ErrorResponse):
     max_cells: int
 
 
-Grade = Annotated[int, Field(ge=1, le=10)]
+Grade = Annotated[int, Field(ge=1, le=GRADE_COUNT)]
 Point = tuple[float, float]
 UptaeName = Annotated[str, Field(min_length=1, max_length=80)]
 RecoverySource = Literal["constant", "survival_curve_proxy", "m2"]

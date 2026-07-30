@@ -26,10 +26,15 @@ import sys
 import numpy as np
 
 from pipeline.db import init
+from pipeline.grade_bands import (
+    GRADE_BAND_LABELS,
+    GRADE_COUNT,
+    grade_edges,
+    grade_numbers,
+)
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
-from .horizon import WINDOWS
 from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, LEGACY_TRAIN_YEARS,
                     WINNER, Encoder, fit_predict)
 
@@ -50,8 +55,11 @@ CONTINUOUS = (1, 2, 3)      # 같은 코호트(2023)라 곡선으로 이어 읽�
 
 BANDS = [(0, 25), (25, 37), (37, 56), (56, 90), (90, 10 ** 6)]
 BAND_LABEL = ["~25㎡", "25~37㎡", "37~56㎡", "56~90㎡", "90㎡~"]
-GRADE_BANDS = [("상위 10%", lambda g: g == 1), ("중간 (2~9분위)", lambda g: 2 <= g <= 9),
-               ("하위 10%", lambda g: g == 10)]
+GRADE_BANDS = [
+    (GRADE_BAND_LABELS[0], lambda g: g == 1),
+    (GRADE_BAND_LABELS[1], lambda g: 2 <= g < GRADE_COUNT),
+    (GRADE_BAND_LABELS[2], lambda g: g == GRADE_COUNT),
+]
 
 
 def wilson(k, n, z=1.96):
@@ -61,13 +69,6 @@ def wilson(k, n, z=1.96):
     c = p + z * z / (2 * n)
     r = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5)
     return ((c - r) / d, (c + r) / d)
-
-
-def grade_of(scores, edges):
-    out = np.empty(len(scores), dtype=int)
-    for i, s in enumerate(scores):
-        out[i] = next((j + 1 for j, e in enumerate(edges) if s >= e), 10)
-    return out
 
 
 def main():
@@ -81,10 +82,9 @@ def main():
     tr3, te3 = cached_split(con, *BENCH[3], 3)
     enc = Encoder(cols).fit(tr3[0])
     p3, (m3, _) = fit_predict(WINNER, tr3, te3, num=cols, enc=enc)
-    order = np.argsort(-p3)
     n = len(p3)
-    edges = [float(p3[order[int(n * i / 10):int(n * (i + 1) / 10)]].min()) for i in range(10)]
-    g3 = grade_of(p3, edges)
+    edges = grade_edges(p3)
+    g3 = grade_numbers(p3, edges)
 
     print(f"모델 {WINNER} · 세트 DEPLOY({len(cols)}) · 등급 경계는 3년 홀드아웃 "
           f"(n={n:,})에서 산출\n")
@@ -100,17 +100,14 @@ def main():
         elif h in (1, 2):
             _, teh = cached_split(con, *BENCH[h], h)
             ph = m3.predict_proba(enc.transform(teh[0], scale=WINNER in ("logit", "mlp")))[:, 1]
-            y, g = teh[1], grade_of(ph, edges)
+            y, g = teh[1], grade_numbers(ph, edges)
         else:
             # 5년은 구 벤치의 독립 적합 — 배포 모델로는 in-sample이 된다
             ltr, lte = cached_split(con, *BENCH[5], 5)
             lenc = Encoder(cols).fit(ltr[0])
             pl, (lm, _) = fit_predict(WINNER, ltr, lte, num=cols, enc=lenc)
-            lo_ = np.argsort(-pl)
-            ln = len(pl)
-            ledges = [float(pl[lo_[int(ln * i / 10):int(ln * (i + 1) / 10)]].min())
-                      for i in range(10)]
-            y, g = lte[1], grade_of(pl, ledges)
+            ledges = grade_edges(pl)
+            y, g = lte[1], grade_numbers(pl, ledges)
         row = []
         for label, sel in GRADE_BANDS:
             mask = np.array([sel(x) for x in g])
@@ -127,20 +124,27 @@ def main():
         for label, v, lo, hi, tot in row:
             print(f"    {label:<14} {v*100:>5.1f}%  [{lo*100:.1f}, {hi*100:.1f}]  n={tot:,}")
 
-    print(f"\n  곡선 — 1·2·3년은 같은 코호트(2023)라 이어 읽을 수 있다")
+    print("\n  곡선 — 1·2·3년은 같은 코호트(2023)라 이어 읽을 수 있다")
     for label, _ in GRADE_BANDS:
-        vals = {h: next(v for l, v, *_ in curves[h]["rows"] if l == label) for h in HORIZONS}
+        vals = {
+            h: next(
+                value
+                for row_label, value, *_ in curves[h]["rows"]
+                if row_label == label
+            )
+            for h in HORIZONS
+        }
         chain = " → ".join(f"{h}년 {vals[h]*100:.1f}%" for h in CONTINUOUS)
         print(f"    {label:<14} {chain}      (참고·구 벤치 5년 {vals[5]*100:.1f}%)")
 
-    print(f"\n  ** 5년을 곡선에 잇지 말 것 **")
-    print(f"  배포 학습창이 2022까지 가므로 5년 판정이 가능한 개업(<=2021-07)이 전부 학습에")
-    print(f"  들어간다 — 같은 벤치에서 5년을 재면 in-sample이다. 그래서 5년만 구 벤치")
-    print(f"  (train 2005-2018 / test 2019-2021)의 독립 적합이고, 그 코호트는 코로나기다.")
-    print(f"  실제로 하위10%가 3년 {curves[3]['rows'][2][1]*100:.1f}% → 5년 "
+    print("\n  ** 5년을 곡선에 잇지 말 것 **")
+    print("  배포 학습창이 2022까지 가므로 5년 판정이 가능한 개업(<=2021-07)이 전부 학습에")
+    print("  들어간다 — 같은 벤치에서 5년을 재면 in-sample이다. 그래서 5년만 구 벤치")
+    print("  (train 2005-2018 / test 2019-2021)의 독립 적합이고, 그 코호트는 코로나기다.")
+    print(f"  실제로 {GRADE_COUNT}등급이 3년 {curves[3]['rows'][2][1]*100:.1f}% → 5년 "
           f"{curves[5]['rows'][2][1]*100:.1f}%로 역전되는데, 이건 시간이 지나 생존율이")
-    print(f"  올라간 게 아니라 두 값이 다른 코호트·다른 시기라서다.")
-    print(f"  2023 코호트의 5년 판정은 2028년에야 나온다. 그때까지 5년은 참고값이다.")
+    print("  올라간 게 아니라 두 값이 다른 코호트·다른 시기라서다.")
+    print("  2023 코호트의 5년 판정은 2028년에야 나온다. 그때까지 5년은 참고값이다.")
 
     # ---------------------------------------------------------------- ④
     print("\n" + "=" * 78)
@@ -152,10 +156,9 @@ def main():
     ltr3, lte3 = cached_split(con, LEGACY_TRAIN_YEARS, TEST_YEARS, 3)
     lenc3 = Encoder(cols).fit(ltr3[0])
     pl3, _ = fit_predict(WINNER, ltr3, lte3, num=cols, enc=lenc3)
-    lo3 = np.argsort(-pl3)
     n3 = len(pl3)
-    ledges3 = [float(pl3[lo3[int(n3 * i / 10):int(n3 * (i + 1) / 10)]].min()) for i in range(10)]
-    g3 = grade_of(pl3, ledges3)
+    ledges3 = grade_edges(pl3)
+    g3 = grade_numbers(pl3, ledges3)
     te3 = lte3
     print(f"\n  벤치: train {LEGACY_TRAIN_YEARS[0]}-{LEGACY_TRAIN_YEARS[-1]} / "
           f"test {TEST_YEARS[0]}-{TEST_YEARS[-1]} (n={n3:,}) — 칸을 채우기 위해 구 벤치 사용")
@@ -183,14 +186,14 @@ def main():
 
     top = grid[0]["cells"]
     bot = grid[-1]["cells"]
-    print(f"\n  읽는 법 — 두 축은 서로를 대체하지 못한다")
+    print("\n  읽는 법 — 두 축은 서로를 대체하지 못한다")
     for i, b in enumerate(BAND_LABEL):
         if top[i] and bot[i]:
-            print(f"    {b:<10} 상위10% {top[i]['v']*100:.1f}%  vs  하위10% "
+            print(f"    {b:<10} 1등급 {top[i]['v']*100:.1f}%  vs  {GRADE_COUNT}등급 "
                   f"{bot[i]['v']*100:.1f}%   격차 {(top[i]['v']-bot[i]['v'])*100:.1f}%p")
     ok = [c for c in top if c]
     if len(ok) >= 2:
-        print(f"    같은 상위10% 안에서도 면적으로 "
+        print(f"    같은 1등급 안에서도 면적으로 "
               f"{(ok[-1]['v']-ok[0]['v'])*100:.1f}%p 벌어진다 "
               f"({BAND_LABEL[0]} {ok[0]['v']*100:.1f}% ↔ {BAND_LABEL[-1]} {ok[-1]['v']*100:.1f}%)")
 
@@ -203,7 +206,9 @@ def main():
             rows.append((f"overall_survival_{h}y", f"{c['overall']:.4f}"))
             rows.append((f"test_window_{h}y", f"{c['window'][0]}-{c['window'][-1]}"))
             rows.append((f"bench_{h}y", c["bench"]))
-        rows.append(("gradeband_labels", ",".join(l for l, _ in GRADE_BANDS)))
+        rows.append(
+            ("gradeband_labels", ",".join(label for label, _ in GRADE_BANDS))
+        )
         rows.append(("area_bands", ",".join(BAND_LABEL)))
         rows.append(("grade_area_bench", f"legacy train {LEGACY_TRAIN_YEARS[0]}-{LEGACY_TRAIN_YEARS[-1]} / test {TEST_YEARS[0]}-{TEST_YEARS[-1]}"))
         rows.append(("observed_by_grade_area",

@@ -12,14 +12,14 @@ observed failures, which is not evidence of a good location - it is absence of
 evidence, and ranking on it would be the most misleading thing this tool could do.
 """
 import argparse
-import json
 import sys
 
 import numpy as np
 
 from pipeline.db import init
+from pipeline.grade_bands import GRADE_COUNT, grade_edges, grade_numbers
 
-from .asof import AccessIndex, AsOf, load_shops, ym
+from .asof import AccessIndex, AsOf, load_shops
 from .cache import cached_split
 from .evaluate import TEST_YEARS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, fit_predict
@@ -72,7 +72,7 @@ def score_all(con, uptae, site_area=None, verbose=True):
     # Two fits with different jobs:
     #  - calib: trained on the past only, scored on the held-out later years.
     #    Its predictions give the score distribution and, crucially, the
-    #    OBSERVED survival rate per decile. Raw model probabilities run
+    #    OBSERVED survival rate per fixed grade. Raw model probabilities run
     #    2.7-6.7%p optimistic (see backtest) because the training era was
     #    kinder than the validation era, so we report measured rates instead.
     #  - final: refit on everything to score today.
@@ -87,28 +87,26 @@ def score_all(con, uptae, site_area=None, verbose=True):
     p_hold, _ = fit_predict("gbm", train, test, num=rank_cols)
     yte = test[1]
 
-    order = np.argsort(-p_hold)
-    n = len(p_hold)
-    edges, observed = [], []
-    for i in range(10):
-        seg = order[int(n * i / 10):int(n * (i + 1) / 10)]
-        edges.append(p_hold[seg].min())
-        observed.append(float(yte[seg].mean()))
+    edges = grade_edges(p_hold)
+    holdout_grades = grade_numbers(p_hold, edges)
+    observed = [
+        float(yte[holdout_grades == grade].mean())
+        for grade in range(1, GRADE_COUNT + 1)
+    ]
 
     Xtr = train[0] + test[0]
     ytr = np.concatenate([train[1], test[1]])
     p, _ = fit_predict("gbm", (Xtr, ytr, None), (X, None, None), num=rank_cols)
 
-    def to_decile(score):
-        for i, e in enumerate(edges):
-            if score >= e:
-                return i + 1, observed[i]
-        return 10, observed[-1]
+    def to_grade(score):
+        grade = int(grade_numbers([score], edges)[0])
+        return grade, observed[grade - 1]
 
     if verbose:
         print(f"보정 기준: {TEST_YEARS[0]}~{TEST_YEARS[-1]} 홀드아웃 실측 "
-              f"(상위10% {observed[0]*100:.1f}% / 하위10% {observed[-1]*100:.1f}%)")
-    return keep, X, p, to_decile
+              f"(1등급 {observed[0]*100:.1f}% / "
+              f"{GRADE_COUNT}등급 {observed[-1]*100:.1f}%)")
+    return keep, X, p, to_grade
 
 
 def enrich(con, gids):
@@ -131,7 +129,7 @@ def main():
     a = ap.parse_args()
 
     con = init()
-    gids, X, p, to_decile = score_all(con, a.uptae, a.site_area)
+    gids, X, p, to_grade = score_all(con, a.uptae, a.site_area)
     if not gids:
         print("평가 가능한 격자가 없습니다.")
         return 1
@@ -154,9 +152,9 @@ def main():
     print("=" * 78)
 
     for rank, (prob, gid, f, g, area) in enumerate(cand[:a.top], 1):
-        dec, obs = to_decile(prob)
+        grade, obs = to_grade(prob)
         print(f"\n[{rank}] {area}  ({g.get('center_lat', 0):.5f}, {g.get('center_lon', 0):.5f})")
-        print(f"    입지등급 상위 {dec*10}% 이내 · 같은 등급 자리의 실측 3년 생존율 "
+        print(f"    입지등급 {grade}등급 · 같은 등급 자리의 실측 3년 생존율 "
               f"{obs*100:.1f}%   (전체 평균 61.7%)")
         print(f"    grid={gid}   신뢰도={g.get('confidence', '?')}")
         print(f"    경쟁  이 자리 {f['open_cnt']}곳 · 3x3 이웃 {f['open_cnt_r1']}곳"
@@ -173,13 +171,13 @@ def main():
         if g.get("sales_amt"):
             print(f"    매출  상권 분기 추정 {g['sales_amt']/1e8:.0f}억")
         else:
-            print(f"    매출  — (상권 영역 밖, 미관측)")
+            print("    매출  — (상권 영역 밖, 미관측)")
 
     print("\n" + "=" * 78)
     print("주의")
-    print(" · 순위는 입지 피처만으로 매긴다(점포 면적 제외). 홀드아웃 성능 AUC 0.5982,")
-    print("   상위 10% 실측 생존율 75.0% vs 전체 61.7% — 무작위보다 나은 수준이다.")
-    print(" · 상위 10% 자리에서도 약 25%는 3년 내 폐업한다. 입지는 일부일 뿐이다.")
+    print(" · 순위는 입지 피처만으로 매긴다(점포 면적 제외). 홀드아웃 AUC 0.6369,")
+    print("   1등급 실측 생존율 80.1% vs 전체 58.6% — 무작위보다 나은 수준이다.")
+    print(" · 1등급 자리에서도 약 20%는 3년 내 폐업한다. 입지는 일부일 뿐이다.")
     print(" · 점포 면적은 순위에서 뺐지만 생존과 강하게 연관된다(25㎡ 44.8% ↔ 90㎡+ 74.4%).")
     print("   자리를 고른 뒤 '얼마나 큰 가게를 낼 수 있는가'가 별개로 중요하다.")
     return 0

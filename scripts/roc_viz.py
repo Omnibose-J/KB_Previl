@@ -37,6 +37,7 @@ from model.cache import CACHE_DIR, cached_split, fingerprint          # noqa: E4
 from model.evaluate import baseline_prior_surv                        # noqa: E402
 from model.train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS,  # noqa: E402
                          DEPLOY, LEGACY_TRAIN_YEARS, Encoder, fit_predict)
+from pipeline.grade_bands import GRADE_COUNT                           # noqa: E402
 
 SELECT_TEST_YEARS = [2019, 2020, 2021, 2022]
 
@@ -139,7 +140,8 @@ def fig_roc_six(results, y, n_test, out):
                  label=f"{label}  ·  AUC {auc:.4f}", **style,
                  zorder=5 if incumbent else 3, alpha=1.0 if incumbent else 0.88)
 
-    axL.set_xlim(0, 1); axL.set_ylim(0, 1)
+    axL.set_xlim(0, 1)
+    axL.set_ylim(0, 1)
     axL.set_xlabel("거짓 양성률 (실제 폐업을 생존으로 본 비율)")
     axL.set_ylabel("참 양성률 (실제 생존을 맞힌 비율)")
     axL.set_title("후보 6종 ROC — 선발 무대", color=INK, fontsize=13,
@@ -155,7 +157,8 @@ def fig_roc_six(results, y, n_test, out):
     for yy, a in zip(ypos, aucs):
         axR.text(a + 0.004, yy, f"{a:.4f}", va="center", fontsize=10,
                  color=INK, fontweight="bold")
-    axR.set_yticks(ypos); axR.set_yticklabels(labels, fontsize=10, color=INK2)
+    axR.set_yticks(ypos)
+    axR.set_yticklabels(labels, fontsize=10, color=INK2)
     axR.set_xlim(0.5, max(aucs) + 0.035)
     axR.set_xlabel("홀드아웃 AUC")
     axR.set_title("같은 조건, 같은 스플릿", color=INK, fontsize=13,
@@ -200,7 +203,8 @@ def fig_roc_deploy(p_model, p_base, y, n_test, out):
     ax.annotate("", xy=(0.50, 0.585), xytext=(0.61, 0.40),
                 arrowprops=dict(arrowstyle="->", color=MUTED, lw=1.2))
 
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
     ax.set_xlabel("거짓 양성률")
     ax.set_ylabel("참 양성률", labelpad=10)
     ax.set_title("배포 모델 ROC — 신선 홀드아웃",
@@ -270,28 +274,32 @@ def fig_decile(db, out):
     overall = float(meta["overall_survival"])
 
     fig, ax = plt.subplots(figsize=(11, 6.2))
-    x = np.arange(1, 11)
-    colors = [SERIES[0] if i in (0, 9) else "#9ec5f4" for i in range(10)]
+    x = np.arange(1, GRADE_COUNT + 1)
+    tails = (0, GRADE_COUNT - 1)
+    colors = [SERIES[0] if i in tails else "#9ec5f4" for i in range(GRADE_COUNT)]
     ax.bar(x, obs, width=0.66, color=colors, zorder=3)
     ax.errorbar(x, obs, yerr=[np.array(obs) - lo, np.array(hi) - np.array(obs)],
                 fmt="none", ecolor=INK2, elinewidth=1.6, capsize=5, zorder=4)
     ax.axhline(overall, color=SERIES[1], lw=1.8, dashes=(6, 2), zorder=2)
-    ax.text(10.52, overall + 0.014, f"전체 평균 {overall*100:.1f}%", color=SERIES[1],
+    ax.text(GRADE_COUNT + 0.52, overall + 0.014,
+            f"전체 평균 {overall*100:.1f}%", color=SERIES[1],
             fontsize=10.5, ha="right", va="bottom", fontweight="bold")
 
-    for i in (0, 9):
+    for i in tails:
         ax.text(x[i], hi[i] + 0.022, f"{obs[i]*100:.1f}%", ha="center",
                 fontsize=14, fontweight="bold", color=INK)
-    # The gap is stated, not drawn across the bars: an arrow spanning ten bars
+    # The gap is stated, not drawn across the bars: an arrow spanning all bars
     # collides with every one of them.
-    ax.text(6.6, 0.90, f"십분위 격차 {(obs[0]-obs[9])*100:.1f}%p",
+    label_x = (GRADE_COUNT + 1) / 2 + 1
+    ax.text(label_x, 0.90, f"등급 격차 {(obs[0]-obs[-1])*100:.1f}%p",
             ha="center", fontsize=15, fontweight="bold", color=INK)
-    ax.text(6.6, 0.845, "1등급과 10등급의 실측 생존율 차이", ha="center",
+    ax.text(label_x, 0.845,
+            f"1등급과 {GRADE_COUNT}등급의 실측 생존율 차이", ha="center",
             fontsize=10, color=MUTED)
 
     ax.set_xticks(x)
     ax.set_xticklabels([f"{i}등급" for i in x], fontsize=10, color=INK2)
-    ax.set_xlim(0.4, 10.6)
+    ax.set_xlim(0.4, GRADE_COUNT + 0.6)
     ax.set_ylim(0, 1.0)
     ax.yaxis.set_major_formatter(PercentFormatter(1.0))
     ax.set_ylabel("실측 3년 생존율", labelpad=10)
@@ -300,7 +308,7 @@ def fig_decile(db, out):
                  color=INK, fontsize=15, fontweight="bold", loc="left", pad=14)
     fig.text(0.010, 0.015,
              f"2023년 개업 코호트 · 등급당 n = {min(n):,}~{max(n):,} · 오차막대 = 95% 신뢰구간. "
-             "등급은 모델 점수의 십분위이며, 막대는 예측이 아니라 그 등급 자리에서 "
+             "등급은 홀드아웃의 내신형 9등급 절대 경계이며, 막대는 예측이 아니라 그 등급 자리에서 "
              "실제로 관측된 생존율이다.",
              color=MUTED, fontsize=9)
     fig.tight_layout(rect=[0, 0.04, 1, 1])
@@ -391,7 +399,7 @@ GROUP BY f.trdar_cd, s.grade
 
 
 def fig_area_split(db, out, uptae="한식", top=10):
-    """Same trade area, same sales figure, grades 1 through 10.
+    """Same trade area, same sales figure, across all served grades.
 
     This is the one comparison with no leakage exposure: the trade-area metrics
     are not model inputs, and the contrast is resolution against resolution
@@ -408,10 +416,13 @@ def fig_area_split(db, out, uptae="한식", top=10):
         a["g"][grade] = n
     # Keep only areas that actually straddle the scale, then take the largest.
     split = {k: v for k, v in areas.items()
-             if any(g <= 1 for g in v["g"]) and any(g >= 9 for g in v["g"])}
+             if 1 in v["g"] and GRADE_COUNT in v["g"]}
     picked = sorted(split.items(), key=lambda kv: -sum(kv[1]["g"].values()))[:top]
     picked.reverse()
-    print(f"  대상 상권 {len(areas):,}개 중 1등급·9~10등급 공존 {len(split)}개")
+    print(
+        f"  대상 상권 {len(areas):,}개 중 "
+        f"1등급·{GRADE_COUNT}등급 공존 {len(split)}개"
+    )
 
     fig, ax = plt.subplots(figsize=(12.4, 6.8))
     maxn = max(n for _, v in picked for n in v["g"].values())
@@ -420,34 +431,45 @@ def fig_area_split(db, out, uptae="한식", top=10):
         ax.plot([min(gs), max(gs)], [i, i], color=GRID, lw=6, solid_capstyle="round",
                 zorder=2)
         for g, n in v["g"].items():
-            edge = g <= 1 or g >= 9
+            edge = g in (1, GRADE_COUNT)
             ax.scatter(g, i, s=90 + 900 * (n / maxn), zorder=4,
                        color=SERIES[0] if edge else "#9ec5f4",
                        edgecolors=SURFACE, linewidths=1.5)
             if n >= 6:
                 ax.text(g, i, str(n), ha="center", va="center", zorder=5,
                         fontsize=8.5, color="#ffffff", fontweight="bold")
-        ax.text(10.75, i, f"{v['sales']/1e8:,.0f}억", va="center", ha="right",
+        ax.text(GRADE_COUNT + 0.75, i, f"{v['sales']/1e8:,.0f}억",
+                va="center", ha="right",
                 fontsize=9.5, color=INK2)
 
     ax.set_yticks(range(len(picked)))
     ax.set_yticklabels([n[:18] for n, _ in picked], fontsize=10, color=INK2)
-    ax.set_xticks(range(1, 11))
-    ax.set_xticklabels([f"{g}" for g in range(1, 11)], fontsize=10, color=INK2)
-    ax.set_xlim(0.3, 10.9)
+    ax.set_xticks(range(1, GRADE_COUNT + 1))
+    ax.set_xticklabels(
+        [f"{g}" for g in range(1, GRADE_COUNT + 1)],
+        fontsize=10,
+        color=INK2,
+    )
+    ax.set_xlim(0.3, GRADE_COUNT + 0.9)
     ax.set_ylim(-0.7, len(picked) - 0.3)
-    ax.set_xlabel("입지 등급  (1 = 최상위 · 10 = 최하위) — 원 크기 = 그 등급의 격자 수")
+    ax.set_xlabel(
+        f"입지 등급  (1 = 최상위 · {GRADE_COUNT} = 최하위)"
+        " — 원 크기 = 그 등급의 격자 수"
+    )
     ax.grid(axis="y", visible=False)
-    ax.text(10.75, len(picked) - 0.45, "상권 월매출", ha="right", fontsize=9,
+    ax.text(GRADE_COUNT + 0.75, len(picked) - 0.45, "상권 월매출",
+            ha="right", fontsize=9,
             color=MUTED, fontweight="bold")
-    ax.set_title(f"같은 상권, 같은 매출 — 그런데 자리는 1등급부터 10등급까지 ({uptae})",
+    ax.set_title(
+        f"같은 상권, 같은 매출 — 그런데 자리는 "
+        f"1등급부터 {GRADE_COUNT}등급까지 ({uptae})",
                  color=INK, fontsize=15, fontweight="bold", loc="left", pad=14)
     fig.text(0.010, 0.032,
              "상권 하나에는 매출·유동인구 값이 하나뿐이라, 한 줄에 놓인 격자들은 그 지표에서 전부 동점이다. "
              "상권 단위 분석으로는 이 줄 안의 차이를 원리적으로 볼 수 없다.",
              color=INK2, fontsize=9.5)
     fig.text(0.010, 0.010,
-             f"«{uptae}» 기준 · 매출 데이터가 있는 상권만 · 등급은 서울 전역 홀드아웃 십분위로 고정된 절대 기준이다.",
+             f"«{uptae}» 기준 · 매출 데이터가 있는 상권만 · 등급은 서울 전역 홀드아웃의 내신형 9등급 절대 기준이다.",
              color=MUTED, fontsize=9)
     fig.tight_layout(rect=[0, 0.055, 1, 1])
     fig.savefig(out, dpi=200)

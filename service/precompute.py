@@ -40,6 +40,7 @@ from model.train import (
     fit_predict,
 )
 from pipeline.db import init
+from pipeline.grade_bands import GRADE_COUNT, grade_edges, grade_numbers
 from pipeline.grid import neighbors
 from service.curve_contract import (
     CURVE_KEY,
@@ -175,25 +176,10 @@ def calibration(con, rank_cols, model="gbm"):
     train, test = cached_split(con, CONFIRMED_TRAIN_YEARS, CONFIRMED_TEST_YEARS, 3)
     p, fitted_ranker = fit_predict(model, train, test, num=rank_cols)
     yte = test[1]
-    order = np.argsort(-p)
-    n = len(p)
-    edges = []
-    for i in range(10):
-        seg = order[int(n * i / 10) : int(n * (i + 1) / 10)]
-        edges.append(float(p[seg].min()))
-
-    grade_by_index = np.array(
-        [
-            next(
-                (grade for grade, edge in enumerate(edges, 1) if score >= edge),
-                10,
-            )
-            for score in p
-        ],
-        dtype=int,
-    )
+    edges = grade_edges(p)
+    grade_by_index = grade_numbers(p, edges)
     observed, ci, seg_n = [], [], []
-    for grade in range(1, 11):
+    for grade in range(1, GRADE_COUNT + 1):
         seg = np.flatnonzero(grade_by_index == grade)
         if not len(seg):
             raise RuntimeError(f"홀드아웃 {grade}등급 표본이 없습니다.")
@@ -245,7 +231,11 @@ def measured_survival_curves(con, test_metadata, grade_by_index):
             closed - opened if closed is not None else None for closed in candidates
         )
 
-    missing = [grade for grade in range(1, 11) if len(durations_by_grade[grade]) < 200]
+    missing = [
+        grade
+        for grade in range(1, GRADE_COUNT + 1)
+        if len(durations_by_grade[grade]) < 200
+    ]
     if missing:
         raise RuntimeError(
             "실측 생존곡선 표본이 200개 미만인 등급: "
@@ -254,7 +244,7 @@ def measured_survival_curves(con, test_metadata, grade_by_index):
 
     curves = {}
     sample_sizes = {}
-    for grade in range(1, 11):
+    for grade in range(1, GRADE_COUNT + 1):
         durations = durations_by_grade[grade]
         sample_sizes[grade] = len(durations)
         curves[grade] = [
@@ -339,18 +329,20 @@ def main():
     ) = calibration(con, rank_cols, a.model)
     print(
         f"  등급별 실측 생존율: 1등급 {observed[0] * 100:.1f}% "
-        f"({ci[0][0] * 100:.1f}-{ci[0][1] * 100:.1f}) ... 10등급 {observed[-1] * 100:.1f}% "
+        f"({ci[0][0] * 100:.1f}-{ci[0][1] * 100:.1f}) ... "
+        f"{GRADE_COUNT}등급 {observed[-1] * 100:.1f}% "
         f"({ci[-1][0] * 100:.1f}-{ci[-1][1] * 100:.1f})"
     )
     curves, curve_n = measured_survival_curves(con, test[2], grade_by_index)
     if any(
         abs(curves[grade][CURVE_MONTHS] - observed[grade - 1]) > 1e-12
-        for grade in range(1, 11)
+        for grade in range(1, GRADE_COUNT + 1)
     ):
         raise RuntimeError("36개월 생존곡선과 등급별 실측 생존율이 다릅니다.")
     print(
         "  등급별 36개월 실측 생존곡선: "
-        f"1등급 n={curve_n[1]:,} ... 10등급 n={curve_n[10]:,}"
+        f"1등급 n={curve_n[1]:,} ... "
+        f"{GRADE_COUNT}등급 n={curve_n[GRADE_COUNT]:,}"
     )
 
     t = asof_t if asof_t is not None else current_month(con)
@@ -385,7 +377,7 @@ def main():
         for i, e in enumerate(edges):
             if score >= e:
                 return i + 1, observed[i]
-        return 10, observed[-1]
+        return GRADE_COUNT, observed[-1]
 
     as_of = f"{t // 12}-{t % 12 or 12:02d}"
     run_id = f"{as_of}-{a.model}-{_features_hash(rank_cols)}"

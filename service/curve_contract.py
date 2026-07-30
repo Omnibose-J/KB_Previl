@@ -3,8 +3,10 @@
 import json
 import math
 
+from pipeline.grade_bands import GRADE_COUNT
 
-CURVE_GRADES = tuple(range(1, 11))
+
+CURVE_GRADES = tuple(range(1, GRADE_COUNT + 1))
 CURVE_MONTHS = 36
 CURVE_KEY = "survival_curves_36m"
 
@@ -27,9 +29,9 @@ def serialize_curve_payload(
     test_years,
 ):
     if set(curves) != set(CURVE_GRADES):
-        raise ValueError("curves for grades 1..10 are required")
+        raise ValueError(f"curves for grades 1..{GRADE_COUNT} are required")
     if set(sample_sizes) != set(CURVE_GRADES):
-        raise ValueError("sample sizes for grades 1..10 are required")
+        raise ValueError(f"sample sizes for grades 1..{GRADE_COUNT} are required")
     rows = []
     for grade in CURVE_GRADES:
         curve = list(curves[grade])
@@ -78,7 +80,7 @@ def parse_curve_payload(
 
     rows = payload.get("curves")
     if not isinstance(rows, list) or len(rows) != len(CURVE_GRADES):
-        raise ValueError("ten grade rows are required")
+        raise ValueError(f"{GRADE_COUNT} grade rows are required")
     curves = {}
     for row in rows:
         try:
@@ -88,11 +90,13 @@ def parse_curve_payload(
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("curve values must be numeric") from exc
         if grade in curves or grade not in CURVE_GRADES:
-            raise ValueError("curve grades must be unique values in 1..10")
+            raise ValueError(
+                f"curve grades must be unique values in 1..{GRADE_COUNT}"
+            )
         if sample_size <= 0:
             raise ValueError("curve sample sizes must be positive")
         _validate_curve(curve)
         curves[grade] = curve
     if set(curves) != set(CURVE_GRADES):
-        raise ValueError("curves for grades 1..10 are required")
+        raise ValueError(f"curves for grades 1..{GRADE_COUNT} are required")
     return curves

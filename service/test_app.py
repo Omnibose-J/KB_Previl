@@ -14,6 +14,7 @@ from openai import OpenAIError, RateLimitError
 import pytest
 from fastapi.testclient import TestClient
 
+from pipeline.grade_bands import GRADE_COUNT
 from service import api
 from service import demo_db
 from service import economics as economics_service
@@ -22,6 +23,7 @@ from service import goodwill as goodwill_service
 from service import precompute
 from service import reporting
 from service.app import app
+from service.curve_contract import CURVE_GRADES
 
 
 client = TestClient(app)
@@ -107,7 +109,7 @@ def _sample_grid_by_grade(grade):
 
 
 def _constant_curves():
-    return {grade: [1.0] * 37 for grade in range(1, 11)}
+    return {grade: [1.0] * 37 for grade in CURVE_GRADES}
 
 
 def _create_score_meta_db(path, values=()):
@@ -123,7 +125,7 @@ def test_meta_contract_uses_observed_rates_and_current_caveat():
     payload = response.json()
     assert payload["gradeDirection"] == "1_is_best"
     assert len(payload["districts"]) == 25
-    assert len(payload["observedByGrade"]) == 10
+    assert len(payload["observedByGrade"]) == GRADE_COUNT
     assert all(0 <= row["survival"] <= 1 for row in payload["observedByGrade"])
     closure_percent = round((1 - payload["observedByGrade"][0]["survival"]) * 100)
     assert any(
@@ -1002,7 +1004,11 @@ def test_economics_calls_scenario_with_the_grade_curve(monkeypatch):
     assert body["simplePaybackMonths"] == pytest.approx(1_000 / 150)
     assert body["riskAdjustedPaybackMonths"] == 7
     assert body["expectedProfit3y"] == pytest.approx(4_400)
-    assert [row["grade"] for row in body["gradeComparison"]] == [1, 5, 10]
+    assert [row["grade"] for row in body["gradeComparison"]] == [
+        CURVE_GRADES[0],
+        5,
+        CURVE_GRADES[-1],
+    ]
 
 
 def test_economics_reads_curves_with_matching_batch_lineage(monkeypatch, tmp_path):
@@ -1019,7 +1025,7 @@ def test_economics_reads_curves_with_matching_batch_lineage(monkeypatch, tmp_pat
                     "n": 200,
                     "survival": [1 - grade / 100] * 37,
                 }
-                for grade in range(1, 11)
+                for grade in CURVE_GRADES
             ],
         }
     )
@@ -1038,21 +1044,23 @@ def test_economics_reads_curves_with_matching_batch_lineage(monkeypatch, tmp_pat
 
     curves = economics_service.grade_survival_curves()
 
-    assert set(curves) == set(range(1, 11))
+    assert set(curves) == set(CURVE_GRADES)
     assert all(len(curve) == 37 for curve in curves.values())
     assert curves[1][0] == pytest.approx(0.99)
-    assert curves[10][36] == pytest.approx(0.90)
+    assert curves[CURVE_GRADES[-1]][36] == pytest.approx(
+        1 - CURVE_GRADES[-1] / 100
+    )
 
 
 def test_current_grid_scoring_reuses_the_calibration_ranker(monkeypatch):
-    probabilities = np.linspace(0.99, 0.01, 20)
+    probabilities = np.linspace(0.99, 0.01, 100)
     train = ([{"feature": 1}], np.array([1]), None)
     test = (
-        [{"feature": index} for index in range(20)],
-        np.array([index % 2 for index in range(20)]),
+        [{"feature": index} for index in range(100)],
+        np.array([index % 2 for index in range(100)]),
         [
             {"grid_id": str(index), "uptae": "한식", "open_ym": index}
-            for index in range(20)
+            for index in range(100)
         ],
     )
 
@@ -1096,6 +1104,56 @@ def test_current_grid_scoring_reuses_the_calibration_ranker(monkeypatch):
     assert ranker.encoded.tolist() == [[3.0]]
 
 
+def test_precompute_uses_fixed_school_nine_grade_shares(monkeypatch):
+    n = 7_915
+    probabilities = np.linspace(0.99, 0.01, n)
+    train = ([{"feature": 1}], np.array([1]), None)
+    test = (
+        [{"feature": index} for index in range(n)],
+        np.array([index % 2 for index in range(n)]),
+        None,
+    )
+    monkeypatch.setattr(precompute, "cached_split", lambda *_args: (train, test))
+    monkeypatch.setattr(
+        precompute,
+        "fit_predict",
+        lambda *_args, **_kwargs: (probabilities, (object(), object())),
+    )
+
+    calibration = precompute.calibration(object(), ["feature"], "gbm")
+
+    assert calibration[5] == [
+        317,
+        554,
+        949,
+        1_346,
+        1_583,
+        1_346,
+        949,
+        554,
+        317,
+    ]
+
+
+def test_precompute_does_not_split_equal_scores_across_grades(monkeypatch):
+    probabilities = np.ones(100)
+    train = ([{"feature": 1}], np.array([1]), None)
+    test = (
+        [{"feature": index} for index in range(100)],
+        np.array([index % 2 for index in range(100)]),
+        None,
+    )
+    monkeypatch.setattr(precompute, "cached_split", lambda *_args: (train, test))
+    monkeypatch.setattr(
+        precompute,
+        "fit_predict",
+        lambda *_args, **_kwargs: (probabilities, (object(), object())),
+    )
+
+    with pytest.raises(RuntimeError, match="2등급 표본이 없습니다"):
+        precompute.calibration(object(), ["feature"], "gbm")
+
+
 def test_batch_curve_uses_every_licence_in_a_duplicate_cohort_key():
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
@@ -1109,7 +1167,7 @@ def test_batch_curve_uses_every_licence_in_a_duplicate_cohort_key():
     grade_by_index = []
     rows = []
     opened = precompute.ym(2023, 1)
-    for grade in range(1, 11):
+    for grade in CURVE_GRADES:
         unique_count = 198 if grade == 1 else 200
         for index in range(unique_count):
             grid_id = f"{grade}_{index}"
@@ -1158,7 +1216,7 @@ def test_batch_curve_uses_every_licence_in_a_duplicate_cohort_key():
     )
 
     assert sample_sizes[1] == 200
-    assert sum(sample_sizes.values()) == 2_000
+    assert sum(sample_sizes.values()) == 1_800
     assert curves[1][12] == pytest.approx(199 / 200)
 
 
@@ -1184,7 +1242,7 @@ def test_economics_rejects_curve_lineage_mismatch(
             "horizonMonths": 36,
             "curves": [
                 {"grade": grade, "n": 200, "survival": [0.5] * 37}
-                for grade in range(1, 11)
+                for grade in CURVE_GRADES
             ],
         }
     )
@@ -1352,7 +1410,7 @@ def test_goodwill_preserves_partial_valuation_years(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(
         "service.goodwill.grade_survival_curves",
-        lambda: {grade: partial_curve for grade in range(1, 11)},
+        lambda: {grade: partial_curve for grade in CURVE_GRADES},
     )
 
     def post(lease_years):
@@ -1845,7 +1903,7 @@ def test_report_does_not_retry_non_korean_generated_sentence(monkeypatch):
     assert waits == []
 
 
-@pytest.mark.parametrize("grade", (1, 10))
+@pytest.mark.parametrize("grade", (1, GRADE_COUNT))
 def test_report_appends_observed_grade_risk_after_whitelist(monkeypatch, grade):
     sample = _sample_grid_by_grade(grade)
 
@@ -1861,7 +1919,7 @@ def test_report_appends_observed_grade_risk_after_whitelist(monkeypatch, grade):
         "meta",
         lambda: {
             "overall_survival": 0.01,
-            "observed_by_grade": [0.99] * 10,
+            "observed_by_grade": [0.99] * GRADE_COUNT,
         },
     )
     response = client.post(
