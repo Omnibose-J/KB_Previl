@@ -13,6 +13,7 @@ import type {
   GridsResponse,
   Meta,
   RecommendResponse,
+  ReportResponse,
 } from "./types";
 
 /**
@@ -75,6 +76,14 @@ export const api = {
     request<EconomicsResponse>("/economics", { method: "POST", body: JSON.stringify(input) }),
   goodwill: (input: GoodwillInput) =>
     request<GoodwillResponse>("/goodwill", { method: "POST", body: JSON.stringify(input) }),
+
+  // 숫자는 서버가 계산하고 LLM 은 문장만 만든다(docs/submission.md §3). 그래서
+  // 입력이 자리와 업종뿐이다 — 클라이언트가 값을 실어 보낼 여지를 두지 않는다.
+  report: (gridId: string, uptae: string) =>
+    request<ReportResponse>("/report", {
+      method: "POST",
+      body: JSON.stringify({ gridId, uptae }),
+    }),
   /** 단일 후보 → 실질 월 점유비용 + 부담률 (criteria §W2) */
   estimate: (input: EstimateInput) =>
     request<EstimateResponse>("/estimate", { method: "POST", body: JSON.stringify(input) }),

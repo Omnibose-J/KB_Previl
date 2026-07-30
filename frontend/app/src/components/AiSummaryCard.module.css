@@ -1,0 +1,70 @@
+/* 「기록 자세히」 첫 카드. 아래 표들과 같은 report-sheet 형식을 쓰되, 문장
+   블록이라 번호를 붙여 읽는 순서를 만든다. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.head h2 {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.head p {
+  font-size: 14px;
+  color: var(--fg-t6);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: line;
+}
+
+.line {
+  position: relative;
+  padding-left: 26px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--fg-ink);
+  counter-increment: line;
+}
+
+/* 번호는 장식이 아니라 순서다 — 문장들이 근거 → 판단 순으로 온다. */
+.line::before {
+  content: counter(line);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-t6);
+}

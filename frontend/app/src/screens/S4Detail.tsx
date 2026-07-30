@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
+import AiSummaryCard from "../components/AiSummaryCard";
 import ConceptMixCard from "../components/ConceptMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
 import EconomicsCard from "../components/EconomicsCard";
@@ -380,6 +381,11 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.panel} hidden={tab !== "dataTab"}>
+          {/* 맨 위 — 아래 표들을 먼저 말로 풀어 준다. active 를 넘기는 이유는
+              패널이 숨겨져도 마운트되기 때문이다(안 걸면 상세를 열 때마다
+              읽지도 않을 요약에 LLM 호출이 나간다). */}
+          <AiSummaryCard gridId={d.gridId} uptae={uptae} active={tab === "dataTab"} />
+
           {/* ── buildings in this cell (resolution ladder v1 — FACTS) ── */}
           <BuildingsSection gridId={d.gridId} uptae={uptae} />
 
