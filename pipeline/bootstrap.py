@@ -100,7 +100,7 @@ def _collect(args):
     # 만드는 것이 이 스크립트의 계약이므로 선택 항목일 수 없다.
     # 쿼터는 서울 열린데이터와 별개(data.go.kr)라 일일 900콜에 영향이 없다.
     from .collect import collect_semas, collect_seoul
-    collect_seoul(args.quarter)
+    collect_seoul(args.quarter, force=args.force)
     if load_env().get(OPTIONAL_ENV_KEY):
         collect_semas()
     else:

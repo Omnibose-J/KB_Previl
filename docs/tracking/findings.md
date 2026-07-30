@@ -557,9 +557,10 @@ curve and `service.economics` calculation instead.
 
 ---
 
-## F-A7. Source refresh is not self-invalidating (2026-07-31)
+## F-A7. Source refresh was not self-invalidating (2026-07-31) — resolved
 
-**Found** while reviewing the completed licence refresh.
+**Status:** Resolved on 2026-07-31. Found while reviewing the completed
+licence refresh.
 
 **Symptom 1:** `pipeline.bootstrap --refresh collect` sets the orchestration
 `force` flag, but `pipeline/seoul_api.py:94` returns an existing JSONL cache
@@ -571,19 +572,28 @@ options, and source-code fingerprint only. It does not include a database or
 licence-data fingerprint. A refreshed database can therefore reuse a split
 built from the previous source snapshot.
 
-**Current-run mitigation:** The 535,603-row raw JSONL was archived before
+**Historical mitigation:** The 535,603-row raw JSONL was archived before
 collection, forcing a fresh 535,715-row download. Existing split caches were
 also moved out of the active cache directory before `precompute` and
 `ui_curves`. Independent refits reproduce the deployed AUC and grade metrics,
 so the current artifacts are not stale.
 
-**Why it is out of scope here:** The task explicitly allowed manual cache
-invalidation when the key did not reflect data contents. Making refresh
-self-invalidating changes two reusable cache contracts and needs dedicated
-failure-path tests; it is not required to restore the current count gate.
+**Resolution:** `bootstrap --refresh collect` now passes its force policy
+through `collect_seoul` to every `fetch_all` call. Forced collection ignores
+both a completed JSONL and an interrupted partial cache; ordinary collection
+still returns the completed cache without an HTTP call.
 
-**Blast radius:** A future operator who trusts `--refresh collect` without
-manually removing both cache layers can get a false-green rebuild. Fix by
-passing an explicit raw-cache refresh policy through collection and including
-a stable source/database fingerprint in split-cache keys, or by making
-bootstrap invalidate that cache at the dependency boundary.
+`model.cache.cached_split` now adds a one-scan licence fingerprint containing
+row count plus `is_closed`, opening year/month, and closing year/month
+aggregates. A changed outcome therefore selects a new cache path even when the
+row count is unchanged. Unchanged data still selects and reuses the same path.
+
+Regression tests cover force propagation, complete/partial raw-cache bypass,
+outcome-only invalidation, row-count invalidation, and unchanged-data reuse.
+The new key component intentionally invalidates existing split caches once;
+the next model command rebuilds them, then later unchanged runs reuse them.
+
+**Blast radius after resolution:** A future source refresh no longer depends
+on an operator remembering to archive either cache. The added licence scan
+runs once per split-cache request and is small relative to rebuilding a
+multi-year split.

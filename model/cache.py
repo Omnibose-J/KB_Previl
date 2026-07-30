@@ -1,10 +1,10 @@
 """Disk cache for built splits. Rebuilding a split costs ~6s per cohort year,
 which is fine once and ruinous across the ~150 fits the ablation programme needs.
 
-The cache key includes a hash of every module that produces a feature value, so
-a feature edit invalidates it automatically. A stale split silently scored under
-a new feature definition is exactly the class of quiet-falsehood this project
-guards against - the fingerprint makes it impossible rather than unlikely.
+The cache key includes a hash of every module that produces a feature value and
+a summary fingerprint of the licence rows that produce labels. A stale split
+silently scored under new code or source data is exactly the class of
+quiet-falsehood this project guards against.
 """
 import hashlib
 import io
@@ -34,15 +34,36 @@ def fingerprint():
     return FINGERPRINT
 
 
+def _licence_fingerprint(con):
+    """Digest row count and label-defining licence outcomes in one scan."""
+    row = con.execute(
+        "SELECT COUNT(*), "
+        "COALESCE(SUM(COALESCE(is_closed,0)),0), "
+        "COALESCE(SUM(COALESCE(open_y,0)),0), "
+        "COALESCE(SUM(COALESCE(open_m,0)),0), "
+        "COALESCE(SUM(COALESCE(close_y,0)),0), "
+        "COALESCE(SUM(COALESCE(close_m,0)),0) "
+        "FROM licence"
+    ).fetchone()
+    value = "|".join(str(v) for v in row).encode("ascii")
+    return hashlib.sha256(value).hexdigest()[:12]
+
+
+def split_cache_path(con, train_years, test_years, horizon=3, **kw):
+    """Return the cache path for this code, licence snapshot, and split."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tag = "_".join(f"{k}={v}" for k, v in sorted(kw.items()) if v)
+    data_fingerprint = _licence_fingerprint(con)
+    key = (f"{min(train_years)}-{max(train_years)}_{min(test_years)}-{max(test_years)}"
+           f"_h{horizon}_{tag}_{data_fingerprint}_{fingerprint()}")
+    return CACHE_DIR / f"split_{key}.pkl"
+
+
 def cached_split(con, train_years, test_years, horizon=3, verbose=False, **kw):
     """load_split with a disk cache. Same signature, same return value."""
     from .evaluate import load_split
 
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tag = "_".join(f"{k}={v}" for k, v in sorted(kw.items()) if v)
-    key = (f"{min(train_years)}-{max(train_years)}_{min(test_years)}-{max(test_years)}"
-           f"_h{horizon}_{tag}_{fingerprint()}")
-    p = CACHE_DIR / f"split_{key}.pkl"
+    p = split_cache_path(con, train_years, test_years, horizon, **kw)
     if p.exists():
         with io.open(p, "rb") as f:
             return pickle.load(f)

@@ -1,9 +1,9 @@
 """ROC / AUC figures for the technical deck.
 
-Read-only. Every fit reuses the disk-cached splits under model/.cache, so this
-script never touches kb.db when the cache is warm (cached_split ignores `con` on
-a hit). If a split is missing the script fails loudly rather than silently
-rebuilding it against the shared database.
+Read-only. Every fit reuses the disk-cached splits under model/.cache. The
+script reads the licence summary needed to select the matching data-fingerprinted
+cache path through a read-only database connection. If a split is missing the
+script fails loudly rather than silently rebuilding it.
 
 Two benches, deliberately kept apart:
 
@@ -33,10 +33,11 @@ from sklearn.metrics import roc_auc_score, roc_curve
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from model.cache import CACHE_DIR, cached_split, fingerprint          # noqa: E402
+from model.cache import cached_split, fingerprint, split_cache_path   # noqa: E402
 from model.evaluate import baseline_prior_surv                        # noqa: E402
 from model.train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS,  # noqa: E402
                          DEPLOY, LEGACY_TRAIN_YEARS, Encoder, fit_predict)
+from pipeline.db import connect_ro                                    # noqa: E402
 from pipeline.grade_bands import GRADE_COUNT                           # noqa: E402
 
 SELECT_TEST_YEARS = [2019, 2020, 2021, 2022]
@@ -99,13 +100,17 @@ def setup_style():
 
 
 def require_split(train_years, test_years, horizon=3):
-    key = (f"split_{min(train_years)}-{max(train_years)}_"
-           f"{min(test_years)}-{max(test_years)}_h{horizon}__{fingerprint()}.pkl")
-    if not (CACHE_DIR / key).exists():
-        raise SystemExit(
-            f"필요한 스플릿 캐시가 없다: {key}\n"
-            f"  이 스크립트는 캐시만 읽는다. 먼저 해당 벤치를 한 번 만들어야 한다.")
-    return cached_split(None, train_years, test_years, horizon)
+    con = connect_ro()
+    try:
+        path = split_cache_path(con, train_years, test_years, horizon)
+        if not path.exists():
+            raise SystemExit(
+                f"필요한 스플릿 캐시가 없다: {path.name}\n"
+                "  이 스크립트는 캐시만 읽는다. 먼저 해당 벤치를 한 번 만들어야 한다."
+            )
+        return cached_split(con, train_years, test_years, horizon)
+    finally:
+        con.close()
 
 
 def fit_all(train, test, cols):

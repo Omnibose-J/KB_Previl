@@ -14,7 +14,7 @@ import requests
 
 from .config import (CACHE_DIR, SEOUL_BASE, SEOUL_DAILY_BUDGET, SEOUL_PAGE,
                      load_env)
-from .db import connect, init
+from .db import init
 
 
 def api_key():
@@ -85,14 +85,16 @@ def total_count(service, args=""):
     return total or 0
 
 
-def fetch_all(service, args="", cache_name=None, limit=None, dry_run=False):
+def fetch_all(service, args="", cache_name=None, limit=None, dry_run=False,
+              force=False):
     """Page through a service, caching to jsonl. Returns list of dicts.
 
-    Re-running is free: a complete cache short-circuits before any HTTP call.
+    Re-running is free unless force=True: a complete cache then short-circuits
+    before any HTTP call.
     """
     cache = CACHE_DIR / f"{cache_name or service}{'_' + args.strip('/').replace('/', '_') if args else ''}.jsonl"
-    if cache.exists():
-        rows = [json.loads(l) for l in io.open(cache, encoding="utf-8")]
+    if cache.exists() and not force:
+        rows = [json.loads(line) for line in io.open(cache, encoding="utf-8")]
         print(f"  [cache] {service}{' ' + args if args else ''}: {len(rows):,} rows")
         return rows
 
@@ -120,8 +122,8 @@ def fetch_all(service, args="", cache_name=None, limit=None, dry_run=False):
     # resumes instead of restarting. Only a completed fetch gets the real name.
     partial = cache.with_suffix(".partial")
     rows = []
-    if partial.exists():
-        rows = [json.loads(l) for l in io.open(partial, encoding="utf-8")]
+    if partial.exists() and not force:
+        rows = [json.loads(line) for line in io.open(partial, encoding="utf-8")]
         done_pages = len(rows) // SEOUL_PAGE
         print(f"  [resume] {service}: {len(rows):,} rows already cached, "
               f"continuing from page {done_pages + 1}")

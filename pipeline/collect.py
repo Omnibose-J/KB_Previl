@@ -17,7 +17,8 @@ from .seoul_api import fetch_all, remaining
 from .db import init
 
 
-def collect_seoul(quarter=DEFAULT_QUARTER, lvpop_days=7, dry_run=False):
+def collect_seoul(quarter=DEFAULT_QUARTER, lvpop_days=7, dry_run=False,
+                  force=False):
     plan = [
         ("licence",     SVC_LICENCE,     "",            None),
         # 휴게음식점. 카페·베이커리·패스트푸드가 여기 있고, 서울 영업 중
@@ -34,7 +35,14 @@ def collect_seoul(quarter=DEFAULT_QUARTER, lvpop_days=7, dry_run=False):
     ]
     out = {}
     for name, svc, args, limit in plan:
-        out[name] = fetch_all(svc, args=args, cache_name=name, limit=limit, dry_run=dry_run)
+        out[name] = fetch_all(
+            svc,
+            args=args,
+            cache_name=name,
+            limit=limit,
+            dry_run=dry_run,
+            force=force,
+        )
     return out
 
 
@@ -47,7 +55,7 @@ def collect_semas(dry_run=False):
     """
     cache = CACHE_DIR / "semas_seoul.jsonl"
     if cache.exists():
-        rows = [json.loads(l) for l in open(cache, encoding="utf-8")]
+        rows = [json.loads(line) for line in open(cache, encoding="utf-8")]
         print(f"  [cache] semas_seoul: {len(rows):,} rows")
         return rows
 
