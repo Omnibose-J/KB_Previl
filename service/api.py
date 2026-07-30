@@ -584,11 +584,13 @@ def grid_detail(grid_id, uptae):
         if row is None:
             return None
         mix = _concept_mix_batch(con, [grid_id])
+        party = _party_batch(con, [grid_id])
         same = _same_uptae_batch(con, [grid_id], uptae)
         rest = _rest_food_batch(con, [grid_id])
         usales = _uptae_sales_batch(con, [grid_id], uptae)
     item = _grid_detail(row, uptae, same[grid_id], rest[grid_id], usales[grid_id])
     item["concept_mix"] = mix.get(grid_id)
+    item["visitor_party"] = party.get(grid_id)
     return item
 
 
@@ -772,6 +774,78 @@ def grid_changes(grid_id, uptae):
             return {"available": True, **alerts.changes_for(con, grid_id, uptae)}
         except alerts.NoBaselineError as exc:
             return {"available": False, "reason": str(exc)}
+
+
+# §J-1 파일럿 실측 정밀도. 화면이 이 값을 그대로 표기한다 — 정확도를 숨기고
+# 라벨만 보이면 «측정했다»가 «맞다»로 읽힌다. 통과하지 못한 alone·couple·friend
+# 는 여기에 없고, 그래서 서빙되지도 않는다.
+PARTY_PRECISION = {"family": 0.633, "work": 0.700}
+PARTY_LABEL = {"family": "가족", "work": "회식·모임"}
+PARTY_SOURCE = "네이버 블로그 글 (방문객 작성) · 2026-07 수집"
+PARTY_CLAIM = (
+    "방문객이 쓴 글에서 «누구와 왔는지»가 명시된 것만 센 참고 정보입니다. "
+    "상권 단위라 같은 상권 안 자리는 같은 값이며, 등급·추천 순위에는 쓰이지 않습니다."
+)
+
+
+def _party_batch(con, grid_ids):
+    """격자별 방문객 동반자 구성 — 그 격자가 속한 상권의 집계.
+
+    설계·검정은 `docs/unstructured-plan.md` §J-1. 표기 문턱을 통과한 두 클래스
+    (`family` 0.633 · `work` 0.700)만 서빙한다. 떨어진 세 클래스는 수집돼 있어도
+    내보내지 않는다.
+
+    `available=False` 는 «배치 미실행», 빈 `items` 는 «글이 모자라 판단 불가»다.
+    상권 밖 격자와 표본 미달 상권은 둘 다 후자이며, 0 으로 내려보내면 «가족 손님이
+    없는 자리»라는 다른 주장이 된다(CLAUDE.md 규칙 1).
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+    empty = {"available": False, "items": [], "posts_scanned": 0,
+             "labelled": 0, "unit": "상권", "source": None, "claim": None}
+    if not con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'trdar_party'"
+    ).fetchone():
+        return {gid: dict(empty) for gid in ids}
+
+    placeholders = ",".join("?" * len(ids))
+    rows = con.execute(
+        f"SELECT f.grid_id, p.party, p.n, p.posts_scanned "
+        f"FROM grid_feature f JOIN trdar_party p ON p.trdar_cd = f.trdar_cd "
+        f"WHERE f.grid_id IN ({placeholders})",
+        ids,
+    ).fetchall()
+
+    per = {}
+    for r in rows:
+        per.setdefault(r["grid_id"], {})[r["party"]] = (r["n"], r["posts_scanned"])
+
+    out = {}
+    for gid in ids:
+        got = per.get(gid)
+        if not got:
+            out[gid] = {**empty, "available": True}
+            continue
+        # Drop the classes §J-1 rejected *before* totalling. Leaving them in the
+        # denominator would keep them off screen while still letting them decide
+        # the shares that are on screen — a failed label steering a served one.
+        served = {p: v for p, v in got.items() if p in PARTY_PRECISION}
+        if not served:
+            out[gid] = {**empty, "available": True}
+            continue
+        total = sum(n for n, _ in served.values())
+        scanned = max(s for _, s in served.values())
+        items = [
+            {"party": party, "label": PARTY_LABEL[party], "posts": n,
+             "share": (n / total) if total else None,
+             "precision": PARTY_PRECISION[party]}
+            for party, (n, _) in sorted(served.items(), key=lambda kv: -kv[1][0])
+        ]
+        out[gid] = {"available": True, "items": items, "posts_scanned": scanned,
+                    "labelled": total, "unit": "상권",
+                    "source": PARTY_SOURCE, "claim": PARTY_CLAIM}
+    return out
 
 
 def _concept_mix_batch(con, grid_ids):

@@ -179,12 +179,41 @@ class ConceptMix(ApiModel):
     claim: str | None
 
 
+class PartyCount(ApiModel):
+    party: Literal["family", "work"]
+    label: str
+    posts: int
+    share: float | None
+    precision: float
+
+
+class VisitorParty(ApiModel):
+    """방문객이 쓴 블로그 글에서 뽑은 «누구와 왔는가». 관측 집계이지 예측이 아니다.
+
+    검정은 `docs/unstructured-plan.md` §J-1. 표기 문턱을 통과한 두 클래스만
+    나간다 — `alone`·`couple`·`friend` 는 정밀도 미달로 서빙되지 않는다.
+    `precision` 을 항목마다 싣는 것은 선택이 아니다: 정확도를 뺀 라벨은 화면에서
+    «측정했다»가 아니라 «맞다»로 읽힌다.
+
+    `available=False` 는 배치 미실행, 빈 `items` 는 글이 모자라 판단 불가다.
+    """
+
+    available: bool
+    items: list[PartyCount]
+    posts_scanned: int
+    labelled: int
+    unit: str
+    source: str | None
+    claim: str | None
+
+
 class GridDetail(GridCell):
     adm_dong: str | None
     district: str | None
     nearest_station: StationAnchor | None
     competition: Competition
     concept_mix: ConceptMix | None = None
+    visitor_party: VisitorParty | None = None
     area_survival: AreaSurvival
     demand: Demand
     sales: Sales

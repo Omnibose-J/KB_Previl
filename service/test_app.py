@@ -2259,3 +2259,87 @@ def test_floor_key_negative():
     floor_key = response.json()["decomposition"]["floorKey"]
     assert floor_key < 0
     assert floor_key <= -1_000
+
+
+# --- 방문객 동반자 (§J-1) ---------------------------------------------------
+
+def _grid_in_a_trade_area():
+    with api.readonly_connection() as connection:
+        row = connection.execute(
+            "SELECT grid_id, trdar_cd FROM grid_feature "
+            "WHERE trdar_cd IS NOT NULL ORDER BY grid_id LIMIT 1").fetchone()
+    assert row is not None
+    return row["grid_id"], row["trdar_cd"]
+
+
+def test_visitor_party_reports_unavailable_when_batch_missing(monkeypatch, tmp_path):
+    """수집 전에는 «없음» 이지 «가족 손님 0명» 이 아니다."""
+    grid_id, _ = _grid_in_a_trade_area()
+    stripped = tmp_path / "no-party.db"
+    with api.readonly_connection() as connection:
+        source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
+    shutil.copy(source_path, stripped)
+    with sqlite3.connect(stripped) as connection:
+        connection.execute("DROP TABLE IF EXISTS trdar_party")
+    monkeypatch.setattr(api, "DB_PATH", stripped)
+
+    body = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"}).json()
+    party = body["visitorParty"]
+    assert party["available"] is False
+    assert party["items"] == []
+
+
+def test_visitor_party_serves_only_classes_that_passed_the_gate(monkeypatch, tmp_path):
+    """§J-1 은 family·work 만 통과시켰다. 나머지는 DB 에 있어도 나가면 안 된다 —
+    떨어진 라벨이 화면에 오르면 검정을 한 이유가 없어진다."""
+    grid_id, trdar_cd = _grid_in_a_trade_area()
+    seeded = tmp_path / "party.db"
+    with api.readonly_connection() as connection:
+        source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
+    shutil.copy(source_path, seeded)
+    with sqlite3.connect(seeded) as connection:
+        connection.executescript(
+            "CREATE TABLE IF NOT EXISTS trdar_party ("
+            " trdar_cd TEXT, party TEXT, n INTEGER, posts_scanned INTEGER,"
+            " PRIMARY KEY (trdar_cd, party));")
+        connection.execute("DELETE FROM trdar_party")
+        connection.executemany(
+            "INSERT INTO trdar_party VALUES (?,?,?,?)",
+            [(trdar_cd, "family", 8, 60), (trdar_cd, "work", 2, 60),
+             (trdar_cd, "couple", 99, 60)])
+    monkeypatch.setattr(api, "DB_PATH", seeded)
+
+    party = client.get(f"/api/grid/{grid_id}",
+                       params={"uptae": "한식"}).json()["visitorParty"]
+    assert party["available"] is True
+    served = {item["party"] for item in party["items"]}
+    assert served == {"family", "work"}, "게이트를 통과 못 한 라벨이 나갔다"
+    assert party["labelled"] == 10, "탈락 라벨이 분모에 섞이면 비중이 거짓이 된다"
+    top = party["items"][0]
+    assert top["party"] == "family" and top["posts"] == 8
+    assert abs(top["share"] - 0.8) < 1e-9
+    assert top["precision"] == api.PARTY_PRECISION["family"]
+    assert party["unit"] == "상권"
+
+
+def test_visitor_party_is_empty_not_zero_without_enough_posts(monkeypatch, tmp_path):
+    """표본 미달 상권은 행이 아예 없다 — 0 을 내려보내면 «가족 손님이 없는 자리»
+    라는 다른 주장이 된다."""
+    grid_id, _ = _grid_in_a_trade_area()
+    seeded = tmp_path / "party-empty.db"
+    with api.readonly_connection() as connection:
+        source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
+    shutil.copy(source_path, seeded)
+    with sqlite3.connect(seeded) as connection:
+        connection.executescript(
+            "CREATE TABLE IF NOT EXISTS trdar_party ("
+            " trdar_cd TEXT, party TEXT, n INTEGER, posts_scanned INTEGER,"
+            " PRIMARY KEY (trdar_cd, party));")
+        connection.execute("DELETE FROM trdar_party")
+    monkeypatch.setattr(api, "DB_PATH", seeded)
+
+    party = client.get(f"/api/grid/{grid_id}",
+                       params={"uptae": "한식"}).json()["visitorParty"]
+    assert party["available"] is True
+    assert party["items"] == []
+    assert party["labelled"] == 0

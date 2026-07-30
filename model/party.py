@@ -333,6 +333,160 @@ def _pilot_report(records, n_trdar, empty):
           f"({ok / n_trdar * 100:.0f}%) — §J-1 커버리지 기준 {COVERAGE_MIN*100:.0f}%")
 
 
+# -------------------------------------------------------------------- full
+
+# §J-1 파일럿에서 표기 문턱을 통과한 클래스만. 나머지는 수집·저장은 하되
+# 서빙에 내보내지 않는다 — 재검정 때 다시 수집하지 않기 위해서다.
+APPROVED_CLASSES = ("family", "work")
+FULL_PATH = OUT / "full.jsonl"
+_write_lock = __import__("threading").Lock()
+
+
+def _done_districts():
+    if not FULL_PATH.is_file():
+        return set()
+    done = set()
+    for line in FULL_PATH.open(encoding="utf-8"):
+        try:
+            done.add(json.loads(line)["trdar_cd"])
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return done
+
+
+def _one_district(headers, client, cd, nm, se):
+    posts = fetch_posts(headers, nm)
+    records = []
+    if posts:
+        labels = extract(client, posts)
+        for p, lab in zip(posts, labels):
+            lab = lab or {"label": None, "quote": None, "void": "판정 실패"}
+            records.append({"trdar_cd": cd, "trdar_nm": nm, "trdar_se": se,
+                            "date": p["date"], "text": p["text"], **lab})
+        labelled = [r for r in records if r["label"]]
+        if labelled:
+            for r, ok in zip(labelled, evidence_pass(client, labelled)):
+                r["evidence_ok"] = ok
+                if ok is not True:
+                    r["void"] = "인용이 라벨의 근거가 아님"
+                    r["label"] = None
+    # A district with no usable posts still gets a marker row, or a resumed run
+    # would retry it forever.
+    if not records:
+        records = [{"trdar_cd": cd, "trdar_nm": nm, "trdar_se": se,
+                    "date": None, "text": None, "label": None, "quote": None,
+                    "void": "검색 결과 없음"}]
+    with _write_lock:
+        with FULL_PATH.open("a", encoding="utf-8") as f:
+            for r in records:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    return cd, sum(1 for r in records if r["label"])
+
+
+def full(workers=5, verbose=True):
+    """All 1,649 districts. Appends per district and skips what is already on
+    disk, so an interrupted run resumes instead of starting over."""
+    import sqlite3
+    headers = _naver_headers()
+    client = _client()
+    OUT.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    rows = con.execute(
+        "SELECT trdar_cd, trdar_nm, trdar_se_nm FROM trdar_area "
+        "WHERE trdar_nm IS NOT NULL ORDER BY trdar_cd").fetchall()
+    con.close()
+    done = _done_districts()
+    todo = [r for r in rows if r[0] not in done]
+    if verbose:
+        print(f"상권 {len(rows):,} · 완료 {len(done):,} · 남은 {len(todo):,}",
+              flush=True)
+    if not todo:
+        return 0
+    t0 = time.time()
+    n_lab = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futs = [pool.submit(_one_district, headers, client, cd, nm, se)
+                for cd, nm, se in todo]
+        for i, fut in enumerate(futs, 1):
+            try:
+                _, got = fut.result()
+                n_lab += got
+            except Exception as exc:
+                print(f"  [실패] {type(exc).__name__}: {exc}", flush=True)
+            if verbose and i % 50 == 0:
+                el = time.time() - t0
+                eta = el / i * (len(todo) - i) / 60
+                print(f"  {i:,}/{len(todo):,} · 라벨 {n_lab:,} · "
+                      f"경과 {el/60:.0f}분 · 남은 약 {eta:.0f}분", flush=True)
+    print(f"완료 · 라벨 {n_lab:,} · {(time.time()-t0)/60:.0f}분", flush=True)
+    return 0
+
+
+# -------------------------------------------------------------------- load
+
+# §J-1 파일럿 실측(2026-07-30). 화면이 이 값을 그대로 표기한다 — 정확도를 숨기고
+# 라벨만 보여주면 «측정했다»가 «맞다»로 읽힌다.
+MEASURED_PRECISION = {"family": 0.633, "work": 0.700}
+
+PARTY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS trdar_party (
+  trdar_cd      TEXT,
+  party         TEXT,
+  n             INTEGER,
+  posts_scanned INTEGER,
+  PRIMARY KEY (trdar_cd, party)
+);
+"""
+
+
+def load(verbose=True):
+    """full.jsonl -> kb.db. Only the classes §J-1 admitted are written.
+
+    Districts below MIN_POSTS_PER_TRDAR get no row at all rather than zeros —
+    «too few posts to say» and «nobody comes with family» are different claims
+    and the schema must not merge them (CLAUDE.md 규칙 1).
+    """
+    import sqlite3
+    if not FULL_PATH.is_file():
+        raise RuntimeError("full.jsonl 없음 — 먼저 --full")
+    scanned, counts = {}, {}
+    for line in FULL_PATH.open(encoding="utf-8"):
+        try:
+            r = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        cd = r["trdar_cd"]
+        if r.get("text"):
+            scanned[cd] = scanned.get(cd, 0) + 1
+        lab = r.get("label")
+        if lab in APPROVED_CLASSES:
+            counts.setdefault(cd, {}).setdefault(lab, 0)
+            counts[cd][lab] += 1
+
+    rows = []
+    for cd, per in counts.items():
+        if sum(per.values()) < MIN_POSTS_PER_TRDAR:
+            continue
+        for party in APPROVED_CLASSES:
+            rows.append((cd, party, per.get(party, 0), scanned.get(cd, 0)))
+
+    con = sqlite3.connect(DB_PATH)
+    con.executescript(PARTY_SCHEMA)
+    con.execute("DELETE FROM trdar_party")
+    con.executemany(
+        "INSERT INTO trdar_party (trdar_cd, party, n, posts_scanned) "
+        "VALUES (?,?,?,?)", rows)
+    con.commit()
+    con.close()
+    if verbose:
+        served = len({r[0] for r in rows})
+        print(f"trdar_party: {len(rows):,}행 · 상권 {served:,}개 "
+              f"(수집 {len(scanned):,} 중 {MIN_POSTS_PER_TRDAR}건 이상)")
+        print(f"  커버리지 {served/max(1,len(scanned))*100:.0f}% "
+              f"(§J-1 기준 {COVERAGE_MIN*100:.0f}%)")
+    return len(rows)
+
+
 # ------------------------------------------------------------------ verify
 
 JUDGE_PROMPT = """각 항목은 한국어 음식점 블로그 글의 일부다.
@@ -467,13 +621,19 @@ def main():
     ap = argparse.ArgumentParser(description="방문객 동반자 표기 (§J-1)")
     ap.add_argument("--pilot", action="store_true", help="30상권 수집 + 1차 추출")
     ap.add_argument("--verify", action="store_true", help="판정자 2인 정밀도 검정")
+    ap.add_argument("--full", action="store_true", help="전량 1,649상권 (이어받기)")
+    ap.add_argument("--load", action="store_true", help="full.jsonl -> kb.db")
     ap.add_argument("--n", type=int, default=PILOT_TRDAR)
     a = ap.parse_args()
     if a.pilot:
         pilot(a.n)
     if a.verify:
         verify()
-    if not (a.pilot or a.verify):
+    if a.full:
+        full()
+    if a.load:
+        load()
+    if not (a.pilot or a.verify or a.full or a.load):
         ap.print_help()
     return 0
 
