@@ -21,6 +21,7 @@ Usage:
     python -m service.demo_db --verify kb-demo.db  # boot the API against it
 """
 import argparse
+import ast
 import re
 import sqlite3
 import sys
@@ -43,11 +44,13 @@ TABLES = [
     "grid_sgis",          #  23,552  배후 인구·행정동명
     "trdar_store",        #  12,204  상권 점포 수
     "trdar_sales",        #   6,573  상권 추정매출
+    "trdar_party",        #           trade-area visitor party labels
     "score_meta",         #      41  헤드라인·곡선·밴드
     "score_run",          #       2  적재 이력
 ]
 
 _SQL_REF = re.compile(r"(?i)\b(?:from|join|into|update)\s+([a-z_][a-z0-9_]*)")
+_NON_TABLE_TOKENS = {"sqlite_master"}
 
 
 def _ro_uri(path):
@@ -63,29 +66,51 @@ def live_tables(con):
 
 
 def referenced_tables(con):
-    """Tables that service/*.py actually queries, intersected with the schema."""
-    src = " ".join(p.read_text(encoding="utf-8")
-                   for p in sorted((ROOT / "service").glob("*.py"))
-                   if p.name != "demo_db.py")
+    """Tables that runtime service code queries, whether or not they exist."""
+    strings = []
+    for path in sorted((ROOT / "service").glob("*.py")):
+        if path.name == "demo_db.py" or path.name.startswith("test_"):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        docstrings = {
+            ast.get_docstring(node, clean=False)
+            for node in ast.walk(tree)
+            if isinstance(node, (
+                ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        }
+        strings.extend(
+            node.value for node in ast.walk(tree)
+            if isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value not in docstrings
+        )
+    src = " ".join(strings)
     names = {m.lower() for m in _SQL_REF.findall(src)}
-    return {t for t in live_tables(con) if t.lower() in names}
+    return names - _NON_TABLE_TOKENS
 
 
 def audit(src_path):
     con = sqlite3.connect(_ro_uri(src_path), uri=True)
     try:
         found, declared = referenced_tables(con), set(TABLES)
-        missing = sorted(found - declared)      # queried but not shipped -> demo breaks
+        live = live_tables(con)
+        missing = sorted((found & live) - declared)
+        unloaded = sorted(found - live - declared)
         extra = sorted(declared - found)        # shipped but unused -> dead weight
-        absent = sorted(declared - live_tables(con))
+        absent = sorted(declared - live)
         print(f"선언 {len(declared)}개 · 코드 참조 {len(found)}개")
+        if unloaded:
+            for table in unloaded:
+                print(f"  미적재 참조: {table} — 코드가 읽는데 DB에 없다")
+        else:
+            print("  미적재 참조: 없음")
         for label, items, why in (
                 ("누락 (서비스가 읽는데 TABLES 에 없다)", missing, "데모가 404 를 낸다"),
                 ("잉여 (TABLES 에 있는데 아무도 안 읽는다)", extra, "용량만 늘린다"),
                 ("스키마 부재 (TABLES 에 있는데 DB 에 없다)", absent, "빌드가 실패한다")):
             print(f"  {label}: {', '.join(items) if items else '없음'}"
                   + (f"   -> {why}" if items else ""))
-        return 1 if (missing or absent) else 0
+        return 1 if (missing or unloaded or absent) else 0
     finally:
         con.close()
 

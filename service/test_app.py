@@ -1729,10 +1729,22 @@ def test_recommend_carries_concept_mix_without_extra_round_trips():
     assert any(item["concept_mix"]["items"] for item in body["items"])
 
 
-def test_recommend_carries_visitor_party_without_extra_round_trips():
+def test_recommend_carries_visitor_party_without_extra_round_trips(
+        monkeypatch, tmp_path):
     """S3 후보 수가 늘어도 방문객 동반자 조회는 배치 횟수 그대로여야 한다."""
     queries = []
     original_connection = api.readonly_connection
+    seeded = tmp_path / "recommend-party.db"
+    with original_connection() as connection:
+        source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
+    shutil.copy(source_path, seeded)
+    with sqlite3.connect(seeded) as connection:
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS trdar_party ("
+            " trdar_cd TEXT, party TEXT, n INTEGER, posts_scanned INTEGER,"
+            " PRIMARY KEY (trdar_cd, party))")
+        connection.execute("DELETE FROM trdar_party")
+    monkeypatch.setattr(api, "DB_PATH", seeded)
 
     class CountingConnection:
         def __init__(self, connection):
@@ -1769,6 +1781,7 @@ def test_recommend_carries_visitor_party_without_extra_round_trips():
     assert few == many, f"후보 수에 비례해 조회가 늘었다: {few} -> {many}"
     assert body["count"] == 20
     assert all(item["visitorParty"] is not None for item in body["items"])
+    assert all(item["visitorParty"]["available"] is True for item in body["items"])
 
 
 def _estimate_payload(sample, **overrides):
@@ -2309,6 +2322,7 @@ def test_floor_key_negative():
 
 def test_demo_db_audit_reports_unloaded_reference_without_import_noise(
         monkeypatch, tmp_path, capsys):
+    assert "trdar_party" in demo_db.TABLES
     service_dir = tmp_path / "service"
     service_dir.mkdir()
     (service_dir / "probe.py").write_text(

@@ -66,6 +66,7 @@ RESOLUTION = {
     "sales.quarterlyAmount": "상권 (중앙값 반경 151m)",
     "sales.quarterlyCount": "상권 (중앙값 반경 151m)",
     "sales.footTraffic": "상권 (중앙값 반경 151m)",
+    "visitor_party": "상권",
     "nearestStation": "지점 실측",
 }
 
@@ -553,6 +554,7 @@ def recommend(uptae, districts=(), top=24):
         ).fetchall()
         grid_ids = [row["grid_id"] for row in rows]
         mix = _concept_mix_batch(con, grid_ids)
+        party = _party_batch(con, grid_ids)
         same = _same_uptae_batch(con, grid_ids, uptae)
         rest = _rest_food_batch(con, grid_ids)
         usales = _uptae_sales_batch(con, grid_ids, uptae)
@@ -562,6 +564,7 @@ def recommend(uptae, districts=(), top=24):
         item = _grid_detail(row, uptae, same[row["grid_id"]],
                             rest[row["grid_id"]], usales[row["grid_id"]])
         item["concept_mix"] = mix.get(row["grid_id"])
+        item["visitor_party"] = party.get(row["grid_id"])
         items.append(item)
 
     return {
