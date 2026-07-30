@@ -407,3 +407,92 @@ first with `KB_RECOVERY_SOURCE=constant`, then with `m2`, checks public
 `succession_score` row. The command exits 0 with one selected test. The stale
 `recoveryProb` assertion was updated to the owner-approved W7 contract; the
 full cost and API suite exits 0 with 66 passing tests.
+
+## F-A3. The leakage guard does not cover newly added feature families (2026-07-30)
+
+**Found** while adding OSM (R10-B) and CBD (R11) candidate features.
+
+**Symptom** — `model.test_leakage` reports `검사 대상 40개 (NUM·LOC3·DEPLOY·Tier1~3)`.
+The OSM (7) and CBD (4) columns are in neither set, so both families were measured
+by `model.feature_gate` without ever passing through the guard that checks a
+feature is documented in `asof.FEATURES` and observable at T.
+
+**Why it is not a defect today** — both families were rejected, `DEPLOY` is
+unchanged, and neither column reaches `service/precompute.py`. The guard's silence
+therefore had no product consequence in this round.
+
+**Why it cannot be left as is** — the guard's coverage list is enumerated, not
+derived from "whatever the candidate sets contain". A future family that *passes*
+its admission gate would be adopted with no leakage check at all, and the guard
+would stay green while doing so. `experiment-plan.md` already warned about exactly
+this ("기존 leakage 가드는 기본 NUM 세트만 검사하고 임계도 AUC 0.90이라 신규 피처의
++0.02급 누수를 못 잡는다"); this is the concrete instance.
+
+**Blast radius if a family were adopted unchecked** — the adopted columns would
+enter `grid_score` and every downstream survival claim. For OSM specifically the
+exposure is real rather than theoretical: OSM is a *current* snapshot, so a road
+built in 2015 is credited to a 2010 opening (documented in `model/osm.py`). That
+is a genuine anachronism the guard never examined.
+
+**Smallest fix** — make the guard's coverage set the union of every set registered
+in `robustness.FEATURE_SETS` rather than a hand-listed five, so adding a candidate
+set automatically extends the check. Lane A.
+
+## F-A4. §4-C lineage table predates the 2026-07-28 retrain (2026-07-30)
+
+**Found** while reconciling a reproducible AUC (0.6369) against the documented
+0.6392.
+
+**Symptom** — `docs/model-findings.md` §4-C declares lineage ⓪ as "유일한 인용
+기준" with 상위 **75.5%** / 하위 **29.2%** / 격차 **46.3%p**. `CLAUDE.md` names
+precisely those three values as the marker of a pre-retrain document ("그 이전
+값(75.5% / 29.2% / 46.3%p)을 인용한 문서를 발견하면 갱신 누락이다"). The deployed
+`score_meta.observed_by_grade` is 0.7686 / 0.2841, i.e. 76.9 / 28.4 / 48.45%p.
+
+So the table that claims to be the single citation standard is itself the stale
+copy. The AUC printed in the same sentence (0.6392) belongs to that lineage and,
+separately, is a **seed-averaged** figure mislabelled "seed=0 단일 적합" — the
+seed=0 fit that `precompute` actually deploys measures 0.6369 (reproduced twice;
+`gbm` was deterministic across runs).
+
+**Why it is out of scope here** — R10/R11 measured candidate features; rewriting
+§4-C means recomputing the ten per-grade values, their Wilson intervals, the
+2x2 decomposition in §9-A, and the derived rows in §7-B, none of which this round
+touched. Doing it as a side effect of a feature experiment is how a lineage table
+silently acquires a third lineage.
+
+**Blast radius** — anyone citing §4-C as instructed gets pre-retrain numbers.
+`README.md`, `CLAUDE.md`, and `docs/기술설명서-작성자료.md` already carry the
+current 76.9 / 28.4 values, so the contradiction is visible rather than hidden,
+and the AUC line has been corrected in those three plus `lanes/A-algorithm.md`.
+§4-C itself is untouched.
+
+## F-A5. Floor-level survival rates cite a source that cannot produce them (2026-07-30)
+
+**Found** while checking whether floor data exists at all (owner question).
+
+**Symptom** — `docs/goodwill-report-design.md:51` attributes the floor survival
+figures (지하 59.8 / 1층 66.2 / 2층 69.9, also in `README.md:198`) to 소상공인
+상가업소정보. That table (`store`, 138,558 rows) carries `flr_no` for 66.7% of
+rows but **has no open/close dates at all**, so no survival rate can be computed
+from it.
+
+Recomputing from the only source that has both — floor tokens parsed out of the
+`licence.addr` string, present in 20.4% of rows (109,159/535,603) — reproduces the
+*ordering* but not the levels: 지하 70.1% (n=17,643) · 1층 71.2% (n=67,875) ·
+2층 75.0% (n=14,405) · 3층+ 72.1% (n=6,584), all-period cohort. Seoul's 3-year
+rate falls from 71.3% (2013 openings) to 58.8% (2023), so a recent-cohort
+restriction plausibly explains the 10%p gap — but no cohort is stated anywhere.
+
+**Why it is out of scope here** — the fix is a documentation decision (which
+cohort, which source) plus possibly a new `licence` floor column, and `pipeline/`
+is shared. Also note floor cannot enter the ranking model at all (CLAUDE.md
+non-negotiable 5): it is a shop attribute the user chooses, identical across all
+candidate cells.
+
+**Blast radius** — an unsourced, uncohorted statistic is quotable from README into
+the submission deck. The 20.4% subset additionally carries selection bias in a
+known direction: an address states its floor mainly when the shop is *not* on the
+ground floor, so 1층 is 62% of the token subset against a much higher true share.
+Any conditional display built on it needs that bias stated, exactly as the
+등급×면적 table states its legacy bench.
