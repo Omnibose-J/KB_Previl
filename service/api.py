@@ -66,7 +66,7 @@ RESOLUTION = {
     "sales.quarterlyAmount": "상권 (중앙값 반경 151m)",
     "sales.quarterlyCount": "상권 (중앙값 반경 151m)",
     "sales.footTraffic": "상권 (중앙값 반경 151m)",
-    "visitor_party": "상권",
+    "visitorParty": "상권",
     "nearestStation": "지점 실측",
 }
 

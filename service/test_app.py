@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 import json
+import re
 import sqlite3
 import shutil
 import statistics
@@ -346,7 +347,15 @@ def test_recommend_grid_and_at_share_the_same_real_cell():
     )
     _assert_score_hidden(body)
     _assert_score_hidden(detail.json())
-    assert resolutions["visitor_party"] == "상권"
+    assert resolutions["visitorParty"] == "상권"
+
+
+def test_resolution_keys_are_camel_case():
+    key_pattern = re.compile(r"^[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)*$")
+    invalid = [key for key in api.RESOLUTION if key_pattern.fullmatch(key) is None]
+
+    assert invalid == [], f"camelCase가 아닌 resolutions 키: {invalid}"
+    assert api.RESOLUTION["visitorParty"] == "상권"
 
 
 def test_trade_area_coverage_and_sales_value_availability_are_distinct():

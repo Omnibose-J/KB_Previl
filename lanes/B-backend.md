@@ -109,6 +109,24 @@ type Grade = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 type Point = [lon: number, lat: number];
 type Confidence = "full" | "partial";
 
+interface PartyCount {
+  party: "family" | "work";
+  label: string;
+  posts: number;
+  share: number | null;
+  precision: number;
+}
+
+interface VisitorParty {
+  available: boolean;
+  items: PartyCount[];
+  postsScanned: number;
+  labelled: number;
+  unit: "상권";
+  source: string | null;
+  claim: string | null;
+}
+
 interface GridCell {
   gridId: string;
   uptae: string;
@@ -150,6 +168,7 @@ interface GridDetail extends GridCell {
     footTraffic: number | null;
     available: boolean; // quarterlyAmount 값 자체의 관측 여부
   };
+  visitorParty: VisitorParty | null;
   signal: "verified" | "overheated" | null;
   missingAxes: string[];
   resolutions: Record<string, string>;
@@ -158,7 +177,14 @@ interface GridDetail extends GridCell {
 
 `resolutions`는 `competition.shopsHere → 격자 100m`,
 `areaSurvival → 격자 3x3 (300m)`, 수요 필드 → 행정동, 매출·유동인구 →
-상권(중앙값 반경 151m), 역 → 지점 실측의 실제 원천 해상도를 담는다.
+상권(중앙값 반경 151m), `visitorParty → 상권`, 역 → 지점 실측의 실제 원천
+해상도를 담는다.
+
+`visitorParty`는 §J-1의 **표기 전용** 관측이다. `family`(정밀도 0.633)와
+`work`(0.700)만 문턱을 통과해 화면이 정확도를 함께 표시하며,
+`alone`·`couple`·`friend`는 기각돼 서빙하지 않는다. 방문객 관점의 상권 단위
+값이고 등급·점수·추천 순위에는 사용하지 않는다. **비정형 예측 검정 누계 13건 ·
+채택 0 은 그대로다.** 표기 문턱의 통과이지 피처 문턱의 통과가 아니다.
 
 ### `GET /api/meta`
 

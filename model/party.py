@@ -130,10 +130,24 @@ def targets(n=PILOT_TRDAR):
     return out[:n]
 
 
+class CollectFailed(RuntimeError):
+    """The search API could not be reached for this district.
+
+    Distinct from «this district has no posts». Collapsing the two writes a
+    «검색 결과 없음» marker row, which makes `_done_districts()` count the
+    district as finished and a resumed run skip it forever — the resumability
+    fails exactly when it is needed.
+    """
+
+
 def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
     """Blog snippets for one commercial district. The API returns a
     search-relevance-selected 147-char description, which is exactly the corpus
-    §19-A found too thin — that limitation is inherited, not solved."""
+    §19-A found too thin — that limitation is inherited, not solved.
+
+    Raises CollectFailed when every retry failed; returns [] only when the API
+    answered and had nothing.
+    """
     for attempt in range(tries):
         try:
             # "서울" is not decoration. The pilot pulled 광주 송정역 posts for
@@ -157,7 +171,7 @@ def fetch_posts(headers, name, want=PER_TRDAR, tries=3):
             return out
         except requests.RequestException:
             time.sleep(1 + attempt)
-    return []
+    raise CollectFailed(f"검색 API 응답 없음: {name}")
 
 
 def _client():
@@ -388,8 +402,10 @@ def _one_district(headers, client, cd, nm, se):
                 if ok is not True:
                     r["void"] = "인용이 라벨의 근거가 아님"
                     r["label"] = None
-    # A district with no usable posts still gets a marker row, or a resumed run
-    # would retry it forever.
+    # A district the API answered for but that genuinely has no posts still gets
+    # a marker row, or a resumed run would retry it forever. A district whose
+    # fetch *failed* never reaches here — CollectFailed propagates so the
+    # district stays unwritten and the next run picks it up.
     if not records:
         records = [{"trdar_cd": cd, "trdar_nm": nm, "trdar_se": se,
                     "date": None, "text": None, "label": None, "quote": None,
@@ -421,7 +437,7 @@ def full(workers=3, verbose=True):
     if not todo:
         return 0
     t0 = time.time()
-    n_lab = 0
+    n_lab = n_fail = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = [pool.submit(_one_district, headers, client, cd, nm, se)
                 for cd, nm, se in todo]
@@ -430,21 +446,29 @@ def full(workers=3, verbose=True):
                 _, got = fut.result()
                 n_lab += got
             except Exception as exc:
+                n_fail += 1
                 print(f"  [실패] {type(exc).__name__}: {exc}", flush=True)
             if verbose and i % 50 == 0:
                 el = time.time() - t0
                 eta = el / i * (len(todo) - i) / 60
-                print(f"  {i:,}/{len(todo):,} · 라벨 {n_lab:,} · "
+                print(f"  {i:,}/{len(todo):,} · 라벨 {n_lab:,} · 실패 {n_fail:,} · "
                       f"경과 {el/60:.0f}분 · 남은 약 {eta:.0f}분", flush=True)
-    print(f"완료 · 라벨 {n_lab:,} · {(time.time()-t0)/60:.0f}분", flush=True)
+    print(f"완료 · 라벨 {n_lab:,} · 실패 {n_fail:,} · "
+          f"{(time.time()-t0)/60:.0f}분", flush=True)
+    # 실패가 남았으면 0 을 반환하지 않는다. bootstrap 의 party 단계는 --full 뒤에
+    # --load 를 잇는데, 여기서 0 을 주면 일부만 걷힌 상태가 서빙 테이블로 승격된다.
+    # 실패한 상권은 파일에 없으므로 같은 명령을 다시 치면 그것만 다시 받는다.
+    if n_fail:
+        print(f"  {n_fail:,}개 상권이 실패했다 — 같은 명령을 다시 치면 그것만 받는다",
+              flush=True)
+        return 1
     return 0
 
 
 # -------------------------------------------------------------------- load
 
-# §J-1 파일럿 실측(2026-07-30). 화면이 이 값을 그대로 표기한다 — 정확도를 숨기고
-# 라벨만 보여주면 «측정했다»가 «맞다»로 읽힌다.
-MEASURED_PRECISION = {"family": 0.633, "work": 0.700}
+# 실측 정밀도(§J-1)는 `service/api.py` 의 PARTY_PRECISION 한 곳에만 둔다. 여기에도
+# 같은 숫자를 두면 재검정 때 한쪽만 고쳐지고, 어느 쪽이 화면에 나가는지 알 수 없다.
 
 PARTY_SCHEMA = """
 CREATE TABLE IF NOT EXISTS trdar_party (
@@ -467,12 +491,23 @@ def load(verbose=True):
     import sqlite3
     if not FULL_PATH.is_file():
         raise RuntimeError("full.jsonl 없음 — 먼저 --full")
-    scanned, counts = {}, {}
-    for line in FULL_PATH.open(encoding="utf-8"):
-        try:
-            r = json.loads(line)
-        except json.JSONDecodeError:
+    # 파일 전체를 먼저 읽어 검증한다. 깨진 행을 건너뛰고 진행하면 그 아래에서
+    # DELETE 가 돌아, 잘린 파일이 조용히 서빙 테이블 축소로 이어진다. 수집이
+    # 중간에 죽으면 마지막 줄이 잘릴 수 있고 그게 흔한 경우다.
+    parsed = []
+    for lineno, line in enumerate(FULL_PATH.open(encoding="utf-8"), 1):
+        if not line.strip():
             continue
+        try:
+            parsed.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                f"{FULL_PATH.name} {lineno}행이 깨졌다: {exc}. "
+                f"DB 는 건드리지 않았다 — 그 줄을 지우고 다시 실행할 것"
+            ) from exc
+
+    scanned, counts = {}, {}
+    for r in parsed:
         cd = r["trdar_cd"]
         if r.get("text"):
             scanned[cd] = scanned.get(cd, 0) + 1
