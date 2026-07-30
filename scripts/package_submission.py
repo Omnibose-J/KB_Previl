@@ -125,6 +125,64 @@ def build(verbose=True):
     return OUT
 
 
+# Runs inside the unpacked zip. Beyond status codes it checks that the map's
+# Web Worker is actually loadable, because a 200 on `/` says nothing about it.
+#
+# Three separate bugs shipped past a status-code-only rehearsal (커밋 30a8f34):
+# the worker file was never emitted, then it was emitted without the chunk it
+# imports, then it was served as text/plain. Each one leaves the map showing
+# raster tiles and zero grade cells — the whole screen — with no console error.
+#
+# The worker filename is NOT hardcoded. It is read out of the built bundle, so
+# a MapLibre upgrade that renames or splits the worker is followed, not missed.
+BOOT_SCRIPT = r"""
+import json, re, sys, pathlib
+from fastapi.testclient import TestClient
+from service.app import app
+
+c = TestClient(app)
+m = c.get('/api/meta')
+u = (m.json().get('uptae') or ['한식'])[0]
+u = u.get('name', u) if isinstance(u, dict) else u
+r = c.get('/api/recommend', params={'uptae': u, 'limit': 3})
+h = c.get('/')
+
+# 지도가 실제로 그릴 데이터가 있는가 — /api/grids 는 격자 레이어의 유일한 원천이다.
+g = c.get('/api/grids', params={'uptae': u, 'bbox': '127.024,37.494,127.032,37.501'})
+cells = len((g.json() or {}).get('items') or []) if g.status_code == 200 else 0
+
+# 번들이 런타임에 부르는 .mjs 를 전부 모아 실제로 서빙되는지 확인한다.
+dist = pathlib.Path('frontend/app/dist')
+wanted, missing, wrong_type = set(), [], []
+for js in dist.glob('assets/*.js'):
+    wanted |= set(re.findall(r'"([\w.-]+\.mjs)"', js.read_text('utf-8', 'ignore')))
+seen = set()
+while wanted:
+    name = wanted.pop()
+    if name in seen or name.endswith('-dev.mjs'):   # dev 워커는 빌드본이 안 쓴다
+        continue
+    seen.add(name)
+    resp = c.get(f'/assets/{name}')
+    if resp.status_code != 200:
+        missing.append(f'{name}:{resp.status_code}')
+        continue
+    ctype = (resp.headers.get('content-type') or '').split(';')[0]
+    if 'javascript' not in ctype and 'ecmascript' not in ctype:
+        wrong_type.append(f'{name}:{ctype}')
+    # 그 파일이 또 상대 import 를 하면 그것도 서빙돼야 한다
+    wanted |= set(re.findall(r'from\s*["\']\./([\w.-]+\.mjs)["\']',
+                             resp.text))
+
+print(json.dumps({
+    'meta': m.status_code, 'recommend': r.status_code,
+    'items': len((r.json() or {}).get('items') or []),
+    'ui': h.status_code, 'ui_bytes': len(h.content),
+    'grids': g.status_code, 'cells': cells,
+    'workers': sorted(seen), 'missing': missing, 'wrong_type': wrong_type,
+}))
+"""
+
+
 def rehearse(zip_path):
     """Unpack into a scratch dir and boot the API there, as a judge would."""
     tmp = Path(tempfile.mkdtemp(prefix="kb-rehearsal-"))
@@ -141,20 +199,7 @@ def rehearse(zip_path):
 
         # Boot from the unpacked copy with cwd there and ROOT off sys.path, so a
         # file that only exists in the working tree cannot rescue the run.
-        script = (
-            "import json,sys;"
-            "from fastapi.testclient import TestClient;"
-            "from service.app import app;"
-            "c=TestClient(app);"
-            "m=c.get('/api/meta');"
-            "u=(m.json().get('uptae') or ['한식'])[0];"
-            "u=u.get('name',u) if isinstance(u,dict) else u;"
-            "r=c.get('/api/recommend',params={'uptae':u,'limit':3});"
-            "h=c.get('/');"
-            "print(json.dumps({'meta':m.status_code,'recommend':r.status_code,"
-            "'items':len((r.json() or {}).get('items') or []),'ui':h.status_code,"
-            "'ui_bytes':len(h.content)}))"
-        )
+        script = BOOT_SCRIPT
         env = dict(os.environ, KB_DB=str(tmp / "kb-demo.db"), PYTHONPATH="",
                    PYTHONIOENCODING="utf-8")
         p = subprocess.run([sys.executable, "-c", script], cwd=tmp, env=env,
@@ -165,11 +210,29 @@ def rehearse(zip_path):
             print((p.stderr or p.stdout)[-1200:])
             return 1
         res = json.loads(line[-1])
-        ok = (res["meta"] == 200 and res["recommend"] == 200
-              and res["items"] > 0 and res["ui"] == 200 and res["ui_bytes"] > 0)
-        print(f"  [{'PASS' if ok else 'FAIL'}] 부팅 — /api/meta {res['meta']} · "
+        boot_ok = (res["meta"] == 200 and res["recommend"] == 200
+                   and res["items"] > 0 and res["ui"] == 200
+                   and res["ui_bytes"] > 0)
+        print(f"  [{'PASS' if boot_ok else 'FAIL'}] 부팅 — /api/meta {res['meta']} · "
               f"/api/recommend {res['recommend']} ({res['items']}건) · "
               f"UI {res['ui']} ({res['ui_bytes']:,} bytes)")
+
+        grid_ok = res["grids"] == 200 and res["cells"] > 0
+        print(f"  [{'PASS' if grid_ok else 'FAIL'}] 지도 데이터 — /api/grids "
+              f"{res['grids']} · 격자 {res['cells']}칸")
+
+        # 워커를 하나도 못 찾았다면 그것 자체가 실패다. «검사할 게 없어서 통과»
+        # 는 이 검사가 막으려는 상태와 화면에서 구분되지 않는다.
+        map_ok = (bool(res["workers"]) and not res["missing"]
+                  and not res["wrong_type"])
+        print(f"  [{'PASS' if map_ok else 'FAIL'}] 지도 워커 — "
+              f"{len(res['workers'])}개 서빙 ({', '.join(res['workers']) or '없음'})")
+        for label, items in (("404·오류", res["missing"]),
+                             ("MIME 오류", res["wrong_type"])):
+            if items:
+                print(f"      {label}: {', '.join(items)}")
+
+        ok = boot_ok and grid_ok and map_ok
         print("\n리허설 통과 — 이 zip 은 제출 가능하다" if ok else "\n리허설 실패")
         return 0 if ok else 1
     finally:
