@@ -82,10 +82,14 @@ def build_grid(con):
 
 
 def fill_dong(con):
-    """Cells outside any commercial area still need a 행정동 for demand data.
+    """RETIRED - the 75.5%-accurate proximity heuristic that geocode replaced.
 
-    Falls back to the nearest area's dong; cells with neither stay NULL and
-    lose the demand feature rather than borrowing a wrong one.
+    Kept only so the pre-geocode pipeline stays readable; no caller remains.
+    Calling it is the silent regression `consistency.c_dongaccuracy` exists to
+    catch, and that check is skipped without a Kakao key.
+
+    Cells outside any commercial area still need a 행정동 for demand data. This
+    borrowed the nearest area's dong; cells with neither stayed NULL.
     """
     rows = con.execute("SELECT grid_id, center_lon, center_lat FROM grid "
                        "WHERE adstrd_cd IS NULL").fetchall()
@@ -251,5 +255,6 @@ if __name__ == "__main__":
     a = ap.parse_args()
     con = init()
     build_grid(con)
-    fill_dong(con)
+    # 행정동은 pipeline.geocode 가 역지오코딩으로 채운다. 여기서 fill_dong 을
+    # 부르면 위 65-68 줄이 금지한 근접 휴리스틱으로 되돌아간다.
     build_features(con, a.quarter)

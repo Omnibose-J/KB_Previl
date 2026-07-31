@@ -1,5 +1,41 @@
 ﻿# Findings ??problems found in-flight that are out of the finder's write scope
 
+## F-S1. Pre-submission audit leftovers (2026-08-01) — deferred, not dismissed
+
+Three read-only audits ran before the 08-03 deadline (F-A3 commit review,
+`model/`+`pipeline/` dead-code, `service/` stability). Everything judged **safe**
+was applied the same day; the rest is listed here so the deadline does not erase
+it. Nothing below has a known user-visible symptom today — each is a latent trap.
+
+**Correctness / policy**
+
+| what | where | why deferred |
+|---|---|---|
+| `.env` parsed inline in 16 places despite `CLAUDE.md` saying "`load_env()` — 직접 파싱 금지" | `model/absa_*`, `model/senti_*`, `pipeline/consistency·geocode·mentions·realprice·sgis*·trend` | 15 files, mechanical but wide |
+| `collect.py` derives the `.env` path from `CACHE_DIR`, so `KB_ENV` is ignored and `KB_CACHE` silently redirects it | `pipeline/collect.py:64` | worktree correctness; needs a SEMAS collection run to verify |
+| `cohort.compare_probe()` returns `True` when the probe JSON is absent — and the submission allowlist ships `probe/**/*.py` only, never `probe/results/*.json`, so the gate is vacuous in every judge's copy | `pipeline/cohort.py:99-104` | the fix may be the allowlist rather than the code; packaging owner's call |
+| `fill_dong` — the retired 75.5% proximity heuristic — is still a live function | `pipeline/features.py:84` | its `__main__` caller was removed and the docstring now says RETIRED; deleting the function itself is a separate call |
+
+**Serving robustness** (none reachable from the UI today)
+
+| what | where | current containment |
+|---|---|---|
+| permanent condition answered with 503, which the frontend contract reads as "retry" | `service/goodwill.py:42` | `meta.goodwillSupportedUptae` pre-screens it; `estimation.py:101-112` already shows the 200 + `missing_axes` pattern to copy |
+| `/api/grid/{id}/changes` returns 200 for a grid that `/api/grid/{id}` 404s | `service/api.py:868` | inconsistent with the §7 "평가 대상 밖" contract |
+| no upper bound on rent/upfront/deposit → `ResponseValidationError` 500 on absurd values | `service/app.py:314-316, 355-358` | reachable only by pasting ~1e308 into a number input |
+| `/api/goodwill` computes `grid_detail` twice per request | `service/goodwill.py:101, 185` | 38ms measured; cost only |
+
+**Duplication** — `wilson` defined identically 3× (`model/round4·ui_curves`,
+`service/precompute`), `deciles` 3× byte-identical (`model/ablation·stage1·tournament`),
+and the LLM run scaffolding repeats across 7 `*_run.py` modules. Consolidating
+`deciles`/`wilson` moves import paths, so it waits until after the deadline.
+
+**Do not "clean up" `model/asof.py`.** It is listed in `model/cache.py:16`
+`SOURCES`, so changing one byte re-keys every split cache (~82MB each) and forces
+a rebuild. A ruff pass removed one unused import there on 08-01 and triggered
+exactly that. Guards and lists belong in the guard file, as
+`model/test_leakage.py:28-30` already says.
+
 ## F-A1. ~~`pipeline.consistency` is 15/17~~ ??RESOLVED 2026-07-27 (`_ENV_PATH` NameError)
 
 **Symptom**
