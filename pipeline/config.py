@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 #   KB_CACHE - absolute path to the raw collection cache
 #   KB_ENV   - absolute path to the .env holding API keys
 # Unset means "the copy next to this checkout", which is right for the primary
-# tree and wrong for a worktree - lanes/setup-worktrees.ps1 sets them.
+# tree and wrong for a worktree - the worktree setup script sets all three.
 def _resolve_db():
     """KB_DB > kb.db > kb-demo.db.
 

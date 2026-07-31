@@ -10,9 +10,7 @@ Each check is an invariant that must hold for *any* correct load, derived from
 the meaning of the fields rather than from a remembered number.
 """
 import argparse
-import json
 import sys
-from collections import Counter
 
 from .db import connect_ro
 
@@ -144,12 +142,11 @@ def c_district(con, sample=200):
     transform our stored lon/lat back to an address and compare the 구 against
     the address the row came with.
     """
-    import io as _io
     import random
 
     import requests
 
-    from .config import ENV_PATH, ROOT
+    from .config import ENV_PATH
     env = {}
     for line in ENV_PATH.open(encoding="utf-8-sig"):
         s = line.strip()
@@ -311,12 +308,11 @@ def c_dongaccuracy(con, sample=200):
     the pipeline switched to reverse geocoding. This check exists so a silent
     regression back to a proximity heuristic is caught immediately.
     """
-    import io as _io
     import random
 
     import requests
 
-    from .config import ENV_PATH, ROOT
+    from .config import ENV_PATH
     env = {}
     for line in ENV_PATH.open(encoding="utf-8-sig"):
         s = line.strip()

@@ -106,17 +106,16 @@ WINNER = "gbm"
 # Changing it requires re-running precompute and updating §4-C.
 DEPLOY = LOC2
 
-# R10-B candidate. Measurement set only: deployment requires clearing the
-# pre-registered bundle gate (paired bootstrap CI lower > 0, point >= +0.002,
-# no top-decile drop >= 0.5%p). DEPLOY is untouched until that gate passes.
+# R10-B candidate, rejected at the bundle gate (ΔAUC -0.0009). Kept as a
+# measurement set so the ablation table stays reproducible; DEPLOY never took it.
 from .osm import COLUMNS as OSM   # noqa: E402  (kept beside the sets it extends)
 
 LOC2_OSM = LOC2 + OSM
 
-# R11 candidate — centrality, which the three-city retail-decline panel ranks
-# second only to agglomeration. Distinct from OSM: shop density cannot stand in
-# for "how far from a city centre", because a dense outer 상권 and a dense
-# downtown block are indistinguishable to a neighbour count.
+# R11 candidate, rejected (§25 — the near-miss died when a 2-year refit flipped
+# the sign). Worth measuring because shop density cannot stand in for "how far
+# from a city centre": a dense outer 상권 and a dense downtown block are
+# indistinguishable to a neighbour count.
 from .asof import CBD_COLUMNS as CBD   # noqa: E402
 
 LOC2_CBD = LOC2 + CBD

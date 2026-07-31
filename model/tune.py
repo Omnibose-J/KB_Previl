@@ -35,7 +35,7 @@ from pipeline.db import init
 from .ablation import paired_bootstrap_ci
 from .cache import cached_split
 from .train import (CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, DEPLOY, Encoder,
-                    build_model, fit_predict)
+                    fit_predict)
 from .tournament import DECILE_MIN_GAIN, deciles, paired_bootstrap_decile, top_decile
 
 SEED = 20260730

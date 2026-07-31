@@ -1,4 +1,8 @@
-"""Look up the feature row for a coordinate - the interface the recommender uses."""
+"""Look up the feature row for a coordinate - a CLI probe, not a serving path.
+
+The recommender does not call this: ranking is precomputed into `grid_score`
+by service/precompute.py and read from there.
+"""
 import argparse
 import json
 

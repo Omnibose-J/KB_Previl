@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
-from .config import CACHE_DIR, ENV_PATH, ROOT
+from .config import CACHE_DIR, ENV_PATH
 from .db import init
 
 CACHE = CACHE_DIR / "grid_dong.json"

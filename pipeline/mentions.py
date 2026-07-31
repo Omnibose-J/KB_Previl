@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
-from .config import CACHE_DIR, ENV_PATH, ROOT
+from .config import CACHE_DIR, ENV_PATH
 from .db import init
 
 API = "https://openapi.naver.com/v1/search/blog.json"

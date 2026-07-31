@@ -16,7 +16,7 @@ import math
 
 import requests
 
-from .config import GRID_SIZE_M, SEOUL_BASE
+from .config import SEOUL_BASE
 from .db import init
 from .seoul_api import api_key
 

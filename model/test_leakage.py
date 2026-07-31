@@ -14,7 +14,6 @@ import numpy as np
 from pipeline.db import connect_ro
 
 from .cache import cached_split
-from .evaluate import TEST_YEARS
 from .osm import COLUMNS as _OSM_COLUMNS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
@@ -143,7 +142,7 @@ def main():
     print(f"   -> {'정상 PASS' if green_ok else 'FAIL — 정상 피처가 오라클 수준, 누수 의심'}")
 
     print("\n3) 피처 목록에 금지 소스가 없는지 확인")
-    from .asof import FEATURES, LEAKY
+    from .asof import FEATURES
     from .feature_gate import FAMILIES
     from .recovery import RECOVERY_FEATURES
     from .robustness import FEATURE_SETS

@@ -18,7 +18,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from model.place import K, YEARS, build
+from model.place import K, build
 from pipeline.config import DB_PATH
 
 SEED = 0

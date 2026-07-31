@@ -28,7 +28,7 @@ from .backtest import deciles
 from .cache import cached_split
 from .evaluate import baseline_prior_surv
 from .horizon import grades
-from .train import DEPLOY, WINNER, fit_predict
+from .train import WINNER, fit_predict
 
 # (label, horizon, train years, test years). Train always ends before test.
 # 2005 is the confirmed start (E1); the end moves with the test cohort.

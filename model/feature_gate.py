@@ -15,7 +15,7 @@ form per experiment - they are imported from extend.py, not restated.
 
 Families (R10-B ran as `--family osm` under the earlier name osm_gate.py):
   osm  road geometry (model/osm.py)              -> rejected, ΔAUC -0.0009
-  cbd  distance to Seoul's three city centres    -> R11
+  cbd  distance to Seoul's three city centres    -> rejected (§25, sign flipped)
 """
 import argparse
 import sys

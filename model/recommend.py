@@ -77,7 +77,7 @@ def score_all(con, uptae, site_area=None, verbose=True):
     #    kinder than the validation era, so we report measured rates instead.
     #  - final: refit on everything to score today.
     # site_area is excluded from ranking on purpose. It is the strongest single
-    # predictor (AUC 0.6221 alone; 25㎡ shops survive 44.8% vs 74.4% at 90㎡+),
+    # predictor (AUC 0.6227 alone; 25㎡ shops survive 44.8% vs 74.4% at 90㎡+),
     # but it describes the SHOP, not the LOCATION - and in a recommendation the
     # user fixes it, so it is identical across every candidate cell. Leaving it
     # in would inflate the reported grade without changing the order.

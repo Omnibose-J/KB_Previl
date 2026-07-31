@@ -19,7 +19,7 @@ import json
 
 import requests
 
-from .config import CACHE_DIR, ENV_PATH, ROOT
+from .config import CACHE_DIR, ENV_PATH
 from .db import init
 
 BASE = "https://sgisapi.kostat.go.kr/OpenAPI3"

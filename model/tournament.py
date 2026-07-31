@@ -24,7 +24,7 @@ from pipeline.db import init
 from .ablation import paired_bootstrap_ci
 from .cache import cached_split
 from .evaluate import TEST_YEARS, baseline_prior_surv
-from .train import LEGACY_TRAIN_YEARS, DEPLOY, Encoder, fit_predict
+from .train import LEGACY_TRAIN_YEARS, Encoder, fit_predict
 
 # --- selection criteria -------------------------------------------------------
 # "auc" is round 2's pre-registration (docs/experiment-plan.md E-M) and is kept so

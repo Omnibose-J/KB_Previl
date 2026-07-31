@@ -22,7 +22,7 @@ import requests
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
-from .config import CACHE_DIR, ENV_PATH, GRID_SIZE_M, ROOT
+from .config import CACHE_DIR, ENV_PATH, GRID_SIZE_M
 from .db import init
 
 BASE = "https://sgisapi.kostat.go.kr/OpenAPI3"

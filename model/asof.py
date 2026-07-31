@@ -20,7 +20,6 @@ from pipeline.grid import neighbors
 # Single source for the OSM column set - osm.py builds the table, this module
 # reads it, and a mismatch between the two would be a silent column shift.
 from .osm import COLUMNS as OSM_COLUMNS
-from .osm import FEATURES as OSM_FEATURES
 
 # horizon (months) used for "recent" windows
 RECENT_M = 36

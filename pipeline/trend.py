@@ -22,7 +22,7 @@ import time
 
 import requests
 
-from .config import CACHE_DIR, ENV_PATH, ROOT
+from .config import CACHE_DIR, ENV_PATH
 from .db import init
 
 API = "https://openapi.naver.com/v1/datalab/search"

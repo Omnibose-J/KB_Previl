@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 
 from .config import DEFAULT_QUARTER
 from .db import init
-from .grid import grid_center, neighbors, to_grid_id
+from .grid import grid_center, neighbors
 
 MIN_SURVIVAL_SAMPLE = 20      # below this a local survival rate is noise -> NULL
 M_PER_DEG_LAT = 111_320.0

@@ -9,7 +9,6 @@
     python -m model.absa_test
 """
 import argparse
-import re
 import sqlite3
 import sys
 from collections import defaultdict
