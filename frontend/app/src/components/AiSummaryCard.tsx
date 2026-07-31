@@ -3,14 +3,10 @@ import { ApiError, api } from "../api/client";
 import { ErrorState, Loading } from "./states";
 import s from "./AiSummaryCard.module.css";
 
-// 「기록 자세히」 맨 위. 아래에 이어지는 표·수치를 먼저 말로 풀어 준다.
+// 숫자는 서버가 계산하고 LLM 은 문장만 만든다. 그래서 입력이 자리와 업종뿐이고,
+// 받은 값을 화면에서 문장에 끼워 넣지 않는다 — 그러면 화면이 계산에 참여하게 된다.
 //
-// 숫자는 서버가 계산하고 LLM 은 문장만 만든다(docs/submission.md §3). 그래서
-// 입력이 자리와 업종뿐이고, 여기서 값을 받아 문장에 끼워 넣지 않는다 — 그러면
-// 화면이 계산에 참여하게 되고 «어느 숫자가 진짜인지» 를 말할 수 없게 된다.
-//
-// 실패하면 실패로 그린다. 캐시된 문장·평균 문구·«준비 중» 같은 대체 문안을
-// 내보내지 않는다(no-mock 정책). 요약이 비는 것보다 지어낸 요약이 나쁘다.
+// 실패하면 실패로 그린다. 요약이 비는 것보다 지어낸 요약이 나쁘다.
 
 export default function AiSummaryCard({
   gridId,

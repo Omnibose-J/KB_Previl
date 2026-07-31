@@ -18,14 +18,11 @@ import { useReveal } from "../lib/reveal";
 import { useSearch } from "../state/search";
 import s from "./S4Detail.module.css";
 
-// S4, rebuilt against figma-snapshot S4: breadcrumb bar → dark hero (pills +
-// big grade) → KPI 3 → economics (the one card figma lacks and we keep — it is
-// the demo's centrepiece) → signal bars → 경쟁/위험 pair →
-// observed-by-grade table, with the 4-card sidebar.
+// 자리 하나의 전체 리포트. 머리말 바 → 어두운 히어로 → KPI 3 → 손익 → 경쟁·위험
+// → 등급별 실측표, 오른쪽에 사이드바.
 //
-// Figma blocks that had no data behind them are kept as VISUALS but with
-// honest content: 대출/코칭/알림 cards carry a "준비 중" label and no
-// simulated numbers; the 매물 table slot became the observed-survival table.
+// 데이터가 없는 시안 블록은 지우지 않고 정직한 내용으로 채웠다. 대출·코칭 카드는
+// «준비 중» 딱지를 달고 모의 숫자를 넣지 않으며, 매물 표 자리는 실측 생존표가 됐다.
 
 export default function S4Detail({
   go,

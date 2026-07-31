@@ -1,24 +1,19 @@
-"""Extract the serving subset of kb.db into a shippable demo database.
+"""kb.db 에서 서빙에 필요한 부분만 뽑아 제출용 경량 DB 를 만든다.
 
-Contract: docs/submission.md §1. The prototype zip cannot carry kb.db (229MB)
-or pipeline/cache/ (807MB), and should not: a judge needs the app to run, not
-the pipeline to be reproducible from the archive. What the app needs is exactly
-the tables service/ reads.
+zip 은 kb.db(445MB)도 pipeline/cache/(807MB)도 못 담고, 담아서도 안 된다.
+심사자에게 필요한 것은 앱이 도는 것이지 아카이브에서 파이프라인을 재현하는
+것이 아니다.
 
-The table list is derived, not guessed. `--audit` re-derives it by scanning
-service/*.py for FROM/JOIN/INTO/UPDATE against the live schema and reports any
-drift against TABLES below, so a new query in the service cannot silently ship a
-demo database that 404s at the judge's desk.
+표 목록은 짐작이 아니라 도출된다. `--audit` 이 service/*.py 의 FROM/JOIN/
+INTO/UPDATE 를 훑어 TABLES 와 어긋나면 빌드를 거부하므로, 서비스에 쿼리가
+하나 늘었는데 심사자 자리에서 404 가 나는 일이 생기지 않는다.
 
-Deliberately excluded, and why it is safe: addr_tenancy (535k), shop_concept
-(477k) and store (139k) are pipeline/model inputs with no serving reader. Every
-number the UI shows comes from grid_score / score_meta / the grid_* feature
-tables, which are all included.
+제외한 큰 표(addr_tenancy 535k · shop_concept 477k · store 139k)는 전부
+파이프라인·모델 입력이고 서빙 리더가 없다.
 
-Usage:
-    python -m service.demo_db --out kb-demo.db     # build
-    python -m service.demo_db --audit              # check the list is current
-    python -m service.demo_db --verify kb-demo.db  # boot the API against it
+    python -m service.demo_db --out kb-demo.db     # 빌드
+    python -m service.demo_db --audit              # 목록이 코드와 맞는지만
+    python -m service.demo_db --verify kb-demo.db  # 그 DB 로 API 를 띄워 확인
 """
 import argparse
 import ast

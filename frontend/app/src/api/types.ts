@@ -1,15 +1,13 @@
-// B->C contract — mirrors lanes/B-backend.md (2026-07-27, decisions B-001 +
-// goodwill-report-design §8-A slim input).
+// 서버 ↔ 화면 계약. 정본은 service/app.py 의 Pydantic 모델이고 이 파일은 사본이다.
 //
-// JSON is camelCase, coordinates are [lon, lat] WGS84, rates are 0..1, money is
-// 만원 unless stated. grade is 1..9 and 1 IS BEST. No response ever carries
-// `score` — the model probability runs 2.7~6.7%p optimistic, so the screen
-// shows the survival actually observed in that grade instead.
+//   JSON camelCase · 좌표 [lon, lat] WGS84 · 비율 0..1 · 금액 만원(별도 표기 없으면)
+//   grade 1..9, 1 이 가장 좋다 · 응답에 score 는 없다
 //
-// Every `| null` below is load-bearing: NULL means "not observable" and must
-// never be rendered as 0 (ui-spec §4). Fields lane A has not produced yet
-// (openings36m, signal, n/ciLow/ciHigh) arrive as null and the screen draws the
-// common NULL pattern rather than substituting anything.
+// score 를 안 내는 이유: 모델 확률이 2.7~6.7%p 낙관적이라, 화면은 그 등급에서
+// 실제로 관측된 생존율을 대신 보여준다.
+//
+// 아래 `| null` 은 전부 의미가 있다. NULL 은 «관측되지 않음»이고 0 으로 그리면
+// 안 된다.
 
 /** grade 1 = best. Shares are 내신형 (4/7/12/17/20/17/12/7/4%), so grade 1 is
  *  the top ~4%, not a decile. Direction is part of the API contract. */
@@ -73,14 +71,9 @@ export interface Meta {
   gradeArea: GradeArea | null;
   /** total scored grids — S2 funnel row 1 (never hardcode the count) */
   gridCount: number;
-  /**
-   * 권리금 참고가를 낼 수 있는 업태. 서울 상권분석 분류에 대응 코드가 없는
-   * 업태(「기타」·「외국음식전문점」)는 여기 없다 — 다른 업종 벤치마크를
-   * 빌려오지 않기로 한 결과다.
-   *
-   * 격자별 런타임 조건이 아니라 **업태의 정적 성질**이므로, 화면은 요청을
-   * 보내 실패를 보기 전에 이 목록으로 미리 막는다.
-   */
+  /** 권리금 참고가를 낼 수 있는 업태. 상권분석 분류에 대응 코드가 없는 업태는
+   *  빠진다(다른 업종 벤치마크를 빌리지 않는다). 격자별 조건이 아니라 업태의
+   *  정적 성질이라, 화면은 요청 전에 이 목록으로 막는다. */
   goodwillSupportedUptae: string[];
   gradeDirection: "1_is_best";
   /**
@@ -135,14 +128,12 @@ export interface ChangeBucket {
 }
 
 /**
- * 주변 300m 에서 실제로 열고 닫은 가게 수 — 사실이지 예측이 아니다.
+ * 주변 300m 의 개업·폐업 건수. 사실이지 예측이 아니다.
  *
- * **등급 시계열이 아니다.** 등급은 상대 순위라 내 자리가 그대로여도
- * 남이 움직이면 바뀐다(`service/alerts.py`: 6개월에 등급 폭의 61% 이동, 1칸
- * 변동 58%). 그걸 선으로 그리면 순위 요동이 추세로 읽힌다.
+ * 등급 시계열이 아니다. 등급은 상대 순위라 내 자리가 그대로여도 남이 움직이면
+ * 바뀌고(6개월에 등급 폭의 61% 이동), 그걸 선으로 그리면 요동이 추세로 읽힌다.
  *
- * `null` = 이 링에 인허가 이력이 아예 없음. 사건이 0 인 구간은 행으로 온다 —
- * 0 과 결측은 다르고, 빠진 행은 화면에서 «그때는 데이터가 없었다» 로 읽힌다.
+ * `null` = 이 링에 인허가 이력이 아예 없음. 사건이 0 인 구간은 행으로 온다.
  */
 export interface ChangeHistory {
   unit: string;
@@ -225,11 +216,9 @@ export interface PartyCount {
 }
 
 /**
- * 방문객이 쓴 글에서 뽑은 «누구와 왔는가». 상권 resolution — 같은 상권 안
- * 격자는 같은 값이다. 관측 집계이지 예측이 아니고, 등급·순위에 쓰이지 않는다.
- *
- * 서버는 표기 문턱을 통과한 두 클래스만 보낸다(§J-1). alone·couple·friend 는
- * 정밀도 미달로 아예 오지 않으므로 화면이 거를 필요가 없다.
+ * 방문객 글에서 뽑은 «누구와 왔는가». 상권 해상도라 같은 상권 안 격자는 같은
+ * 값이고, 등급·순위에 쓰이지 않는다. 표기 문턱을 통과한 두 클래스만 오므로
+ * 화면이 거를 필요가 없다.
  *
  * `available: false` = 수집 미실행, `items: []` = 글이 모자라 판단 불가.
  */
@@ -474,17 +463,17 @@ export interface GoodwillResponse {
   notice: string;
 }
 
-// --- 실질 월 점유비용 · 후보 비교 (criteria-backend-teo-v1 §1 W1~W3) --------
+// --- 실질 월 점유비용 · 후보 비교 -------------------------------------------
 //
-// 기획서의 관점 전환: 보증금·월세·권리금은 형태만 다른 같은 자리값이다. 셋을
-// «한 달에 실제로 빠져나가는 돈» 하나로 환산하면 매물 순위가 뒤집힌다.
+// 보증금·월세·권리금은 형태만 다른 같은 자리값이다. 한 달치로 환산하면 순위가
+// 뒤집힌다.
 //
 //   실질 월 점유비용 = 월세 + 관리비
-//                    + 보증금 × opportunityRate ÷ 12      (돌려받으므로 이자만)
+//                    + 보증금 × opportunityRate ÷ 12       (돌려받으므로 이자만)
 //                    + 권리금 × (1 − 승계확률) ÷ horizonMonths
 //
-// 이 계산은 서버의 순수 함수이며 클라이언트는 절대 다시 계산하지 않는다 —
-// 두 곳에서 계산하면 반올림만 어긋나도 화면과 리포트가 다른 숫자를 말한다.
+// 서버의 순수 함수이고 클라이언트는 다시 계산하지 않는다. 두 곳에서 계산하면
+// 반올림만 어긋나도 화면과 리포트가 다른 숫자를 말한다.
 
 /**
  * 서버는 `extra="forbid"`다 — 여기 없는 키를 하나라도 보내면 422다.

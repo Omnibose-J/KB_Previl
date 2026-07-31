@@ -7,14 +7,12 @@ import { gradeLabel } from "../lib/grade";
 import { ErrorState, Loading } from "./states";
 import s from "./EconomicsCard.module.css";
 
-// 경제성 카드 — the centrepiece of S4 (ui-spec §3-S4). 단순 회수 vs 위험반영
-// 회수 is the one contrast only we can draw: same revenue, same rent, different
-// survival odds, different money left after three years.
+// S4 의 중심 카드. 우리만 그릴 수 있는 대비는 하나다 — 매출도 월세도 같은데
+// 생존 확률이 달라서 3년 뒤 남는 돈이 갈린다.
 //
-// Two rules are baked into this component so no screen can forget them (§4):
-//   1. the Seoul-average caption whenever the user left 매출 blank;
-//   2. every number arrives from POST /economics — the formula is NEVER
-//      reimplemented client-side, because two copies always drift apart.
+// 두 규칙이 여기 박혀 있다:
+//   1. 매출을 비워 두면 «서울 평균으로 계산했다»를 반드시 함께 낸다.
+//   2. 숫자는 전부 POST /economics 에서 온다. 산식을 여기 다시 짜지 않는다.
 
 const DEBOUNCE_MS = 400;
 

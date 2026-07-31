@@ -841,20 +841,14 @@ def report(payload: ReportInput) -> dict:
 
 
 # --- built frontend --------------------------------------------------------
-# Mounted LAST so every /api route matches first - a mount at "/" would
-# otherwise swallow them. This is what lets the submitted zip run with one
-# command instead of two (uvicorn + vite); docs/submission.md §1 counts a
-# judge's failed `npm install` as a real risk.
+# 맨 마지막에 마운트한다. "/" 마운트가 앞에 오면 /api 를 통째로 삼킨다. 이 덕에
+# 제출 zip 이 uvicorn 한 줄로 뜬다(심사자에게 npm install 을 시키지 않는다).
+# vite build 를 안 한 체크아웃은 UI 라우트가 없을 뿐 API 는 그대로 돈다.
 #
-# A checkout that never ran `vite build` simply has no UI route and the API
-# still serves. No placeholder page is generated: a blank shell that looks like
-# the product is worse than an honest 404.
-# `.mjs` is not in the Windows registry that Python's `mimetypes` reads, so
-# StaticFiles serves it as text/plain. Browsers refuse to execute a module
-# script with that type, and MapLibre's GeoJSON parser is exactly such a module
-# worker — the map then renders raster tiles and NO grade cells, which is the
-# whole screen. Registering the type before the mount is what makes the built
-# demo (and therefore the submitted zip) show the grid at all.
+# `.mjs` 는 파이썬 mimetypes 가 읽는 윈도 레지스트리에 없어서 text/plain 으로
+# 나가고, 브라우저는 그 타입의 모듈 스크립트를 실행하지 않는다. MapLibre 의
+# GeoJSON 파서가 정확히 그런 모듈 워커라, 등록하지 않으면 지도에 타일만 뜨고
+# 등급 칸이 하나도 안 그려진다.
 mimetypes.add_type("application/javascript", ".mjs")
 
 _DIST = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "app" / "dist"

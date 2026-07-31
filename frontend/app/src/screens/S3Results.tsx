@@ -15,12 +15,9 @@ import { int } from "../lib/format";
 import { useSearch } from "../state/search";
 import s from "./S3Results.module.css";
 
-// S3, rebuilt against figma-snapshot S3: 600px ranking column (head → What-if
-// dark panel → cards) + map panel (tabs → canvas → insights strip).
-// The What-if controls are REAL: they mutate the shared search state and the
-// recommend query refetches — no "+18곳" preview deltas are ever fabricated.
-// Extra map tabs (경쟁·지역 생존율·수요) have no /grids payload yet, so they
-// render disabled with an explicit 준비 중 label rather than pretending.
+// 왼쪽 순위 열(머리 → What-if → 카드) + 오른쪽 지도.
+// What-if 조작은 전부 진짜다. 공유 검색 상태를 바꾸고 추천 질의가 다시 돈다 —
+// «+18곳» 같은 미리보기 증분을 지어내지 않는다.
 
 export default function S3Results({ go }: { go: (s: Screen) => void }) {
   const search = useSearch();

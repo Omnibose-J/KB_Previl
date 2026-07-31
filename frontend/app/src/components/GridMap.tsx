@@ -18,12 +18,9 @@ import { survivalSentence } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./GridMap.module.css";
 
-// Map-first navigation (ui-spec §0 원칙 4). MapLibre + OSM raster, because
-// KAKAO_JAVASCRIPT_KEY was never issued — the spec's declared fallback (§1).
-//
-// Cells are drawn as real 100m polygons, never points or a continuous heatmap:
-// a blurred gradient would visually claim a resolution we do not have, and a
-// continuous alpha ramp implies a score when the decile is all we validated.
+// MapLibre + OSM raster (KAKAO_JAVASCRIPT_KEY 이 발급되지 않아 스펙의 대체안).
+// 칸은 실제 100m 폴리곤으로만 그린다. 흐린 그라디언트는 없는 해상도를 주장하고,
+// 연속 알파는 우리가 검증한 것이 등급뿐인데 점수가 있는 것처럼 보이게 한다.
 
 const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
 const SEOUL_MAX_BOUNDS: LngLatBoundsLike = [
@@ -54,10 +51,8 @@ const BASE_STYLE: StyleSpecification = {
 
 type Bbox = [number, number, number, number];
 
-/** Quantise the viewport so a 2px pan does not refetch (the API caps cells).
- *  Outward only — floor west/south, ceil east/north. Symmetric rounding could
- *  SHRINK the bbox by up to ~0.001° per edge (~one 100m cell), silently
- *  dropping cells at the viewport border. */
+/** 2px 팬으로 재조회하지 않게 뷰포트를 양자화한다. 반드시 바깥쪽으로만 — 대칭
+ *  반올림은 변마다 최대 0.001°(≈ 100m 한 칸) bbox 를 줄여 경계 칸을 흘린다. */
 const quantise = ([w, s, e, n]: Bbox): Bbox => [
   Math.floor(w * 500) / 500,
   Math.floor(s * 500) / 500,
@@ -65,9 +60,8 @@ const quantise = ([w, s, e, n]: Bbox): Bbox => [
   Math.ceil(n * 500) / 500,
 ];
 
-/** Cells only exist above the server's viewport cap, so the map must ARRIVE
- *  zoomed in on a real candidate. Opening on all of Seoul renders an empty map
- *  (413) and reads as "no data here" — the wrong claim entirely. */
+/** 서울 전역 줌에서는 /grids 가 413 이라 칸이 하나도 안 나오고, 빈 지도는
+ *  «여긴 데이터가 없다»로 읽힌다. 그래서 지도는 실제 후보에 붙어서 열린다. */
 const FOCUS_ZOOM = 15;
 
 /** Dark rank pin (figma S3 "Pin/…"): rank circle + 행정동 label. */
@@ -105,10 +99,9 @@ export default function GridMap({
   /** 지도 위에서 마우스가 짚은 칸. 목록 호버(hoveredId)와 별개로 둔다 —
    *  한 상태로 합치면 목록에서 손을 떼는 순간 지도 쪽 테두리까지 사라진다. */
   const [mapHoverId, setMapHoverId] = useState<string | null>(null);
-  /* The style loads asynchronously, so the source does not exist yet when the
-     component mounts. Cached query data can therefore arrive BEFORE the map is
-     ready; without this flag that data is dropped and the map stays empty on
-     every re-entry. */
+  /* 스타일이 비동기로 로드돼 마운트 시점엔 소스가 없다. 캐시된 데이터가 그보다
+     먼저 도착할 수 있고, 이 플래그가 없으면 그 데이터가 버려져 재진입 때마다
+     지도가 빈 채로 남는다. */
   const [ready, setReady] = useState(false);
 
   const q = useQuery({
@@ -137,30 +130,21 @@ export default function GridMap({
 
     m.on("load", () => {
       m.addSource("grids", { type: "geojson", data: emptyFc() });
-      // 색은 셀 «안에서만» 칠한다. 번지는 층(heatmap·circle-blur)을 두 번
-      // 만들어 봤는데 둘 다 색이 칸 밖으로 나간다 — 그건 점수가 없는 칸까지
-      // «여기도 평가됐다»로 칠하는 것이고, 이 프로젝트가 금지한 종류의 거짓이다.
-      // 칸을 넘지 않는 스무딩은 성립하지 않으므로 번짐층은 두지 않는다.
-      //
-      // 대신 각져 보이던 진짜 원인을 없앤다: 셀마다 그어져 있던 흰 실선이다.
-      // 선을 빼면 같은 등급끼리는 이음매 없이 한 덩어리로 읽히고, 색이 바뀌는
-      // 자리에만 경계가 보인다 — 그 경계는 실제로 등급이 다른 자리다.
+      // 색은 셀 안에서만 칠한다. 번지는 층(heatmap·circle-blur)을 두 번 만들어
+      // 봤는데 둘 다 색이 칸 밖으로 나갔다 — 점수 없는 칸까지 «평가됐다»로
+      // 칠하는 것이라 기각했다. 각져 보이던 진짜 원인은 셀마다 그어져 있던 흰
+      // 실선이었고, 그것을 빼니 같은 등급끼리 한 덩어리로 읽힌다.
       m.addLayer({
         id: "grid-fill",
         type: "fill",
         source: "grids",
-        // Ramp colors carry their own alpha; the extra fill-opacity keeps
-        // roads/labels legible under dense grade-1 areas (UX critique).
+        // 램프 색이 자체 alpha 를 갖는다. 여기 opacity 는 1등급 밀집 구역에서
+        // 도로·라벨이 읽히게 하는 몫이다.
         paint: { "fill-color": ["get", "color"], "fill-opacity": 0.8 },
       });
-      // 평가 구역의 바깥 가장자리만 «안쪽으로» 흐린다. 100m 칸이라 경계가
-      // 계단으로 읽히는데, 그 계단은 데이터 해상도지 등급 차이가 아니다.
-      //
-      // 밖으로는 한 픽셀도 나가지 않아야 한다 — 점수가 없는 칸에 색을 얹는 것은
-      // 이 프로젝트가 금지한 거짓이고, 번짐층을 두 번 기각한 이유가 그것이다.
-      // 그래서 blur 를 중앙에 두지 않고 line-offset 으로 선 전체를 안쪽에 넣는다
-      // (offset > width/2 + blur/2). 등급 경계는 손대지 않으므로 각 칸의 등급
-      // 값은 화면에서도 그대로다.
+      // 바깥 가장자리만 안쪽으로 흐린다. 100m 칸이라 경계가 계단으로 읽히는데
+      // 그 계단은 데이터 해상도지 등급 차이가 아니다. 밖으로는 한 픽셀도 나가면
+      // 안 되므로 blur 를 중앙에 두지 않고 선 전체를 안쪽에 넣는다.
       m.addSource("grid-edge", { type: "geojson", data: emptyFc() });
       m.addLayer({
         id: "grid-silhouette",
@@ -207,10 +191,8 @@ export default function GridMap({
       m.on("mouseleave", "grid-fill", () => setMapHoverId(null));
       m.on("mouseenter", "grid-fill", () => (m.getCanvas().style.cursor = "pointer"));
       m.on("mouseleave", "grid-fill", () => (m.getCanvas().style.cursor = ""));
-      // No syncBbox() here: the map opens on all of Seoul (zoom 12), where a
-      // fetch is a guaranteed 413 — a wasted request plus a false "too many
-      // cells" flash. The first fetch fires on moveend, i.e. after the flyTo
-      // to the top candidate (or the user's own first pan).
+      // 여기서 syncBbox 를 부르지 않는다. 지도는 서울 전역(zoom 12)에서 열리고
+      // 그 조회는 확정 413 이라, 첫 조회는 moveend 에 맡긴다.
       setReady(true);
     });
     m.on("moveend", syncBbox);
@@ -221,8 +203,7 @@ export default function GridMap({
       map.current = null;
       setReady(false);
     };
-    // onSelect is stable enough for a demo-scale screen; re-creating the map on
-    // every render would destroy the user's viewport.
+    // 매 렌더마다 지도를 다시 만들면 사용자의 뷰포트가 날아간다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -283,15 +264,14 @@ export default function GridMap({
 
   return (
     <div className={s.wrap}>
-      {/* Lenis 가 휠 이벤트를 가로채 페이지를 대신 굴린다. MapLibre 가
-          preventDefault 를 걸어도 소용없어서, 지도에서 줌하려고 휠을 돌리면
-          지도도 줌되고 페이지도 같이 내려간다(실측: 휠 240 에 235px 스크롤).
-          이 속성이 Lenis 쪽에 «여기 안에서는 손대지 마라» 를 알린다. */}
+      {/* Lenis 가 휠을 가로채 페이지를 대신 굴린다. MapLibre 의 preventDefault
+          가 안 먹어서, 지도에서 줌하면 페이지도 같이 내려갔다(실측: 휠 240 에
+          235px). 이 속성이 Lenis 에게 «여기는 손대지 마라»를 알린다. */}
       <div ref={holder} className={s.canvas} data-lenis-prevent />
       <div className={s.overlay}>
         {q.isPending && bbox ? <Loading label="격자 불러오는 중…" /> : null}
-        {/* 413 is not a failure to explain away: the server refuses to thin the
-            cells because a sampled map would misrepresent coverage (§B 계약). */}
+        {/* 413 은 변명할 실패가 아니다. 표본으로 솎은 지도는 커버리지를 잘못
+            말하므로 서버가 솎기를 거부한다(§B 계약). */}
         {q.error instanceof ApiError && q.error.status === 413 ? (
           <p className={s.zoomHint}>격자가 너무 많습니다 — 지도를 확대해주세요.</p>
         ) : q.isError ? (
@@ -306,10 +286,8 @@ export default function GridMap({
   );
 }
 
-/** 주소 1줄 + 값 1개 + 방향 1개 + 진입 액션 1개. Denser than that and the map
- *  stops being readable — the information density borrowed from 호갱노노 /
- *  KB부동산. 주소는 값이 아니라 «지금 짚은 칸이 어디냐» 라, 100m 격자만으로는
- *  답할 수 없던 질문을 채운다. */
+/** 주소 1줄 + 값 1개 + 방향 1개 + 진입 액션 1개. 이보다 빽빽하면 지도가 안
+ *  읽힌다. 주소는 값이 아니라 «지금 짚은 칸이 어디냐»에 대한 답이다. */
 function Bubble({ cell, onOpen }: { cell?: GridCell; onOpen?: (cell: GridCell) => void }) {
   const addr = useQuery({
     queryKey: ["gridAddress", cell?.gridId],
@@ -338,8 +316,7 @@ function Bubble({ cell, onOpen }: { cell?: GridCell; onOpen?: (cell: GridCell) =
   );
 }
 
-/** Figma floating legend: 낮음 → five swatches → 높음. Swatches sample the
- *  10-step ramp at the labelled stops (§3-S3: 10 labels are unreadable). */
+/** 색칸은 램프를 LEGEND_STEPS 지점에서만 뽑는다. 9개를 다 적으면 안 읽힌다. */
 function Legend() {
   return (
     <div className={s.legend}>
@@ -358,24 +335,16 @@ function Legend() {
 const emptyFc = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
 
 /**
- * 평가 구역의 «바깥 실루엣»만 뽑는다 — 계단 모양을 누그러뜨리는 데 쓴다.
+ * 평가 구역의 바깥 실루엣만 뽑는다. 변을 세어 한 번만 나오는 변(= 바깥과 접한
+ * 변)만 남긴다. 격자 인덱스로 이웃을 찾으면 X 가 경도인지 위도인지에 코드가
+ * 의존하지만, 좌표를 세면 그 가정이 필요 없다.
  *
- * 셀은 개별 사각형이라 폴리곤 외곽선을 그대로 그리면 칸마다 선이 생겨 체스판이
- * 된다. 그래서 변 하나하나를 세어 **딱 한 번 나오는 변만** 남긴다: 이웃한 두 칸이
- * 맞대고 있는 변은 두 번 나오고(내부), 바깥과 접한 변은 한 번 나온다.
- *
- * 격자 인덱스(X_Y)로 이웃을 찾지 않는 이유는 X 가 경도인지 위도인지, 부호가
- * 어느 쪽인지에 코드가 의존하게 되기 때문이다. 좌표만 세면 그 가정이 필요 없다.
- *
- * 선은 `line-offset` 으로 밀지 않고 **좌표를 셀 중심 쪽으로 직접 당겨** 넣는다.
- * offset 은 «선 진행 방향의 오른쪽»이라 어느 쪽이 안인지가 ring 감김과 화면
- * y 반전에 동시에 걸린다 — 부호를 잘못 잡으면 색이 평가 밖으로 나가고, 그게
- * 정확히 이 프로젝트가 금지한 것이다. 좌표를 옮기면 규약에 기대지 않고
- * «모든 점이 자기 칸 안에 있다» 를 숫자로 확인할 수 있다.
+ * 선은 `line-offset` 대신 좌표를 셀 중심 쪽으로 당겨 넣는다. offset 은 «진행
+ * 방향의 오른쪽»이라 안쪽이 ring 감김과 y 반전에 동시에 걸리고, 부호를 틀리면
+ * 색이 평가 구역 밖으로 나간다.
  */
-// 셀 한 변 대비. 실측(zoom 15, 100m 칸 ≈ 50px): 0.18 이면 여백이 약 7m ≈ 3.5px
-// 인데 line-width 4 + blur 5 의 절반이 그 위에 얹혀 빠듯했다. 0.3 이면 약 12m
-// ≈ 6px 로, 선이 칸 안에 온전히 들어간다.
+// 셀 한 변 대비. 실측(zoom 15, 100m 칸 ≈ 50px): 0.3 이면 여백 약 12m ≈ 6px 로
+// line-width 4 + blur 5 가 칸 안에 온전히 들어간다. 0.18 은 빠듯했다.
 const EDGE_INSET = 0.3;
 
 function toEdgeFc(cells: GridCell[], colorOf: (g: number) => string): FeatureCollection {
@@ -419,8 +388,8 @@ function toEdgeFc(cells: GridCell[], colorOf: (g: number) => string): FeatureCol
   };
 }
 
-/** One style lookup per update, not one per cell. 채우기와 실루엣이 같은 램프를
- *  읽어야 두 층의 색이 갈라지지 않는다. */
+/** 갱신마다 스타일을 한 번만 읽는다. 채우기와 실루엣이 같은 램프를 봐야 두 층의
+ *  색이 갈라지지 않는다. */
 function makeColorOf() {
   const rootStyle = getComputedStyle(document.documentElement);
   const ramp = new Map<number, string>();

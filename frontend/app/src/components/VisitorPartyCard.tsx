@@ -2,13 +2,11 @@ import type { VisitorParty } from "../api/types";
 import { int } from "../lib/format";
 import s from "./VisitorPartyCard.module.css";
 
-// 손님이 쓴 후기에서 «누구와 왔는지»가 적힌 것만 센 관측이다. 서버가 준 건수만
-// 그린다 — 비율은 서버가 계산한 share 를 쓰고, 순위·전망을 클라이언트에서
-// 만들지 않는다(docs/unstructured-plan.md §J-1).
+// 후기에서 «누구와 왔는지»가 적힌 것만 센 관측이다. 비율도 서버가 계산한 share
+// 를 쓰고, 순위나 전망을 클라이언트에서 만들지 않는다.
 //
-// 정확도를 반드시 함께 보여준다. 라벨만 보이면 «측정했다» 가 «맞다» 로 읽힌다.
-// 두 클래스의 실측 정밀도는 0.633·0.700 이라 «10건 중 3~4건은 틀린다» 가
-// 정직한 요약이다.
+// 정확도를 반드시 함께 낸다. 라벨만 보이면 «측정했다»가 «맞다»로 읽히는데,
+// 실측 정밀도는 0.633·0.700 이라 10건 중 3~4건은 틀린다.
 
 function accuracyLine(items: VisitorParty["items"]): string {
   const worst = Math.min(...items.map((i) => i.precision));

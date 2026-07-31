@@ -6,13 +6,10 @@ import { int, man, pct1, signedMan, yearsLabel } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./GoodwillCard.module.css";
 
-// 권리금 협상 리포트 — goodwill-report-design §8-C (증권사 리서치 포맷).
-// Inputs are ONLY what the user knows (호가·잔여기간·유형자산); every basis
-// number (M, M̄, r, d, 조정계수) is server-owned and rendered from the
-// response with its source — the client never computes valuation parts.
-// Out-of-trade-area grids get no inputs at all: with no revenue basis the
-// intangible value cannot exist, and faking it is the goodwill version of a
-// mockup (§3).
+// 권리금 협상 리포트. 입력은 사용자가 아는 것만(호가·잔여기간·유형자산) 받고,
+// 근거 값(M, M̄, r, d, 조정계수)은 전부 서버가 갖고 출처와 함께 내려온다.
+// 상권 밖 격자는 입력칸 자체를 안 준다 — 매출 근거가 없으면 무형가치가 성립하지
+// 않고, 그걸 지어내는 것이 권리금판 목업이다.
 
 const DEBOUNCE_MS = 500;
 

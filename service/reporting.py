@@ -173,10 +173,9 @@ _NOT_QUOTABLE = frozenset({"confidence"})
 def quotable_evidence(evidence):
     """placeholder 로 인용할 수 있는 항목만 남긴다.
 
-    인용은 문자열 값에만 성립한다 — 리스트를 문장 가운데 넣을 방법이 없다.
-    모델에게 주는 payload 와 인용 허용 집합이 같아야 한다. 다르면 모델은
-    자기가 본 키를 정직하게 인용했는데 «알 수 없는 placeholder» 로 거부당한다
-    (실제로 missingAxes 가 리스트라 그렇게 502 가 났다).
+    인용은 문자열 값에만 성립하고, 모델에게 주는 payload 와 이 집합이 같아야
+    한다. 다르면 모델이 본 키를 정직하게 인용했는데 «알 수 없는 placeholder»
+    로 거부당한다(missingAxes 가 리스트라 실제로 502 가 났다).
     """
     return {
         key: value
@@ -246,16 +245,14 @@ def render_evidence_placeholders(sentences, evidence):
 
 
 def reject_non_korean(sentences):
-    """모델의 사고 흔적이 문장 칸으로 새는 것을 형태로 막는다.
+    """모델의 사고 흔적이 문장 칸으로 새는 것을 막는다.
 
-    Structured Outputs 는 JSON 의 «모양»만 보장한다 — sentences 가 문자열
-    2~4개이기만 하면 그 안에 무엇이 들어 있든 파싱은 통과한다. 숫자 화이트
-    리스트도 숫자가 없는 텍스트는 잡지 못해서, 실제로 «Need final exact
-    schema ... 重新» 이 화면까지 나갔다.
+    Structured Outputs 는 JSON 의 모양만 보장한다. 숫자 화이트리스트도 숫자
+    없는 텍스트는 못 잡아서, 실제로 «Need final exact schema ... 重新» 이
+    화면까지 나갔다.
 
-    placeholder 를 걷어낸 나머지는 한국어여야 한다. 단위(m, km)는 evidence 가
-    맨 숫자로 오기 때문에 모델이 붙이는 것이 맞으므로, 라틴 문자를 통째로
-    막지 않고 낱말 길이와 총량으로 가른다.
+    단위(m, km)는 모델이 붙이는 것이 맞으므로 라틴 문자를 통째로 막지 않고
+    낱말 길이와 총량으로 가른다.
     """
     for sentence in sentences:
         body = _PLACEHOLDER.sub("", sentence)

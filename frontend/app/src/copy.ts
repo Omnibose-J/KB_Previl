@@ -1,19 +1,10 @@
-// Static copy that states WHAT WE BUILT, not what the model measured.
-//
-// The hard line (ui-spec §4 수치 단일 출처): anything the model produces —
-// survival rates, grid counts, grade bounds, AUC, failure share — comes from
-// the API and MUST NOT appear here, because a model recalculation has to move
-// the screen automatically. What lives here is dataset provenance: facts fixed
-// by the pipeline itself (CLAUDE.md 현재 수치 · docs/data-inventory.md), which
-// no rescoring can change.
+// «우리가 무엇을 만들었나»를 말하는 정적 문구. 모델이 낸 값(생존율·격자 수·
+// 등급 경계·AUC)은 여기 오면 안 된다 — 재채점이 화면을 자동으로 움직여야 한다.
+// 여기 있는 것은 파이프라인이 고정한 사실, 즉 데이터 출처뿐이다.
 
-/** Source-record scale (docs/data-inventory.md). Validation windows are NOT
- *  stated here — they are lineage-dependent and come from the API
- *  (survivalByPeriod.testWindow). */
-/** recordSince 는 «기록이 실제로 쌓이기 시작한» 연대다. DB 의 최소 개업연도는
- *  1900 이지만 1960년 이전 389건은 «꼬꼬치킨(1900)»·상호 «.» 같은 입력 오류이고
- *  전부 폐업 상태다. 밀도가 생기는 것은 1980년대(44,211건)부터라 그렇게 적는다.
- *  이전 표기 «1924년부터» 는 DB 어디에도 근거가 없었다. */
+/** recordSince 는 기록이 실제로 쌓이기 시작한 연대다. DB 최소 개업연도는 1900
+ *  이지만 1960년 이전 389건은 입력 오류이고 전부 폐업 상태다. 밀도가 생기는
+ *  것은 1980년대(44,211건)부터다. */
 export const PROVENANCE = {
   recordCount: "53.5만 건",
   recordSince: "1980년대부터",

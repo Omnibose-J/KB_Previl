@@ -1,13 +1,10 @@
 import { useEffect } from "react";
 
-// 스크롤 진입 연출. 처음에는 CSS 의 animation-timeline: view() 로 짰는데 두
-// 가지가 걸렸다 — 크롬 계열에서만 돌고, 값이 컴포지터에만 있어 getComputedStyle
-// 로는 확인이 안 돼 «되는지»를 잴 수 없었다. IntersectionObserver 는 어디서나
-// 돌고, 한 번 드러나면 끝이라 리포트를 위로 되짚어 읽을 때 다시 흐려지지 않는다.
+// 스크롤 진입 연출. CSS animation-timeline: view() 는 크롬 계열에서만 돌고 값이
+// 컴포지터에만 있어 getComputedStyle 로 «되는지»를 잴 수 없어서 기각했다.
 //
-// 안전장치: 숨김 상태는 JS 가 켠 것만 적용된다(data-reveal="off"). 스크립트가
-// 죽으면 아무 요소도 off 가 되지 않아 내용이 그냥 보인다 — «안 보임»이 기본
-// 상태가 되면 연출 하나가 내용을 통째로 삼킨다.
+// 숨김은 JS 가 켠 것만 적용된다(data-reveal="off"). 스크립트가 죽으면 아무것도
+// off 가 되지 않아 내용이 그냥 보인다 — 연출이 내용을 삼키지 않게 하는 장치다.
 
 const ENTER_RATIO = 0.12;
 
