@@ -20,7 +20,16 @@ import s from "./S5Compare.module.css";
 // 없는 것을 있는 척하느니 «지도에서 찍기»가 정직하다.
 
 const MAX_CANDIDATES = 3;
+// 이 화면이 증명하는 것은 «정렬 기준을 바꾸면 순위가 뒤집힌다»이고, 한 곳으로는
+// 그 문장이 성립하지 않는다. 예전에는 1건도 통과시켜 «이 후보들은 순서가 같아요»
+// 라는 비교 결과가 후보 하나짜리로 나왔다.
+const MIN_CANDIDATES = 2;
 const SLOT_LABELS = ["A", "B", "C"] as const;
+
+// 권리금을 몇 달에 나눠 담을지. 결과를 가장 크게 흔드는 값인데 예전에는 36개월로
+// 고정돼 있었다 — 같은 후보가 2년이면 516만, 8년이면 329만으로 순위까지 바뀐다.
+// 서버는 1~120개월을 받으므로(app.py CostParamsInput) 여기서 고르게 한다.
+const LEASE_YEARS = [2, 3, 5, 10] as const;
 
 interface Slot {
   label: string;
@@ -65,8 +74,15 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     mutationFn: api.compare,
   });
 
+  const [leaseYears, setLeaseYears] = useState<number>(3);
+
   const ready = slots.filter(isComplete);
-  const canCompare = uptae !== null && ready.length >= 1;
+  // 값은 넣었는데 자리를 안 찍은 후보. 조용히 빼면 사용자는 두 곳을 비교한 줄
+  // 알고 결과를 읽는다 — 무엇이 왜 빠졌는지 이름으로 말한다.
+  const droppedForCell = slots.filter(
+    (sl) => sl.cell === null && (sl.deposit !== null || sl.rentMonthly !== null),
+  );
+  const canCompare = uptae !== null && ready.length >= MIN_CANDIDATES;
 
   const patch = (i: number, next: Partial<Slot>) =>
     setSlots((prev) => prev.map((sl, j) => (j === i ? { ...sl, ...next } : sl)));
@@ -110,6 +126,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     // 후보를 구분할 수 없다.
     compare.mutate({
       uptae,
+      costParams: { horizonMonths: leaseYears * 12 },
       candidates: ready.map((sl) => ({
         label: sl.label,
         gridId: sl.cell!.gridId,
@@ -210,12 +227,40 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
             ) : null}
           </div>
 
+          {/* ── 임차 기간 ─────────────────────────────────────────── */}
+          <div className={s.block}>
+            <h2 className={s.blockH}>
+              <i>3</i> 몇 년 하실 생각인가요
+            </h2>
+            <p className={s.blockNote}>
+              권리금을 이 기간에 나눠 담아요. 짧게 잡을수록 한 달 부담이 커지고, 순위가
+              바뀌기도 해요.
+            </p>
+            <div className={s.chips}>
+              {LEASE_YEARS.map((y) => (
+                <button
+                  key={y}
+                  className={y === leaseYears ? s.chipOn : s.chip}
+                  onClick={() => setLeaseYears(y)}
+                >
+                  {y}년
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button className={s.runBtn} disabled={!canCompare || compare.isPending} onClick={run}>
             {compare.isPending ? "계산 중…" : "다시 줄 세우기"}
           </button>
           {!canCompare ? (
             <p className={s.runHint}>
-              업종을 고르고, 후보 한 곳 이상에 위치와 보증금·월세·권리금을 넣어 주세요.
+              업종을 고르고, 후보 <b>두 곳</b>에 위치와 보증금·월세·권리금을 넣어 주세요.
+              한 곳만으로는 줄을 세울 수 없어요.
+            </p>
+          ) : droppedForCell.length > 0 ? (
+            <p className={s.runHint}>
+              {droppedForCell.map((sl) => sl.label).join("·")}는 지도에서 자리를 찍지 않아
+              이번 비교에서 빠져요.
             </p>
           ) : null}
         </section>
@@ -296,6 +341,9 @@ function Reversal({ r }: { r: CompareResponse }) {
   // 후보 전부의 매출이 동점이면 부담률로 줄 세울 수 없다 (같은 상권).
   const burdenComparable = items.length > 1 && items.some((it) => !it.revenueTied);
   const height = Math.max(byRent.length, byTeo.length) * ROW_H;
+  // 서버가 실제로 쓴 상각 기간. 화면 선택값이 아니라 응답을 되읽어야, 요청이
+  // 무시되거나 서버 기본값으로 떨어진 경우에도 각주가 사실을 말한다.
+  const horizonMonths = items[0]?.paramsUsed?.horizonMonths ?? null;
 
   return (
     <section className={s.result}>
@@ -388,6 +436,11 @@ function Reversal({ r }: { r: CompareResponse }) {
       </table>
       <p className={s.tableFoot}>
         보증금은 돌려받으니 이자만, 권리금은 못 건지는 몫만 비용으로 잡았어요.
+        {/* 결과를 가장 크게 흔드는 값이라 각주가 아니라 결과 옆에 적는다. 화면에
+            고른 기간이 아니라 서버가 실제로 쓴 값을 되읽어 쓴다. */}
+        {horizonMonths !== null
+          ? ` 권리금은 ${horizonMonths / 12}년에 나눠 담은 값이에요 — 기간을 바꾸면 순위가 달라질 수 있어요.`
+          : ""}
       </p>
 
       {/* 부담률로 줄 세울 수 있는지 — 같은 상권이면 매출이 동점이라 못 한다 */}
