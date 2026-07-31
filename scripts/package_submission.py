@@ -121,7 +121,7 @@ def build(verbose=True):
               f"({time.time()-t0:.0f}초)")
         for k, v in sorted(by_top.items(), key=lambda x: -x[1])[:10]:
             print(f"  {k:<28} {v:>5}")
-        print(f"  금지 항목(.env·kb.db·캐시) 검사: 통과")
+        print("  금지 항목(.env·kb.db·캐시) 검사: 통과")
     return OUT
 
 
@@ -206,7 +206,7 @@ def rehearse(zip_path):
         env.pop("KB_DB", None)
         p = subprocess.run([sys.executable, "-c", script], cwd=tmp, env=env,
                            capture_output=True, text=True, timeout=300)
-        line = [l for l in p.stdout.splitlines() if l.startswith("{")]
+        line = [row for row in p.stdout.splitlines() if row.startswith("{")]
         if p.returncode or not line:
             print(f"  [FAIL] 부팅 실패 (exit {p.returncode})")
             print((p.stderr or p.stdout)[-1200:])

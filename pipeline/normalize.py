@@ -25,7 +25,7 @@ def load(name):
     p = CACHE_DIR / f"{name}.jsonl"
     if not p.exists():
         raise FileNotFoundError(f"{p} - run pipeline.collect first")
-    return [json.loads(l) for l in open(p, encoding="utf-8")]
+    return [json.loads(row) for row in open(p, encoding="utf-8")]
 
 
 def stream(name):
@@ -84,7 +84,7 @@ def norm_licence(con, batch=20000):
                 "close_y,close_m,state,is_closed,site_area,lon,lat,grid_id,"
                 "succession_suspect) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", recs)
         con.commit()
-        recs, raw = [], []
+        recs = []
 
     for r in stream("licence"):
         mgtno = str(r.get("MGTNO") or "").strip()
@@ -266,7 +266,7 @@ def norm_store(con):
     if not p.exists():
         print("store: skipped (semas_seoul.jsonl absent)")
         return
-    rows = [json.loads(l) for l in open(p, encoding="utf-8")]
+    rows = [json.loads(row) for row in open(p, encoding="utf-8")]
     con.execute("DELETE FROM store")
     recs = []
     for r in rows:

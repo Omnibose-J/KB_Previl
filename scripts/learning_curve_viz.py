@@ -100,8 +100,8 @@ def main():
 
     draw_curve(axes[0], cohorts, "학습 시작연도 (검증 2021–22 고정)",
                "A. 더 오래된 이력을 넣으면?",
-               f"2.7배로 늘려도 평평하다 — 최고점이 중간(2007)이다")
-    draw_curve(axes[1], rowsax, f"같은 창의 무작위 부분표본",
+               "2.7배로 늘려도 평평하다 — 최고점이 중간(2007)이다")
+    draw_curve(axes[1], rowsax, "같은 창의 무작위 부분표본",
                "B. 행을 더 넣으면?",
                "약 12만 행에서 포화 · 현행 학습셋은 그 1.6배")
     # ASCII hyphen, not U+2212: Malgun Gothic has no MINUS SIGN glyph and renders

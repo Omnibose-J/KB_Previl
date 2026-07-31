@@ -61,11 +61,16 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
 - Candidate estimate and comparison orchestration:
   `service/estimation.py`.
 - Pure effective-cost arithmetic: `service/cost.py`.
-- Building-level factual rows: `service/buildings.py`.
+- Building-level factual rows and a grid's approximate address:
+  `service/buildings.py`.
 - Goodwill, economics, and report adapters:
   `service/goodwill.py`, `service/economics.py`, `service/reporting.py`.
 - Batch-only score production: `service/precompute.py`; this is the sole
   service module allowed to import model code.
+- Grid change classification between two scoring runs: `service/alerts.py`
+  (read-only; it never sends anything).
+- Submission database extraction: `service/demo_db.py`; the shipped table list
+  is re-derived from `service/*.py` by `--audit`, never hand-maintained.
 
 ## Frontend ownership
 
@@ -94,4 +99,6 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
 - Succession experiment: `python -m model.recovery --holdout` and
   `python -m model.recovery --calibration`.
 - W7 public contract: `python scripts/verify_recovery_contract.py`.
-- API behavior: `python -m pytest service/test_app.py -q`.
+- API behavior: `python -m pytest service/ -q`.
+- Submission archive: `python scripts/package_submission.py --rehearse`, which
+  unpacks the zip and boots the API from inside it.

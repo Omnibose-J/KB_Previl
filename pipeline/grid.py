@@ -97,7 +97,7 @@ def selftest(n=1000, seed=42):
     h = int(hi_g.split("_")[1]) - int(lo_g.split("_")[1])
 
     print(f"points tested        : {n}")
-    print(f"determinism          : PASS (2 runs identical)")
+    print("determinism          : PASS (2 runs identical)")
     print(f"round-trip           : PASS ({len(set(first))} distinct cells)")
     print(f"cell width           : {span:.4f} m")
     print(f"seoul bbox grid      : {w} x {h} = {w * h:,} cells")
