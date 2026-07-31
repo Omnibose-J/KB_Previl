@@ -136,6 +136,13 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
     };
   }, [gwOpen]);
   const overall = meta?.overallSurvival ?? null;
+  // 지도 말풍선과 같은 캐시 키다 — 지도에서 눌러 들어오면 이미 받아둔 값이라
+  // 행정동에서 번지로 바뀌는 깜빡임이 없다.
+  const addr = useQuery({
+    queryKey: ["gridAddress", d.gridId],
+    queryFn: () => api.gridAddress(d.gridId),
+    staleTime: Infinity,
+  });
 
   return (
     <>
@@ -151,8 +158,11 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             ) : null}
           </div>
           <h1 className={s.heroTitle}>{d.admDong ?? "행정동 미상"}</h1>
+          {/* 제목이 이미 행정동이라 여기서 되풀이하지 않고 번지까지 내려간다.
+              주소가 오기 전이나 인허가 기록이 없는 칸은 아는 만큼(행정동)만
+              말한다 — 번지를 지어내지 않는다. */}
           <p className={s.heroSub}>
-            서울 {d.district ?? "자치구 미상"} {d.admDong ?? ""}
+            서울 {addr.data?.label ?? `${d.district ?? "자치구 미상"} ${d.admDong ?? ""}`}
             {d.nearestStation ? ` · ${stationAnchor(d.nearestStation)}` : ""}
           </p>
         </div>
