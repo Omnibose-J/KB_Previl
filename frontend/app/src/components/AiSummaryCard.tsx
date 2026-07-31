@@ -33,9 +33,10 @@ export default function AiSummaryCard({
 
   return (
     <section className={s.card} data-reveal>
+      {/* 부제 없음 — 문장 아래 각주가 «아래 기록에서 그대로 가져왔다»를 더
+          정확하게 말한다. 같은 말을 위아래에 두 번 두지 않는다. */}
       <div className={s.head}>
         <h2>AI는 이 자리를 이렇게 요약했어요</h2>
-        <p>아래 기록을 바탕으로 정리했어요.</p>
       </div>
 
       {q.isPending ? <Loading label="요약을 만드는 중이에요…" /> : null}

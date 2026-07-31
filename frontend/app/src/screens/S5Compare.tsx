@@ -164,9 +164,9 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
           <br />
           <em>정말 싼 자리일까요</em>
         </h1>
+        {/* 최대 세 곳이라는 것은 «+ 후보 추가 (2/3)» 버튼이 스스로 말한다. */}
         <p className={s.heroSub}>
-          보증금과 권리금까지 한 달치로 바꿔서 다시 줄을 세워 드려요. 후보를 최대 세 곳까지 넣을 수
-          있어요.
+          보증금과 권리금까지 한 달치로 바꿔서 다시 줄을 세워 드려요.
         </p>
       </header>
 
@@ -275,10 +275,12 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
           <button className={s.runBtn} disabled={!canCompare || compare.isPending} onClick={run}>
             {compare.isPending ? "계산 중…" : "다시 줄 세우기"}
           </button>
+          {/* «업종을 고르세요»·«후보를 넣으세요» 는 위 단계 제목이 이미 한 말이다.
+              여기서는 왜 한 곳으로는 안 되는지만 남긴다. */}
           {!canCompare ? (
             <p className={s.runHint}>
-              업종을 고르고, 후보 <b>두 곳</b>에 위치와 보증금·월세·권리금을 넣어 주세요.
-              한 곳만으로는 줄을 세울 수 없어요.
+              후보 <b>두 곳</b>은 채워야 줄을 세울 수 있어요. 위치와 보증금·월세·권리금이
+              모두 필요해요.
             </p>
           ) : droppedForCell.length > 0 ? (
             <p className={s.runHint}>
