@@ -492,6 +492,8 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--fg-t6);
+  /* 열 폭에 맞춰 접히면 «실제로 나가는 돈 / 기준» 처럼 끊긴다. 자리는 충분하다. */
+  white-space: nowrap;
 }
 
 .slopeCol:last-child .slopeColH {
@@ -505,8 +507,14 @@
   gap: 11px;
 }
 
+/* 선의 시작·끝은 가운데 칸이 정하므로 그대로 두고, 글자만 안쪽으로 물린다. */
+.rankRowL {
+  padding-right: 14px;
+}
+
 .rankRowR {
   flex-direction: row-reverse;
+  padding-left: 14px;
 }
 
 .rankNum {
