@@ -69,6 +69,13 @@
   margin-top: 3px;
 }
 
+.rankNote {
+  font-size: 13px;
+  color: var(--fg-t8);
+  margin-top: 6px;
+  line-height: 18px;
+}
+
 /* What-if dark panel */
 .whatif {
   display: flex;

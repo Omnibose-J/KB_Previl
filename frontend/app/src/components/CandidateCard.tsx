@@ -62,7 +62,7 @@ export default function CandidateCard({
             <>
               <strong>{pct1(cell.areaSurvival.rate)}</strong>
               <span>
-                주변 가게 3년 생존율
+                이 자리 주변 3년 생존율
                 {cell.areaSurvival.sample !== null ? ` (${int(cell.areaSurvival.sample)}곳 기준)` : ""}
               </span>
             </>

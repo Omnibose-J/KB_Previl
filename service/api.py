@@ -294,10 +294,15 @@ def meta():
         raw_meta = {
             row["k"]: row["v"] for row in con.execute("SELECT k, v FROM score_meta")
         }
+        # 가나다순이되 «기타»만 끝으로 — 목록 둘째 칸에 있으면 고를 것으로 읽힌다.
+        # 규모순으로 두지 않는 이유는 licence 가 일반음식점만 담아서다: 까페는
+        # 대부분 휴게음식점으로 인허가돼 여기서 세면 1,128곳으로 꼴찌가 되는데,
+        # 그 순서는 사실과 다르게 읽힌다.
         uptae = [
             row[0]
             for row in con.execute(
-                "SELECT DISTINCT uptae FROM grid_score ORDER BY uptae"
+                "SELECT DISTINCT uptae FROM grid_score "
+                "ORDER BY uptae = '기타', uptae"
             )
         ]
         area_names = [

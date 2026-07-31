@@ -123,11 +123,20 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                 {q.data ? `추천 상위 ${int(items.length)}곳` : "추천 후보"}
               </h1>
               {q.data ? (
-                <p className={s.rankSub}>
-                  {q.data.inScope === q.data.totalGrids
-                    ? `서울 전체 ${int(q.data.totalGrids)}곳 중에서 골랐어요`
-                    : `고른 동네의 ${int(q.data.inScope)}곳 중에서 골랐어요`}
-                </p>
+                <>
+                  <p className={s.rankSub}>
+                    {q.data.inScope === q.data.totalGrids
+                      ? `서울 전체 ${int(q.data.totalGrids)}곳 중에서 골랐어요`
+                      : `고른 동네의 ${int(q.data.inScope)}곳 중에서 골랐어요`}
+                  </p>
+                  {/* 순서는 등급인데 카드의 큰 숫자는 자리별 주변 기록이라, 1위가
+                      2위보다 낮은 %로 보이는 일이 생긴다. 값을 바꾸는 대신 무엇이
+                      순서를 정했는지 밝힌다 — 등급 실측치를 카드에 크게 넣는 길은
+                      24장이 같은 숫자가 되어 이미 접었다(CandidateCard 주석). */}
+                  <p className={s.rankNote}>
+                    등급이 높은 순이에요 · 옆의 %는 자리마다 다른 주변 기록이라 순서와 다를 수 있어요
+                  </p>
+                </>
               ) : null}
             </div>
           </header>
