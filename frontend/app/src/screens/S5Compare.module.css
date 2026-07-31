@@ -36,9 +36,12 @@
   color: var(--fg-ink);
 }
 
+/* 이 바에서 «지금 어느 화면이냐»를 말하는 유일한 글자다. 옆의 되돌아가기(15px)
+   보다 작으면 이름이 아니라 꼬리표로 읽힌다. */
 .crumbPath {
-  font-size: 14px;
-  color: var(--fg-t6);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
 }
 
 /* ── hero ───────────────────────────────────────────────── */
