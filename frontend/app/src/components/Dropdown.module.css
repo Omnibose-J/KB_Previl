@@ -6,7 +6,9 @@
 /* ── trigger ─────────────────────────────────────── */
 .trig,
 .trigEmpty,
-.trigDark {
+.trigDark,
+.trigSm,
+.trigSmEmpty {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,6 +39,19 @@
   color: var(--fg-y);
 }
 
+/* 제목 옆에 붙는 형태 — 18px 이면 제목이 둘로 읽힌다. */
+.trigSm {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.trigSmEmpty {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-t6);
+}
+
 .trigLabel {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -60,20 +75,59 @@
 }
 
 /* ── menu ────────────────────────────────────────── */
-.menu {
+.pop {
   position: absolute;
   top: calc(100% + 10px);
   left: -12px;
   z-index: 30;
   min-width: calc(100% + 24px);
-  max-height: 288px;
-  overflow-y: auto;
   padding: 6px;
   border-radius: 14px;
   background: var(--fg-card);
   border: 1px solid var(--fg-line);
   box-shadow: 0 12px 32px rgb(20 20 20 / 14%);
   animation: drop 0.12s var(--ease-out);
+}
+
+.menu {
+  composes: pop;
+  max-height: 288px;
+  overflow-y: auto;
+}
+
+/* 검색칸이 붙는 형태: 칸은 고정이고 목록만 구른다. */
+.panel {
+  composes: pop;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panelList {
+  max-height: 252px;
+  overflow-y: auto;
+}
+
+.search {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--fg-line);
+  border-radius: 8px;
+  background: var(--fg-wash);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--fg-ink);
+}
+
+.search::placeholder {
+  color: var(--fg-t8);
+  font-weight: 500;
+}
+
+.search:focus {
+  outline: none;
+  border-color: var(--fg-y);
 }
 
 @keyframes drop {
@@ -89,7 +143,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menu {
+  .pop {
     animation: none;
   }
 }

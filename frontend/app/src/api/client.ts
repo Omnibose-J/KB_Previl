@@ -1,4 +1,5 @@
 import type {
+  AreasResponse,
   BuildingsResponse,
   ChangesResponse,
   CompareInput,
@@ -9,6 +10,7 @@ import type {
   EstimateResponse,
   GoodwillInput,
   GoodwillResponse,
+  GridAddress,
   GridDetail,
   GridsResponse,
   Meta,
@@ -69,6 +71,9 @@ export const api = {
     request<GridDetail>(`/grid/${encodeURIComponent(gridId)}?uptae=${encodeURIComponent(uptae)}`),
   buildings: (gridId: string) =>
     request<BuildingsResponse>(`/grid/${encodeURIComponent(gridId)}/buildings`),
+  areas: () => request<AreasResponse>("/areas"),
+  gridAddress: (gridId: string) =>
+    request<GridAddress>(`/grid/${encodeURIComponent(gridId)}/address`),
   /** No caller yet — reserved for the P1 diagnosis flow (S1 "이 자리 어때?"). */
   atPoint: (lon: number, lat: number, uptae: string) =>
     request<GridDetail>(`/at?lon=${lon}&lat=${lat}&uptae=${encodeURIComponent(uptae)}`),

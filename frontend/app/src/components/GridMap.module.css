@@ -35,7 +35,10 @@
   position: absolute;
   left: 50%;
   bottom: 64px;
-  transform: translateX(-50%);
+  /* transform 이 아니라 translate 로 가운데를 맞춘다 — fadeUp 이 fill-mode both
+     라 끝 프레임의 transform 이 남고, 여기에 쓰면 그 값에 덮여 말풍선 왼쪽
+     모서리가 지도 한가운데에 박힌다. */
+  translate: -50% 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -57,6 +60,14 @@
 .bubble span {
   font-size: 14px;
   color: var(--fg-dt2);
+}
+
+/* «어느 칸인지» 를 먼저 말한다 — 등급은 그 다음이다. 100m 칸은 여러 번지에
+   걸치므로 문구가 «일대» 로 끝나고, 그 폭은 서버가 정한다. */
+.bubble .bubbleAddr {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-dt1);
 }
 
 .bubbleOpen {

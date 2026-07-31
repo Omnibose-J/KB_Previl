@@ -377,6 +377,41 @@ def meta():
     }
 
 
+def areas():
+    """지도 이동용 행정동 목록.
+
+    좌표는 그 동 안 «채점된» 격자 중심의 평균이다 — 값이 아니라 도착 지점이라
+    평균으로 충분하고, 채점 안 된 동은 아예 빼야 빈 지도로 날아가지 않는다.
+    """
+    with readonly_connection() as con:
+        rows = con.execute(
+            "SELECT gs.sgis_adm_nm AS nm, COUNT(*) AS n, "
+            "       AVG(g.center_lon) AS lon, AVG(g.center_lat) AS lat "
+            "FROM (SELECT DISTINCT grid_id FROM grid_score) s "
+            "JOIN grid_sgis gs ON gs.grid_id = s.grid_id "
+            "JOIN grid g ON g.grid_id = s.grid_id "
+            "GROUP BY gs.sgis_adm_nm"
+        ).fetchall()
+    if not rows:
+        raise DatabaseUnavailableError("배치 미실행: grid_score가 비어 있습니다.")
+
+    items = []
+    for row in rows:
+        district, adm_dong = location_names(row["nm"])
+        if district is None or adm_dong is None:
+            continue
+        items.append(
+            {
+                "district": district,
+                "adm_dong": adm_dong,
+                "center": [round(row["lon"], 6), round(row["lat"], 6)],
+                "grid_count": row["n"],
+            }
+        )
+    items.sort(key=lambda item: (item["district"], item["adm_dong"]))
+    return {"items": items}
+
+
 GRID_SELECT = """
 SELECT f.grid_id, f.center_lon, f.center_lat, f.confidence,
        f.has_sales_data,
@@ -417,7 +452,7 @@ def _grid_polygon(grid_id):
     ]
 
 
-def _location_names(name):
+def location_names(name):
     parts = name.split() if name else []
     district = parts[1] if len(parts) >= 2 else None
     adm_dong = parts[-1] if len(parts) >= 3 else None
@@ -446,7 +481,7 @@ def _plus(value, extra):
 
 
 def _grid_detail(row, uptae, same_uptae, rest_food, uptae_sales):
-    district, adm_dong = _location_names(row["sgis_adm_nm"])
+    district, adm_dong = location_names(row["sgis_adm_nm"])
     item = _grid_cell(row, uptae)
     item.update(
         {

@@ -116,6 +116,29 @@ class MetaResponse(ApiModel):
     resolutions: dict[str, str]
 
 
+class AreaItem(ApiModel):
+    district: str
+    adm_dong: str
+    center: Point
+    grid_count: int
+
+
+class AreasResponse(ApiModel):
+    items: list[AreaItem]
+
+
+class GridAddressResponse(ApiModel):
+    grid_id: str
+    district: str | None
+    adm_dong: str | None
+    jibun: str | None
+    label: str | None
+    #  jibun = 인허가 주소의 본번까지, dong = 행정동까지밖에 못 좁힌 칸
+    precision: Literal["jibun", "dong"] | None
+    records: int
+    agree: int
+
+
 class GridCell(ApiModel):
     grid_id: str
     uptae: UptaeName
@@ -633,6 +656,15 @@ def meta() -> dict:
 
 
 @app.get(
+    "/api/areas",
+    response_model=AreasResponse,
+    responses=DATABASE_ERROR,
+)
+def areas() -> dict:
+    return api.areas()
+
+
+@app.get(
     "/api/grids",
     response_model=GridsResponse,
     responses={
@@ -696,6 +728,17 @@ def grid_changes(
     uptae: Annotated[str, Query(min_length=1, max_length=80)],
 ) -> dict:
     return api.grid_changes(grid_id, uptae)
+
+
+@app.get(
+    "/api/grid/{grid_id}/address",
+    response_model=GridAddressResponse,
+    responses=NOT_FOUND_DATABASE_ERRORS,
+)
+def grid_address(
+    grid_id: Annotated[str, Path(pattern=r"^\d+_\d+$")],
+) -> dict:
+    return buildings_service.address_for_grid(grid_id)
 
 
 @app.get(

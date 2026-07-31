@@ -11,6 +11,8 @@ MAX_BUILDINGS = 50
 JIBUN_PATTERN = re.compile(
     r"^(서울특별시\s+\S+구\s+\S+동?\s+(?:산\s*)?\d+(?:-\d+)?)"
 )
+BUBUN_TAIL = re.compile(r"-\d+$")
+CITY_PREFIX = "서울특별시 "
 
 
 def _parse_address(address):
@@ -29,6 +31,64 @@ def _most_frequent(values):
     if not values:
         return None
     return min(values, key=lambda value: (-values[value], value))
+
+
+def address_for_grid(grid_id):
+    """지도에서 짚은 칸이 «어디»인지 답하는 대략 주소.
+
+    100m 칸은 여러 번지에 걸치므로 한 점을 특정할 수 없다. 부번을 떼고 본번까지만
+    모아 가장 많은 것을 쓰고, 이름에 «일대»를 붙여 그 폭을 밝힌다.
+    """
+    with api.readonly_connection() as con:
+        row = con.execute(
+            "SELECT gs.sgis_adm_nm FROM grid g "
+            "LEFT JOIN grid_sgis gs ON gs.grid_id = g.grid_id "
+            "WHERE g.grid_id = ?",
+            (grid_id,),
+        ).fetchone()
+        if row is None:
+            raise api.ResourceNotFoundError(f"알 수 없는 격자입니다: {grid_id}")
+        addresses = [
+            r["addr"]
+            for r in con.execute(
+                "SELECT addr FROM licence WHERE grid_id = ?", (grid_id,)
+            )
+        ]
+
+    district, adm_dong = api.location_names(row["sgis_adm_nm"])
+    bonbun = Counter()
+    for address in addresses:
+        parsed = _parse_address(address)
+        if parsed is not None:
+            bonbun[BUBUN_TAIL.sub("", parsed[0])] += 1
+
+    jibun = _most_frequent(bonbun)
+    if jibun is not None:
+        short = jibun.removeprefix(CITY_PREFIX)
+        return {
+            "grid_id": grid_id,
+            "district": district,
+            "adm_dong": adm_dong,
+            "jibun": short,
+            "label": f"{short} 일대",
+            "precision": "jibun",
+            "records": sum(bonbun.values()),
+            "agree": bonbun[jibun],
+        }
+
+    # 인허가 기록이 없는 칸(채점 격자의 5.1%). 행정동은 실제로 아는 값이므로
+    # 번지를 지어내지 않고 그 단위로 답한다.
+    label = " ".join(part for part in (district, adm_dong) if part) or None
+    return {
+        "grid_id": grid_id,
+        "district": district,
+        "adm_dong": adm_dong,
+        "jibun": None,
+        "label": label,
+        "precision": "dong" if label else None,
+        "records": 0,
+        "agree": 0,
+    }
 
 
 def for_grid(grid_id):

@@ -43,6 +43,25 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
 
+  // 지역 찾기: 추천 범위를 바꾸지 않고 지도만 옮긴다. 범위를 좁히는 조작은
+  // 자치구 필터(S2)가 이미 하고 있어서, 여기서 또 좁히면 둘이 어긋난다.
+  const areas = useQuery({ queryKey: ["areas"], queryFn: api.areas });
+  const [areaKey, setAreaKey] = useState<string | null>(null);
+  const areaOptions = useMemo(
+    () =>
+      (areas.data?.items ?? []).map((a) => {
+        const name = `${a.district} ${a.admDong}`;
+        return { value: name, label: name };
+      }),
+    [areas.data],
+  );
+  const goToArea = (name: string) => {
+    const hit = areas.data?.items.find((a) => `${a.district} ${a.admDong}` === name);
+    if (!hit) return;
+    setAreaKey(name);
+    focusOn(hit.center);
+  };
+
   // Threshold cut (lib/grade.ts isRecommendable): grade-1 cells only, so a
   // small scope shows its 3 real candidates instead of 20 padded ones.
   const items = useMemo(() => (q.data?.items ?? []).filter(isRecommendable), [q.data]);
@@ -226,10 +245,21 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         <aside className={s.mapPanel}>
           <header className={s.mapHead}>
             <h2 className={s.mapTitle}>자리 등급 지도</h2>
-            {/* Extra tabs (경쟁·지역 생존율·수요) return when /grids carries
-                their metrics — a disabled placeholder tab is dead chrome. */}
-            <div className={s.tabs}>
-              <button className={s.tabOn}>자리 등급</button>
+            {/* 100m 칸만 깔린 지도에서는 «여기가 어디냐» 를 알 길이 없다. 동
+                이름으로 날아가고(여기), 칸을 짚으면 번지를 답한다(GridMap 말풍선).
+                이 자리에 있던 «자리 등급» 탭은 제목과 같은 말이라 뺐다 —
+                하나뿐인 탭은 고를 것이 없어 조작이 아니라 딱지다. */}
+            <div className={s.areaPick}>
+              <Dropdown
+                compact
+                searchable
+                options={areaOptions}
+                value={areaKey}
+                placeholder="지역 찾기"
+                searchPlaceholder="동 이름으로 찾기"
+                emptyNote={areas.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
+                onSelect={goToArea}
+              />
             </div>
           </header>
           <div className={s.mapBox}>

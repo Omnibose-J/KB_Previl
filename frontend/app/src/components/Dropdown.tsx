@@ -11,6 +11,15 @@ export interface DropOption {
   label: string;
 }
 
+/** 공백을 지워 «강남 신사» 와 «강남신사» 를 같게 본다. */
+const norm = (v: string) => v.replace(/\s+/g, "");
+
+const trigger = (dark: boolean, compact: boolean, chosen: boolean) => {
+  if (dark) return s.trigDark;
+  if (compact) return chosen ? s.trigSm : s.trigSmEmpty;
+  return chosen ? s.trig : s.trigEmpty;
+};
+
 export default function Dropdown({
   options,
   value,
@@ -18,6 +27,9 @@ export default function Dropdown({
   placeholder,
   emptyNote,
   dark = false,
+  compact = false,
+  searchable = false,
+  searchPlaceholder,
   onSelect,
 }: {
   options: DropOption[];
@@ -28,16 +40,27 @@ export default function Dropdown({
   /** shown inside the menu when options are empty (e.g. meta fetch failed) */
   emptyNote?: string;
   dark?: boolean;
+  /** 제목·헤더 옆에 놓을 때. 본문 필드로 쓰는 기본 크기(18px)를 줄인다. */
+  compact?: boolean;
+  /** 목록이 수백 줄일 때만. 25줄짜리에 검색칸을 붙이면 한 단계만 늘어난다. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
   onSelect: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(-1);
+  const [query, setQuery] = useState("");
   const wrap = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLUListElement>(null);
+  const box = useRef<HTMLInputElement>(null);
   const idBase = { current: useId() };
 
-  const selIdx = options.findIndex((o) => o.value === value);
-  const label = display ?? (selIdx >= 0 ? options[selIdx].label : null);
+  const label = display ?? options.find((o) => o.value === value)?.label ?? null;
+  const shown =
+    searchable && query.trim()
+      ? options.filter((o) => norm(o.label).includes(norm(query)))
+      : options;
+  const selIdx = shown.findIndex((o) => o.value === value);
 
   useEffect(() => {
     if (!open) return;
@@ -49,10 +72,18 @@ export default function Dropdown({
   }, [open]);
 
   // The highlight index belongs to a specific options list; when the list is
-  // swapped underneath (meta arriving), the old index points at the wrong row.
+  // swapped underneath (meta arriving, or the query narrowing it), the old
+  // index points at the wrong row.
   useEffect(() => {
     setHi(-1);
-  }, [options.length]);
+  }, [shown.length]);
+
+  // 열 때마다 빈 칸에서 시작한다 — 지난번 검색어가 남아 있으면 목록이 이미
+  // 걸러진 채로 열려 «항목이 사라졌다» 로 읽힌다.
+  useEffect(() => {
+    if (open) box.current?.focus();
+    else setQuery("");
+  }, [open]);
 
   // keep the highlighted row in view while arrowing through a long list
   useEffect(() => {
@@ -71,21 +102,57 @@ export default function Dropdown({
   };
 
   const onKey = (e: React.KeyboardEvent) => {
+    // 검색칸에서의 스페이스는 «고르기» 가 아니라 글자다.
+    const typing = e.target === box.current;
     if (e.key === "Escape") setOpen(false);
-    else if (e.key === "Enter" || e.key === " ") {
+    else if (e.key === "Enter" || (e.key === " " && !typing)) {
       e.preventDefault();
       if (!open) toggle();
-      else if (hi >= 0 && options[hi]) choose(options[hi].value);
+      else if (hi >= 0 && shown[hi]) choose(shown[hi].value);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       if (!open) toggle();
-      else setHi((h) => Math.min(options.length - 1, h + 1));
+      else setHi((h) => Math.min(shown.length - 1, h + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (!open) toggle();
       else setHi((h) => Math.max(0, h - 1));
     }
   };
+
+  const list = (className: string) => (
+    <ul
+      className={className}
+      role="listbox"
+      ref={menu}
+      // Keep focus on the trigger (or the search box): without this, mousedown
+      // on an option blurs it, the onBlur close fires first, and the click
+      // lands on a menu that no longer exists.
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      {shown.length === 0 ? (
+        <li className={s.optNote} role="presentation">
+          {options.length === 0
+            ? (emptyNote ?? "표시할 항목이 없습니다")
+            : "찾는 이름이 없어요"}
+        </li>
+      ) : (
+        shown.map((o, i) => (
+          <li
+            key={o.value}
+            id={`${idBase.current}-${i}`}
+            role="option"
+            aria-selected={o.value === value}
+            className={o.value === value ? s.optOn : i === hi ? s.optHi : s.opt}
+            onMouseEnter={() => setHi(i)}
+            onClick={() => choose(o.value)}
+          >
+            {o.label}
+          </li>
+        ))
+      )}
+    </ul>
+  );
 
   return (
     <div
@@ -99,7 +166,7 @@ export default function Dropdown({
     >
       <button
         type="button"
-        className={dark ? s.trigDark : label ? s.trig : s.trigEmpty}
+        className={trigger(dark, compact, label !== null)}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-activedescendant={open && hi >= 0 ? `${idBase.current}-${hi}` : undefined}
@@ -123,37 +190,22 @@ export default function Dropdown({
         </svg>
       </button>
 
-      {open ? (
-        <ul
-          className={s.menu}
-          role="listbox"
-          ref={menu}
-          // Keep focus on the trigger: without this, mousedown on an option
-          // blurs the trigger, the onBlur close fires first, and the click
-          // lands on a menu that no longer exists.
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          {options.length === 0 ? (
-            <li className={s.optNote} role="presentation">
-              {emptyNote ?? "표시할 항목이 없습니다"}
-            </li>
-          ) : (
-            options.map((o, i) => (
-              <li
-                key={o.value}
-                id={`${idBase.current}-${i}`}
-                role="option"
-                aria-selected={o.value === value}
-                className={o.value === value ? s.optOn : i === hi ? s.optHi : s.opt}
-                onMouseEnter={() => setHi(i)}
-                onClick={() => choose(o.value)}
-              >
-                {o.label}
-              </li>
-            ))
-          )}
-        </ul>
-      ) : null}
+      {!open ? null : searchable ? (
+        <div className={s.panel}>
+          <input
+            ref={box}
+            className={s.search}
+            type="text"
+            value={query}
+            placeholder={searchPlaceholder ?? "이름으로 찾기"}
+            aria-label={searchPlaceholder ?? placeholder}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {list(s.panelList)}
+        </div>
+      ) : (
+        list(s.menu)
+      )}
     </div>
   );
 }

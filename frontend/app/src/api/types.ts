@@ -282,6 +282,33 @@ export interface GridDetail extends GridCell {
   resolutions: Resolutions;
 }
 
+/** 지도 이동용 행정동. center 는 그 동 안 채점된 격자 중심의 평균 — 값이 아니라
+ *  «날아갈 곳» 이다. */
+export interface Area {
+  district: string;
+  admDong: string;
+  center: Point;
+  gridCount: number;
+}
+
+export interface AreasResponse {
+  items: Area[];
+}
+
+/** 격자의 대략 주소. 100m 칸은 여러 번지에 걸치므로 부번을 뗀 본번까지만 말한다
+ *  — precision 이 «어디까지 좁혔는지» 를 밝힌다. */
+export interface GridAddress {
+  gridId: string;
+  district: string | null;
+  admDong: string | null;
+  jibun: string | null;
+  label: string | null;
+  precision: "jibun" | "dong" | null;
+  /** 이 칸에서 주소가 읽힌 인허가 건수와, 그 중 label 에 동의한 건수 */
+  records: number;
+  agree: number;
+}
+
 export interface RecommendResponse {
   uptae: string;
   districts: string[];

@@ -306,12 +306,27 @@ export default function GridMap({
   );
 }
 
-/** 값 1개 + 방향 1개 + 진입 액션 1개. Denser than that and the map stops being
- *  readable — the information density borrowed from 호갱노노 / KB부동산. */
+/** 주소 1줄 + 값 1개 + 방향 1개 + 진입 액션 1개. Denser than that and the map
+ *  stops being readable — the information density borrowed from 호갱노노 /
+ *  KB부동산. 주소는 값이 아니라 «지금 짚은 칸이 어디냐» 라, 100m 격자만으로는
+ *  답할 수 없던 질문을 채운다. */
 function Bubble({ cell, onOpen }: { cell?: GridCell; onOpen?: (cell: GridCell) => void }) {
+  const addr = useQuery({
+    queryKey: ["gridAddress", cell?.gridId],
+    queryFn: () => api.gridAddress(cell!.gridId),
+    enabled: cell !== undefined,
+    staleTime: Infinity,   // 격자의 주소는 세션 안에서 바뀌지 않는다
+  });
   if (!cell) return null;
   return (
     <div className={s.bubble}>
+      <span className={s.bubbleAddr}>
+        {addr.data
+          ? (addr.data.label ?? "주소 미상")
+          : addr.isError
+            ? "주소를 불러오지 못했어요"
+            : "주소 확인 중…"}
+      </span>
       <strong>{gradeLabel(cell.grade)}</strong>
       <span>{survivalSentence(cell.observedSurvival)}</span>
       {onOpen ? (

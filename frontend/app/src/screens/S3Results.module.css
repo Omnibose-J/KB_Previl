@@ -229,19 +229,19 @@ button.wCtl:disabled .wTitle {
   color: var(--fg-ink);
 }
 
-.tabs {
-  display: flex;
-  gap: 6px;
+/* 지역 찾기 — 조작임이 보여야 해서 테두리를 두른다. */
+.areaPick {
+  flex: none;
+  min-width: 168px;
+  max-width: 240px;
+  padding: 7px 14px;
+  border: 1px solid var(--fg-line);
+  border-radius: 100px;
+  background: var(--fg-wash);
 }
 
-.tabOn {
-  padding: 7px 12px;
-  border: 0;
-  border-radius: 100px;
-  font-size: 13px;
-  background: var(--fg-dark);
-  color: var(--fg-y);
-  font-weight: 700;
+.areaPick:focus-within {
+  border-color: var(--fg-y);
 }
 
 .mapBox {

@@ -1684,6 +1684,8 @@ def test_openapi_declares_runtime_error_contract():
         "/api/recommend": {"200", "422", "503"},
         "/api/grid/{grid_id}": {"200", "404", "422", "503"},
         "/api/grid/{grid_id}/buildings": {"200", "404", "422", "503"},
+        "/api/grid/{grid_id}/address": {"200", "404", "422", "503"},
+        "/api/areas": {"200", "503"},
         "/api/at": {"200", "404", "422", "503"},
         "/api/economics": {"200", "404", "422", "503"},
         "/api/goodwill": {"200", "404", "422", "503"},
@@ -1700,6 +1702,8 @@ def test_openapi_declares_runtime_error_contract():
                 "/api/recommend",
                 "/api/grid/{grid_id}",
                 "/api/grid/{grid_id}/buildings",
+                "/api/grid/{grid_id}/address",
+                "/api/areas",
                 "/api/at",
             }
             else "post"
@@ -1988,8 +1992,11 @@ def _create_building_facts_db(path, licence_rows):
               grid_id TEXT
             );
             CREATE INDEX ix_licence_grid ON licence(grid_id);
+            CREATE TABLE grid_sgis (grid_id TEXT, sgis_adm_nm TEXT);
             INSERT INTO grid VALUES ('1_1');
             INSERT INTO grid VALUES ('2_2');
+            INSERT INTO grid_sgis VALUES ('1_1', '서울특별시 영등포구 여의동');
+            INSERT INTO grid_sgis VALUES ('2_2', '서울특별시 종로구 사직동');
             """
         )
         con.executemany(
@@ -2084,6 +2091,92 @@ def test_buildings_caps_factual_sort_at_fifty(monkeypatch, tmp_path):
     buildings = response.json()["buildings"]
     assert len(buildings) == 50
     assert all(building["activeShops"] == 1 for building in buildings)
+
+
+def test_grid_address_answers_with_the_modal_bonbun_not_a_single_parcel(
+    monkeypatch,
+    tmp_path,
+):
+    source_db = tmp_path / "address-modal.db"
+    _create_building_facts_db(
+        source_db,
+        [
+            ("서울특별시 영등포구 여의도동 22-1 TP Tower, 101호", "한식", 0, "1_1"),
+            ("서울특별시 영등포구 여의도동 22-2 TP Tower, 202호", "일식", 0, "1_1"),
+            ("서울특별시 영등포구 여의도동 22 TP Tower, 301호", "한식", 1, "1_1"),
+            ("서울특별시 영등포구 여의도동 40 별관", "분식", 0, "1_1"),
+            ("서울특별시 영등포구 여의도동 주소미상", "분식", 0, "1_1"),
+        ],
+    )
+    monkeypatch.setattr(api, "DB_PATH", source_db)
+
+    response = client.get("/api/grid/1_1/address")
+
+    assert response.status_code == 200
+    # 22-1·22-2·22 는 한 번지로 모인다 — 100m 칸은 여러 부번에 걸치므로 부번까지
+    # 특정하면 없는 정밀도를 주장하게 된다.
+    assert response.json() == {
+        "gridId": "1_1",
+        "district": "영등포구",
+        "admDong": "여의동",
+        "jibun": "영등포구 여의도동 22",
+        "label": "영등포구 여의도동 22 일대",
+        "precision": "jibun",
+        "records": 4,
+        "agree": 3,
+    }
+
+
+def test_grid_address_stops_at_the_dong_when_the_cell_has_no_licence_record(
+    monkeypatch,
+    tmp_path,
+):
+    source_db = tmp_path / "address-empty.db"
+    _create_building_facts_db(source_db, [])
+    monkeypatch.setattr(api, "DB_PATH", source_db)
+
+    empty = client.get("/api/grid/2_2/address")
+    unknown = client.get("/api/grid/9_9/address")
+
+    assert unknown.status_code == 404
+    assert empty.status_code == 200
+    assert empty.json() == {
+        "gridId": "2_2",
+        "district": "종로구",
+        "admDong": "사직동",
+        "jibun": None,
+        "label": "종로구 사직동",
+        "precision": "dong",
+        "records": 0,
+        "agree": 0,
+    }
+
+
+def test_areas_only_lists_dong_the_map_can_actually_show():
+    metadata = client.get("/api/meta").json()
+
+    response = client.get("/api/areas")
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert {item["district"] for item in items} == set(metadata["districts"])
+    assert items == sorted(items, key=lambda item: (item["district"], item["admDong"]))
+    assert all(item["gridCount"] >= 1 for item in items)
+    assert sum(item["gridCount"] for item in items) <= metadata["gridCount"]
+
+    # 목록의 좌표는 «날아갈 곳»이다. 채점된 격자가 없는 동이 섞이면 드롭다운이
+    # 사용자를 빈 지도로 보내므로, 실제로 칸이 잡히는지를 잰다.
+    for item in (items[0], items[len(items) // 2], items[-1]):
+        lon, lat = item["center"]
+        cells = client.get(
+            "/api/grids",
+            params={
+                "uptae": metadata["uptae"][0],
+                "bbox": f"{lon - 0.004},{lat - 0.003},{lon + 0.004},{lat + 0.003}",
+            },
+        )
+        assert cells.status_code == 200, item
+        assert cells.json()["items"], item
 
 
 def _sample_grid_with_concepts():
