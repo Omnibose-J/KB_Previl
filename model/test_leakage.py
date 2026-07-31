@@ -15,6 +15,7 @@ from pipeline.db import connect_ro
 
 from .cache import cached_split
 from .evaluate import TEST_YEARS
+from .osm import COLUMNS as _OSM_COLUMNS
 from .train import CONFIRMED_TEST_YEARS, CONFIRMED_TRAIN_YEARS, fit_predict
 
 LEAK_AUC = 0.90
@@ -30,6 +31,8 @@ DEPLOY_PATH = ("model/asof.py", "model/dataset.py", "model/evaluate.py",
 # 무효화된다 — 가드는 가드 파일에 두는 편이 싸고 의미도 맞다).
 SNAPSHOT_ONLY = {
     "trdar_flpop": "2026년 1분기 한 분기뿐 — lvpop_profile 과 같은 이유",
+    # 후보로 재는 것은 정당하고 배포에 들어가는 것이 위반이다 (model/osm.py).
+    **dict.fromkeys(_OSM_COLUMNS, "OSM 현재 스냅샷 — 2015년 도로가 2010년 개업에 붙는다"),
 }
 
 # 라운드 5(§11)에서 측정하고 배제한 원천. LEAKY 와 이유가 다르다 — 누수라서가
@@ -141,25 +144,26 @@ def main():
 
     print("\n3) 피처 목록에 금지 소스가 없는지 확인")
     from .asof import FEATURES, LEAKY
-    from .osm import COLUMNS as SNAPSHOT
+    from .feature_gate import FAMILIES
     from .recovery import RECOVERY_FEATURES
     from .robustness import FEATURE_SETS
-    from .train import DEPLOY, TIER1, TIER2, TIER3
-    # Derived from FEATURE_SETS, not enumerated: a candidate family is checked
-    # as soon as it is registered where it is measured.
+    from .train import DEPLOY, G2X, TIER1, TIER2, TIER3
+    # 손으로 나열하지 않고 실제 등록부에서 끌어온다 — FEATURE_SETS 는 적합하는
+    # 세트, FAMILIES 는 편입 심사가 거르는 후보군이다.
     covered = sorted(
         set().union(*(set(c) for c in FEATURE_SETS.values()))
+        | set().union(*(set(cols) for cols, _ in FAMILIES.values()))
         | set(RECOVERY_FEATURES)
+        | set(G2X)
         | set(TIER1 + TIER2 + TIER3)
     )
-    # A current snapshot (model/osm.py), so it counts as documented in its own
-    # register — not in FEATURES — and fails the guard if it reaches DEPLOY.
-    snapshot = set(SNAPSHOT)
-    unknown = [n for n in covered if n not in FEATURES and n not in snapshot]
-    deployed_snapshot = sorted(snapshot & set(DEPLOY))
-    print(f"   검사 대상 {len(covered)}개 (robustness.FEATURE_SETS·복구·Tier1~3) 중 "
+    # 배포되는 세트는 둘이다 — 순위 모델의 DEPLOY 와 승계 서빙의 RECOVERY.
+    deployed = set(DEPLOY) | set(RECOVERY_FEATURES)
+    unknown = [n for n in covered if n not in FEATURES and n not in SNAPSHOT_ONLY]
+    deployed_snapshot = sorted(set(SNAPSHOT_ONLY) & deployed)
+    print(f"   검사 대상 {len(covered)}개 (적합 세트·심사 후보군·복구·G2X·Tier1~3) 중 "
           f"as-of 문서 미등재: {unknown or '없음'}")
-    print(f"   시점 재구성 불가 {len(snapshot)}개 — 배포 세트 침투: "
+    print(f"   시점 재구성 불가 {len(SNAPSHOT_ONLY)}개 — 배포 세트 침투: "
           f"{deployed_snapshot or '없음'}")
     doc_ok = not unknown and not deployed_snapshot
 
