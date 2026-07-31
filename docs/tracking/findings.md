@@ -469,7 +469,11 @@ DEPLOY += osm.COLUMNS                   exit 1  — 배포 세트 침투: osm_* 
 FEATURE_SETS['FAKE'] = [unregistered]   exit 1  — as-of 문서 미등재
 ```
 
-## F-A4. §4-C lineage table predates the 2026-07-28 retrain (2026-07-30)
+## F-A4. §4-C lineage table predates the 2026-07-28 retrain (2026-07-30) — resolved 2026-08-01
+
+**Status:** Resolved on 2026-08-01. §4-C itself was already rewritten by the
+07-31 source refresh; what still carried the superseded fit was the §9-A
+decomposition, now recomputed. See the resolution block at the end.
 
 **Found** while reconciling a reproducible AUC (0.6369) against the documented
 0.6392.
@@ -498,7 +502,51 @@ current 76.9 / 28.4 values, so the contradiction is visible rather than hidden,
 and the AUC line has been corrected in those three plus `lanes/A-algorithm.md`.
 §4-C itself is untouched.
 
-## F-A5. Floor-level survival rates cite a source that cannot produce them (2026-07-30)
+### Resolution (2026-08-01)
+
+§4-C is no longer the stale copy: the 07-31 refresh rewrote it to the deployed
+내신형 9 grades (1등급 80.1 / 9등급 10.1, AUC 0.6383). The table that still
+carried the 0.6392 lineage was **§9-A**, whose 2x2 decomposition this entry
+flagged as out of scope at the time. It has now been recomputed on the refreshed
+source:
+
+| | AUC | prior_surv | margin | top10 | bot10 | gap |
+|---|---|---|---|---|---|---|
+| A 2005–2018 / 2019–2022 | 0.5972 | 0.5559 | +0.0413 | 74.5 | 43.9 | 30.6 |
+| B 2005–2018 / 2023 | 0.6233 | 0.5664 | +0.0569 | 74.8 | 32.6 | 42.3 |
+| D 2005–2022 / 2023 | 0.6383 | 0.5668 | +0.0714 | 76.1 | 28.4 | 47.7 |
+
+**D's AUC reproduces the deployed 0.6383 exactly**, which is what places the
+table on the deployed lineage rather than beside it.
+
+The recomputation changed an interpretation, not just digits. The published
+split was 검증창 66% / 학습창 34% of a +0.0410 total; it is now **+0.0156 (52%)
+/ +0.0145 (48%) of +0.0301**. "Most of the gain came from leaving COVID behind"
+is no longer supportable — the two components are effectively equal. §9-A's
+narrative paragraph, its 한계 CI, the 채택 justification, and README's COVID
+bullet were all updated to match.
+
+Also corrected: the experiment ledger row A1 said "1등급 75.5%", which now reads
+as the 내신형 1등급 (80.1%). It was a decile-era figure, so it is labelled 당시
+상위10% — the same wording row E1 already used.
+
+```text
+model.round4.baseline_report(con, list(DEPLOY), WINNER)   exit 0
+  구 홀드아웃 2019–2022  n_te=48,895  AUC 0.5972 (prior 0.5559)
+                        상위10% 74.5 [73.3, 75.7]  하위10% 43.9 [42.5, 45.3]  단조 O
+  신선 홀드아웃 2023     n_te= 7,915  AUC 0.6383 (prior 0.5668)
+                        상위10% 76.1 [73.0, 78.9]  하위10% 28.4 [25.4, 31.6]  단조 O
+```
+
+Row B (train 2005–2018 / test 2023) has no entry point in `round4`, so it was
+fitted separately with the same `cached_split` + `fit_predict` + `deciles` path.
+Nothing was written to any database.
+
+## F-A5. Floor-level survival rates cite a source that cannot produce them (2026-07-30) — resolved 2026-08-01
+
+**Status:** Resolved on 2026-08-01. The unsourceable trio was removed rather than
+replaced: re-measurement shows the floor gradient is an area artifact. See the
+resolution block at the end of this entry.
 
 **Found** while checking whether floor data exists at all (owner question).
 
@@ -527,6 +575,114 @@ known direction: an address states its floor mainly when the shop is *not* on th
 ground floor, so 1층 is 62% of the token subset against a much higher true share.
 Any conditional display built on it needs that bias stated, exactly as the
 등급×면적 table states its legacy bench.
+
+### Resolution (2026-08-01)
+
+Re-measured read-only (`pipeline.db.connect_ro`, `PRAGMA query_only=ON`; no
+table was created or altered). Floor tokens come from the existing parser
+`pipeline.addr_history._floor_parts`; buckets are 지하 (token contains 지하, or
+`B\d+`) / 1층 / 2층 / 3층+ (single numbered floor), with multi-floor spans
+(`1,2층`) and bare `층`/`지상` left unclassified. Survival follows CLAUDE.md
+rule 4 and `pipeline.cohort`: observation cut = `MAX(open_y*12+open_m)` =
+**2026-07**; a row enters the denominator only if `open_ym + 36 <= cut`, and the
+numerator is `close_ym - open_ym <= 36`.
+
+**Coverage.** 117,436 of 535,715 licence rows carry a floor token (**21.9%**);
+112,743 (21.0%) fall into one of the four buckets. Coverage is not stable in
+time — it peaks at 50.5% for 2013 openings and collapses to 9.3% (2023) and
+3.3% (2026), so recent cohorts are the thinnest part of the subset.
+
+**All-period cohort (open_y >= 2005, observable at 36m):**
+
+```text
+floor        n  closed   surv%           CI95(Wilson)   share
+ 지하    14,817   4,970   66.5%          65.7-67.2      19.2%
+ 1층     49,691  15,975   67.9%          67.4-68.3      64.3%
+ 2층      8,696   2,474   71.6%          70.6-72.5      11.2%
+ 3층+     4,111   1,163   71.7%          70.3-73.1       5.3%
+```
+
+**2023 openings** — the deployed bench's cohort. Only Jan–Jul 2023 is 36 months
+past opening under a 2026-07 cut, and the token subset covers 9.3% of that year,
+so n collapses:
+
+```text
+floor      n  closed   surv%           CI95(Wilson)
+ 지하     160      82   48.8%          41.1-56.4
+ 1층      662     243   63.3%          59.6-66.9
+ 2층      116      35   69.8%          60.9-77.4
+ 3층+      31      11   64.5%          46.9-78.9
+TOTAL     969  (6.5% of the 14,992 licence rows opened in 2023)
+```
+
+A 3층+ interval 32 points wide cannot support a published statistic. The widest
+cohort that keeps every bucket above n=100 is 2019–2023 (지하 1,601 / 1층 6,284 /
+2층 971 / 3층+ 336), but see the confound below — no cohort choice rescues the
+claim.
+
+**Selection bias, direction confirmed.** The entry predicted that an address
+states its floor mainly when the shop is not on the ground floor. Measured
+against `store.flr_no` (present for 92,352/138,558 = 66.7% of rows; `지` and
+`B\d+` values counted as basement):
+
+```text
+floor    licence addr tokens (n=112,743)    store.flr_no (n=92,348)
+ 지하                       21.3%                        2.48%
+ 1층                        61.7%                       80.85%
+ 2층                        11.6%                       12.19%
+ 3층+                        5.4%                        4.48%
+```
+
+Basement is over-sampled 8.6x and 1층 under-sampled by 19 points, exactly the
+predicted direction.
+
+**Why no replacement number was published — the gradient is area.** Median
+`site_area` in the observable token subset is 1층 42.2 m2 · 지하 62.7 · 2층 90.0 ·
+3층+ 97.5, and CLAUDE.md non-negotiable 5 already names area the single strongest
+predictor. Stratifying by area removes the floor ordering and in the smallest
+band reverses it:
+
+```text
+area band     지하     1층     2층    3층+      (pooled by area)
+ <30 m2     49.8%  59.8%  54.7%  56.0%           57.9%  n=19,093
+ 30-50      63.2%  66.8%  64.9%  67.7%           66.2%  n=17,561
+ 50-90      68.8%  74.1%  69.8%  69.1%           72.2%  n=18,554
+ 90+        76.9%  75.7%  76.4%  77.2%           76.3%  n=21,205
+```
+
+At 90 m2+ the four floors span 1.5 points and overlap; area alone spans 18.4
+points. The raw "higher floor survives better" ordering is 2층/3층+ shops being
+twice the size of 1층 shops, not a floor effect. Publishing 66.5/67.9/71.6/71.7
+would have repeated the original defect with a new source, so both documents now
+state the absence and its reason instead.
+
+**The entry's own recomputation is not reproducible.** This round could not
+reproduce 70.1 / 71.2 / 75.0 / 72.1 (n 17,643 / 67,875 / 14,405 / 6,584) or the
+20.4% coverage figure under either the censored or the uncensored definition
+(uncensored gives 66.3 / 68.2 / 71.8 / 71.9). The 2026-07-31 licence refresh does
+not explain it: the pre-refresh snapshot `kb-pre-coldswap-20260729.db` (535,603
+rows, same 2026-07 cut) yields 21.9% token coverage and 66.5 / 67.9 / 71.6 /
+71.7 with n 14,817 / 49,692 / 8,697 / 4,111 — the same values as the current
+database. The earlier figures' method was not recorded; the numbers above are the
+ones with a stated definition.
+
+One parser artifact was found and is harmless here: `_floor_parts` returns a bare
+`지상` token for addresses containing 단지상가 (e.g. `개포주공7단지상가 102-1호`).
+Bare `지상` is unclassified, so those rows never enter a bucket. Reported rather
+than fixed — `pipeline/` is shared and `addr_history` uses the token only for
+chain keys.
+
+**Documents changed:** `README.md` §5 and `docs/goodwill-report-design.md` §5
+(the ladder rung, the building card, and the data bullet). Both now carry the
+source, the 21.9% subset share, the bias direction, and the area confound.
+
+**Blast radius — closed the same day.** Two further copies carried the removed
+trio and were cleaned up after this brief: `docs/ui-data-contract.md:59` (지하
+59.8 ↔ 2층 69.9) and `docs/tracking/criteria-backend-teo-v1.md:78`, where the
+trio backed a "do not multiply floor into 매출" rule — the rule survives and is
+now stronger, since there is no validated floor multiplier for 매출 *or*
+survival. `docs/experiment-plan.md:68`, which pointed at "README의 층별 수치" as
+a post-submission task, was repointed at this entry.
 
 ---
 

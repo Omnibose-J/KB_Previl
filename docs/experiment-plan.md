@@ -65,7 +65,7 @@ as-of 재구성이 가능한 것만 들어갈 수 있다. 못 들어가는 것�
 | G3 과거 생존 | prior_surv_3y, prior_surv_1y, prior_surv_n, median_tenure_r1, veteran_share_r1 | 인허가 | 있음 |
 | G4 접근성 | station_dist_m, stations_500m, stations_1km, transfer_dist_m (+E4 버스 채택 시 추가) | 외부·점 단위 | 있음 |
 | G5 격자 물리 | median_area (격자 점포 면적 중앙값 — 입지 속성) | 인허가 | 있음 |
-| G6 점포 속성 | site_area (**층은 제외** — 인허가 원천에 층 필드가 없어 산출 불가. README의 층별 수치는 별도 소스, 제출 후 과제) | 인허가 | **측정에만 포함, 순위 모델 제외 유지** |
+| G6 점포 속성 | site_area (**층은 제외** — 인허가 원천에 층 필드가 없어 산출 불가. README에 있던 층별 수치는 F-A5에서 폐기됐다) | 인허가 | **측정에만 포함, 순위 모델 제외 유지** |
 | G7 비정형·트렌드 | trend_12m, trend_growth | 데이터랩 (수집 완료) | 있음 (§6에서 단독 기각) |
 | (별도) 비정형·언급량 | mention 계열 | 블로그 (마포구만) | 전 서울 표가 아니라 **별도 행으로만** 병기 |
 
