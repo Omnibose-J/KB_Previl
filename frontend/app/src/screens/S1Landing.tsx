@@ -50,10 +50,15 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <nav className={s.nav}>
         <BrandMark onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+        {/* 각 절이 실제로 답하는 질문을 그대로 이름으로 쓴다. 앞서 «상권 찾기»
+            였던 자리는 문제 제기 절로 가는 링크였고, 이 제품은 상권(동 단위)과
+            100m 자리를 갈라 놓은 것이 주장의 핵심이라 그 이름이 스스로를
+            부정하고 있었다 — 바로 그 절 제목이 «동네 설명이 아니라, 자리
+            추천이에요» 다. */}
         <div className={s.menu}>
-          <button onClick={() => scrollTo(why)}>상권 찾기</button>
-          <button onClick={() => scrollTo(features)}>서비스 소개</button>
-          <button onClick={() => scrollTo(differs)}>데이터·방법론</button>
+          <button onClick={() => scrollTo(why)}>왜 필요한가요</button>
+          <button onClick={() => scrollTo(features)}>무엇을 해 주나요</button>
+          <button onClick={() => scrollTo(differs)}>무엇이 다른가요</button>
         </div>
       </nav>
 
