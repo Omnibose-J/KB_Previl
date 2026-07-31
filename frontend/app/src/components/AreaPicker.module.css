@@ -1,0 +1,25 @@
+/* 조작임이 보여야 해서 테두리를 두른다. */
+.pick,
+.pickDark {
+  flex: none;
+  min-width: 168px;
+  max-width: 240px;
+  border-radius: 100px;
+}
+
+.pick {
+  padding: 7px 14px;
+  border: 1px solid var(--fg-line);
+  background: var(--fg-wash);
+}
+
+/* 어두운 바 안 — 배경을 깔면 바에 구멍이 난 것처럼 보여서 선만 둔다. */
+.pickDark {
+  padding: 6px 12px;
+  border: 1px solid rgb(255 255 255 / 18%);
+}
+
+.pick:focus-within,
+.pickDark:focus-within {
+  border-color: var(--fg-y);
+}

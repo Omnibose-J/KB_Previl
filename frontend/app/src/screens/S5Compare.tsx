@@ -2,7 +2,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { api } from "../api/client";
-import type { CompareItem, CompareResponse, GridCell } from "../api/types";
+import type { CompareItem, CompareResponse, GridCell, Point } from "../api/types";
+import AreaPicker from "../components/AreaPicker";
 import GridMap from "../components/GridMap";
 import { ErrorState, Loading } from "../components/states";
 import { man, pct0, pct1 } from "../lib/format";
@@ -16,8 +17,10 @@ import s from "./S5Compare.module.css";
 // (기획서 §3.3). 표만 두 개 놓으면 «숫자가 다르네»로 읽히고 끝이라, 두 순위를
 // 선으로 이어 **교차가 눈에 보이게** 그린다. 심사위원은 산식이 아니라 화면을 본다.
 //
-// 위치는 지도 클릭으로만 잡는다. 주소 검색은 지오코딩 키가 프론트에 없고,
-// 없는 것을 있는 척하느니 «지도에서 찍기»가 정직하다.
+// 위치는 지도 클릭으로만 잡는다. 번지를 쳐서 찾는 것은 지오코딩 키가 없어 못
+// 하고, 없는 것을 있는 척하느니 «지도에서 찍기»가 정직하다. 대신 아는 동네로
+// 날아가는 것까지는 우리 데이터로 되므로(행정동 목록 = /api/areas), 지도 머리에
+// S3 와 같은 지역 찾기를 둔다 — 찍은 칸의 대략 주소는 말풍선이 답한다.
 
 const MAX_CANDIDATES = 3;
 // 이 화면이 증명하는 것은 «정렬 기준을 바꾸면 순위가 뒤집힌다»이고, 한 곳으로는
@@ -110,7 +113,12 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     staleTime: Infinity,
   });
 
+  // 지역 찾기로 옮긴 자리. 한 번 옮기면 그 뒤 자리를 찍어도 지도는 그대로 둔다 —
+  // 찍은 칸은 이미 화면 안에 있어서, 거기로 다시 날아가면 시야만 흔들린다.
+  const [jump, setJump] = useState<Point | null>(null);
+
   const focus = useMemo(() => {
+    if (jump) return jump;
     const picked = slots.find((sl) => sl.cell)?.cell?.center;
     if (picked) return picked;
     const items = seed.data?.items ?? [];
@@ -118,7 +126,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     // 채점된 칸이 하나뿐이었다. 지도가 «찍을 게 없는» 상태로 열린다.
     // 상권 안(salesAvailable) 후보는 상업지라 이웃 칸이 있다는 것이 보장에 가깝다.
     return (items.find((it) => it.salesAvailable) ?? items[0])?.center ?? null;
-  }, [slots, seed.data]);
+  }, [jump, slots, seed.data]);
 
   const run = () => {
     if (!uptae) return;
@@ -285,7 +293,11 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
           {uptae ? (
             <>
               <div className={s.mapHead}>
-                <strong>{slots[active]?.label ?? "?"}</strong> 후보의 자리를 찍어 주세요
+                <span>
+                  <strong>{slots[active]?.label ?? "?"}</strong> 후보의 자리를 찍어 주세요
+                </span>
+                {/* S3 지도와 같은 조작 — 아는 동네 이름으로 날아간 다음 찍는다. */}
+                <AreaPicker dark onPick={setJump} />
               </div>
               {seed.isPending ? (
                 <div className={s.mapEmpty}>

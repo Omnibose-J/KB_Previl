@@ -330,7 +330,11 @@
 }
 
 .mapHead {
-  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 7px 7px 14px;
   border-radius: 9px;
   background: var(--fg-ink);
   font-size: 14px;
