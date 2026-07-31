@@ -17,4 +17,7 @@ pyproj>=3.6             # 3.7.1   좌표 변환 (EPSG:5179/5174/5181)
 # service/reporting.py 가 최상위에서 import 하므로 «설치»는 필요하다.
 # 다만 OPENAI_API_KEY 가 없어도 앱은 뜬다 — /api/report 만 오류를 내고
 # 등급·추천·손익·권리금은 전부 정상 동작한다.
-openai>=1.40            # 1.59.7
+openai>=1.40,<2         # 1.59.7
+# 상한이 있는 것은 이 줄뿐이다. reporting.py 가 최상위에서 예외 클래스 4종과
+# beta.chat.completions.parse 를 쓰므로, 메이저 변경이 오면 리포트 카드가
+# 아니라 uvicorn 부팅 자체가 죽는다.

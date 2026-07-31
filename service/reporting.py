@@ -5,6 +5,7 @@ import re
 import time
 from typing import Annotated
 
+import httpx
 from openai import AuthenticationError, OpenAI, OpenAIError, RateLimitError
 from pydantic import BaseModel, Field
 
@@ -340,7 +341,11 @@ def _generate_sentences(evidence):
 
     client = OpenAI(
         api_key=api_key,
-        timeout=30.0,
+        # Connect 5s, read 30s. Offline (the 본선 demo runs with no network) the
+        # connect stage is what fails, so a single timeout of 30 would freeze the
+        # card for 30 seconds before showing its error. Generation itself can be
+        # slow and keeps the full budget.
+        timeout=httpx.Timeout(30.0, connect=5.0),
         # The SDK retries every 429 alike. We have to see the first response to
         # distinguish transient rate limits from non-retryable quota failures.
         max_retries=0,
