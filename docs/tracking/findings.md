@@ -408,7 +408,11 @@ first with `KB_RECOVERY_SOURCE=constant`, then with `m2`, checks public
 `recoveryProb` assertion was updated to the owner-approved W7 contract; the
 full cost and API suite exits 0 with 66 passing tests.
 
-## F-A3. The leakage guard does not cover newly added feature families (2026-07-30)
+## F-A3. The leakage guard does not cover newly added feature families (2026-07-30) — resolved 2026-08-01
+
+**Status:** Resolved on 2026-08-01. Coverage is now derived from
+`robustness.FEATURE_SETS`, and the two families are registered on opposite
+sides of the as-of contract. See the resolution block at the end of this entry.
 
 **Found** while adding OSM (R10-B) and CBD (R11) candidate features.
 
@@ -437,6 +441,33 @@ is a genuine anachronism the guard never examined.
 **Smallest fix** — make the guard's coverage set the union of every set registered
 in `robustness.FEATURE_SETS` rather than a hand-listed five, so adding a candidate
 set automatically extends the check. Lane A.
+
+### Resolution (2026-08-01)
+
+Coverage is now `union(robustness.FEATURE_SETS.values()) | RECOVERY_FEATURES |
+TIER1..3`, so a family enters the check by being registered where it is
+measured. Covered columns went 40 → 51.
+
+Registering the eleven split them, because the two families differ in kind:
+
+- **CBD (4)** — distance to a fixed city-centre coordinate does not move with
+  T, so it is a genuine as-of feature. `CBD_FEATURES` already existed in
+  `model/asof.py` and was simply missing from the `FEATURES.update` chain.
+- **OSM (7)** — a current snapshot. Putting it in `FEATURES` would have turned
+  the check green on the exact source it exists to catch, so `model/osm.py`'s
+  `COLUMNS` is read as a *second* register: membership there counts as
+  documented, and a column reaching `DEPLOY` from it fails the guard. OSM stays
+  measurable as a candidate — the anachronism is a reason not to deploy it, not
+  a reason to hide it from the ablation table.
+
+Both failure directions were exercised, not asserted:
+
+```text
+python -m model.test_leakage            exit 0  — 51 covered, none undocumented, none deployed
+python -m model.asof --selftest-cut     exit 0
+DEPLOY += osm.COLUMNS                   exit 1  — 배포 세트 침투: osm_* 7
+FEATURE_SETS['FAKE'] = [unregistered]   exit 1  — as-of 문서 미등재
+```
 
 ## F-A4. §4-C lineage table predates the 2026-07-28 retrain (2026-07-30)
 

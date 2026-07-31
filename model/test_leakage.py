@@ -141,21 +141,33 @@ def main():
 
     print("\n3) 피처 목록에 금지 소스가 없는지 확인")
     from .asof import FEATURES, LEAKY
+    from .osm import COLUMNS as SNAPSHOT
     from .recovery import RECOVERY_FEATURES
-    from .train import DEPLOY, LOC3, NUM, TIER1, TIER2, TIER3
+    from .robustness import FEATURE_SETS
+    from .train import DEPLOY, TIER1, TIER2, TIER3
     # Every set a model may be fitted on, not just the v1 NUM set: a feature can
-    # only be used if asof.FEATURES states when it becomes observable.
+    # only be used if asof.FEATURES states when it becomes observable. The list
+    # is derived from robustness.FEATURE_SETS rather than enumerated, so a new
+    # candidate family extends the check by being registered there — the old
+    # hand-listed five let OSM and CBD be measured without ever passing here.
     covered = sorted(
-        set(NUM)
-        | set(LOC3)
-        | set(DEPLOY)
+        set().union(*(set(c) for c in FEATURE_SETS.values()))
         | set(RECOVERY_FEATURES)
         | set(TIER1 + TIER2 + TIER3)
     )
-    unknown = [n for n in covered if n not in FEATURES]
-    print(f"   검사 대상 {len(covered)}개 (NUM·LOC3·DEPLOY·Tier1~3) 중 "
+    # OSM is a current snapshot (model/osm.py docstring): a road built in 2015
+    # is credited to a 2010 opening, so it can be measured as a candidate but
+    # never reconstructed as of T. Listing it as documented would make the
+    # check green on exactly the source it exists to catch, so it is a second
+    # register, and entering DEPLOY from it fails the guard.
+    snapshot = set(SNAPSHOT)
+    unknown = [n for n in covered if n not in FEATURES and n not in snapshot]
+    deployed_snapshot = sorted(snapshot & set(DEPLOY))
+    print(f"   검사 대상 {len(covered)}개 (robustness.FEATURE_SETS·복구·Tier1~3) 중 "
           f"as-of 문서 미등재: {unknown or '없음'}")
-    doc_ok = not unknown
+    print(f"   시점 재구성 불가 {len(snapshot)}개 — 배포 세트 침투: "
+          f"{deployed_snapshot or '없음'}")
+    doc_ok = not unknown and not deployed_snapshot
 
     # 4) 여기까지는 '피처 이름'만 봤다. 배제된 원천이 배포에서 실제로 켜지는
     #    것은 별개의 사고이고, 이전에는 문구로만 단언하고 확인하지 않았다.
