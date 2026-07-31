@@ -467,7 +467,9 @@
 
 .slope {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px minmax(0, 1fr);
+  /* 가운데 칸이 두 기준 사이의 거리다 — 선이 기울어질 여지는 주되, 카드 폭을
+     다 쓰면 교차가 눈에서 멀어진다. */
+  grid-template-columns: minmax(0, 1fr) 200px minmax(0, 1fr);
   align-items: start;
   gap: 0;
   margin-top: 14px;
@@ -546,6 +548,10 @@
 .slopeLines {
   width: 100%;
   height: 100%;
+  /* .slope 가 align-items:start 라 이 칸은 늘어나지 않는다. 그러면 height:100%
+     가 기준을 잃고 SVG 기본 높이(150px)로 렌더돼, viewBox 가 그만큼 늘어나면서
+     선이 행 위치를 벗어나 아래 표까지 내려온다. */
+  align-self: stretch;
   overflow: visible;
 }
 

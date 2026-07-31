@@ -365,7 +365,15 @@ function Reversal({ r }: { r: CompareResponse }) {
         </div>
 
         {/* 잇는 선이 교차하는 것 자체가 메시지다. */}
-        <svg className={s.slopeLines} viewBox={`0 0 100 ${height}`} preserveAspectRatio="none">
+        {/* 높이를 인라인으로 못박는다. CSS 의 height:100% 는 SVG 가 replaced
+            element 라 풀리고, 그러면 viewBox 비율로 폭×1.24 가 잡혀(실측 248px)
+            선이 행 위치를 벗어나 아래 표까지 내려온다. */}
+        <svg
+          className={s.slopeLines}
+          viewBox={`0 0 100 ${height}`}
+          preserveAspectRatio="none"
+          style={{ height }}
+        >
           {items.map((it) => {
             const y1 = (it.rentRank - 1) * ROW_H + ROW_H / 2;
             const y2 = (it.teoRank - 1) * ROW_H + ROW_H / 2;
