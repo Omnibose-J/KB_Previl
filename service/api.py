@@ -315,10 +315,27 @@ def meta():
         grid_count = con.execute(
             "SELECT COUNT(DISTINCT grid_id) FROM grid_score"
         ).fetchone()[0]
+        # 배치 판정이 먼저다. 아래 조회는 배치가 돈 DB 에만 있는 테이블을 읽으므로,
+        # 순서를 바꾸면 «배치 미실행» 이라는 정확한 진단이 «조회 실패» 로 뭉개진다.
+        if grid_count == 0:
+            raise DatabaseUnavailableError("배치 미실행: grid_score가 비어 있습니다.")
+
+        # 서울 전체 개업연도별 3년 생존율. `observable_3y = opened` 로 완결
+        # 코호트만 남긴다 — 2023년은 8,762/14,992 만 3년이 지나 부분 관측이고,
+        # 그걸 섞으면 마지막 점이 계절 편중된 표본이 된다. succession_excluded=0
+        # 은 배포 라벨과 같은 계보다(양도양수 미제외, docs §8-B).
+        survival_trend = [
+            {"year": row["open_year"], "survival": row["survive_3y"] / 100,
+             "opened": row["opened"]}
+            for row in con.execute(
+                "SELECT open_year, survive_3y, opened FROM cohort_survival "
+                "WHERE scope = 'seoul' AND succession_excluded = 0 "
+                "  AND survive_3y IS NOT NULL AND observable_3y = opened "
+                "ORDER BY open_year"
+            )
+        ]
 
     districts = _district_names(area_names)
-    if grid_count == 0:
-        raise DatabaseUnavailableError("배치 미실행: grid_score가 비어 있습니다.")
     if "observed_by_grade" not in raw_meta:
         raise DatabaseUnavailableError(
             "score_meta.observed_by_grade가 없어 등급 실측치를 제공할 수 없습니다."
@@ -337,6 +354,7 @@ def meta():
     return {
         "as_of": raw_meta.get("as_of"),
         "uptae": uptae,
+        "seoul_survival_trend": survival_trend,
         "districts": districts,
         "observed_by_grade": [
             {

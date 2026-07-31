@@ -57,6 +57,12 @@ export interface GradeArea {
   bench: string;
 }
 
+export interface SurvivalYear {
+  year: number;
+  survival: number;
+  opened: number;
+}
+
 export interface Meta {
   asOf: string | null;
   uptae: string[]; // render chips with these values verbatim (ui-spec §7)
@@ -77,6 +83,11 @@ export interface Meta {
    */
   goodwillSupportedUptae: string[];
   gradeDirection: "1_is_best";
+  /**
+   * 서울 전체 개업연도별 3년 생존율. 3년이 다 지난 완결 코호트만 담기므로
+   * 마지막 해는 «올해»가 아니다 — 축 라벨을 서버 값 그대로 쓸 것.
+   */
+  seoulSurvivalTrend: SurvivalYear[];
   /** mandatory caveat strings (AUC framing, ~26% failure line) — render, don't rewrite */
   caveats: string[];
   modelNote: string;

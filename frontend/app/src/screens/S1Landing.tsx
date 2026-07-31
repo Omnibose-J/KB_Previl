@@ -2,13 +2,14 @@ import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Screen } from "../App";
+import BrandMark from "../components/BrandMark";
 import Dropdown from "../components/Dropdown";
+import SurvivalTrend from "../components/SurvivalTrend";
 import { useSearch } from "../state/search";
 import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
 import { int, pct0, splitUnit } from "../lib/format";
 import { useReveal } from "../lib/reveal";
 import s from "./S1Landing.module.css";
-import markUrl from "../assets/previl-mark.png";
 
 /** 히어로 지표 한 칸. 수치는 크게, 단위는 작게 — 자릿수가 먼저 읽힌다.
  *  단위로 안 갈라지는 값("77% vs 28%")은 splitUnit 이 통째로 돌려주므로
@@ -48,12 +49,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
     <div className={s.page}>
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <nav className={s.nav}>
-        <div className={s.logo}>
-          <img className={s.mark} src={markUrl} alt="" />
-          <span className={s.wordmark}>
-            <span className={s.wordmarkKb}>KB</span> Previl
-          </span>
-        </div>
+        <BrandMark onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
         <div className={s.menu}>
           <button onClick={() => scrollTo(why)}>상권 찾기</button>
           <button onClick={() => scrollTo(features)}>서비스 소개</button>
@@ -165,19 +161,30 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
       {/* ── WHY NOW ──────────────────────────────────────────────────── */}
       <section className={s.why} ref={why} data-reveal>
         <div className={s.secHead}>
-          <h2 className={s.h2}>입지 판단은 아직도 감(勘)에 의존합니다</h2>
-          <p className={s.secSub}>자리마다 기록은 쌓여 있는데, 볼 방법이 없었어요.</p>
+          <h2 className={s.h2}>좋은 자리인지, 어떻게 아세요?</h2>
+          <p className={s.secSub}>
+            서울에서 문 연 가게가 3년을 넘기는 비율은 계속 낮아지고 있어요.
+          </p>
         </div>
+        {meta.data ? <SurvivalTrend data={meta.data.seoulSurvivalTrend} /> : null}
         <div className={s.whyCards}>
           <div className={s.whyCard}>
             <span className={s.whyNum}>01</span>
-            <h3>부동산 중개인의 감</h3>
-            <p>예비 창업자의 입지 판단은 여전히 소문과 발품에 의존한다</p>
+            <h3>물어볼 곳이 중개인뿐이에요</h3>
+            <p>같은 자리를 두고도 답이 갈리는데, 무엇을 보고 한 말인지 확인할 방법이 없어요.</p>
           </div>
           <div className={s.whyCard}>
             <span className={s.whyNum}>02</span>
-            <h3>폐업 원인의 큰 축</h3>
-            <p>한국 자영업 5년 생존율은 전 업종 최저 수준, 그 중심에 잘못된 입지 선택이 있다</p>
+            <h3>통계는 동네까지만 나와요</h3>
+            <p>골목 하나 건너 갈리는 게 장사인데, 공개된 자료는 행정동에서 멈춰요.</p>
+          </div>
+          <div className={s.whyCard}>
+            <span className={s.whyNum}>03</span>
+            <h3>기록은 이미 공개돼 있어요</h3>
+            <p>
+              {PROVENANCE.recordSince} 쌓인 개업·폐업 {PROVENANCE.recordCount}이요.
+              창업자가 열어볼 형태가 아니었을 뿐이에요.
+            </p>
           </div>
         </div>
       </section>

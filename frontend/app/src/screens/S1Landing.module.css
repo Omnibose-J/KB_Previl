@@ -4,7 +4,6 @@
    nav 높이는 히어로가 «남은 높이»를 계산하는 데 쓰이므로 변수로 고정한다 —
    패딩에서 파생시키면 두 곳이 따로 놀다 첫 화면이 미묘하게 넘친다. */
 .page {
-  --nav-h: 68px;
   --fadeup-dist: 16px;
 
   background: var(--fg-card);
@@ -22,26 +21,6 @@
   background: var(--fg-card);
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mark {
-  height: 26px;
-  width: auto;
-}
-
-.wordmark {
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--fg-ink);
-}
-
-.wordmarkKb {
-  color: var(--fg-y);
-}
 
 .menu {
   display: flex;
@@ -488,8 +467,8 @@ select.fieldEmpty {
    hairline and a yellow index — no boxes. */
 .whyCards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 48px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
 }
 
 .whyCard {

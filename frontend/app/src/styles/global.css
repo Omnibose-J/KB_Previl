@@ -97,6 +97,11 @@
   --edge-gutter: clamp(20px, 4.4vw, 64px);
   --edge: max(var(--edge-gutter), (100% - 1440px) / 2);
 
+  /* 모든 화면의 상단 바 높이. 화면마다 패딩으로 잡으면 가운데 내용(스텝·조건칩·
+     경로)에 따라 헤더가 들쭉날쭉해진다. 랜딩 히어로는 이 값으로 «남은 높이»를
+     계산하므로, 바꾸면 첫 화면 높이도 같이 움직인다. */
+  --nav-h: 68px;
+
   /* grade ramp: amber sequential, hue + alpha stepped so adjacent grades are
      actually distinguishable on the map (single-alpha yellow read as one tone
      in grade-1-dense districts). grade 1 = best = deepest. */

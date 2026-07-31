@@ -4,6 +4,7 @@ import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import AiSummaryCard from "../components/AiSummaryCard";
+import BrandMark from "../components/BrandMark";
 import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
@@ -71,6 +72,8 @@ export default function S4Detail({
     <div className={s.page}>
       {/* ── breadcrumb bar ─────────────────────────────────────────── */}
       <div className={s.crumb}>
+        <BrandMark onClick={() => go({ name: "landing" })} />
+        <i className={s.crumbRule} />
         {/* diagnosis entries come from the S3 map — back returns there too */}
         <button className={s.back} onClick={() => go({ name: "results" })}>
           ← {from === "results" ? "결과 목록으로" : "지도로 돌아가기"}

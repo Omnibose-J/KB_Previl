@@ -93,6 +93,12 @@ class GradeArea(ApiModel):
     bench: str
 
 
+class SurvivalYear(ApiModel):
+    year: int
+    survival: Annotated[float, Field(ge=0, le=1)]
+    opened: int
+
+
 class MetaResponse(ApiModel):
     as_of: str | None
     uptae: list[str]
@@ -104,6 +110,7 @@ class MetaResponse(ApiModel):
     grade_area: GradeArea | None
     grid_count: int
     grade_direction: Literal["1_is_best"]
+    seoul_survival_trend: list[SurvivalYear]
     caveats: list[str]
     model_note: str
     resolutions: dict[str, str]

@@ -1,0 +1,34 @@
+.brand,
+.brandBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brandBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.brandBtn:hover .wordmark {
+  color: var(--fg-y-text);
+}
+
+.mark {
+  height: 26px;
+  width: auto;
+}
+
+.wordmark {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--fg-ink);
+  transition: color 0.15s var(--ease-out);
+}
+
+.kb {
+  color: var(--fg-y);
+}
