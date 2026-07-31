@@ -400,6 +400,71 @@
 
 /* slope: 두 순위와 잇는 선.
    열 머리글이 absolute(top:-22px)라 위 문단과 겹친다 — 그만큼 띄운다. */
+/* 대표값 아래 한 줄로 붙는 구간 — 숫자를 밀어내지 않게 작고 옅게. */
+.cellBand {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--fg-t8);
+  white-space: nowrap;
+}
+
+/* ── 가정 민감도 ────────────────────────────────────────── */
+
+.uncertainty {
+  margin-top: 26px;
+  padding: 20px 22px;
+  border: 1px solid var(--fg-line);
+  border-radius: 12px;
+  background: var(--fg-card);
+}
+
+.uncertainty h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.uncertainty ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  list-style: none;
+}
+
+.uncertainty li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.firm {
+  color: var(--fg-green);
+}
+
+.shaky {
+  color: var(--fg-orange-deep);
+}
+
+.uncertaintyWhy {
+  color: var(--fg-t6);
+  line-height: 22px;
+}
+
+.uncertaintyNote {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fg-line);
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--fg-t8);
+}
+
 .slope {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 130px minmax(0, 1fr);

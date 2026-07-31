@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import type { CompareItem, CompareResponse, GridCell } from "../api/types";
 import GridMap from "../components/GridMap";
 import { ErrorState, Loading } from "../components/states";
-import { man, pct1 } from "../lib/format";
+import { man, pct0, pct1 } from "../lib/format";
 import s from "./S5Compare.module.css";
 
 // S5 비교 — 기획서 §1.4의 사용자를 위한 입구다. 이 사람은 «어디가 좋아?»를
@@ -425,7 +425,15 @@ function Reversal({ r }: { r: CompareResponse }) {
               <td>{man(it.costBreakdown.rent)}</td>
               <td>{man(it.costBreakdown.depositOpportunity)}</td>
               <td>{man(it.costBreakdown.premiumAmortized)}</td>
-              <td className={s.strongCell}>{man(it.effectiveCost)}</td>
+              <td className={s.strongCell}>
+                {man(it.effectiveCost)}
+                {/* 대표값은 «권리금을 한 푼도 못 건진다»는 한 점이다. 서버가 함께
+                    보내는 밴드는 회수·상각기간·이자율을 동시에 흔든 27조합의
+                    5~95% 구간이라, 그 한 점이 얼마나 단단한지를 같은 칸에서 말한다. */}
+                <em className={s.cellBand}>
+                  {man(it.effectiveCostBand.low)}~{man(it.effectiveCostBand.high)}
+                </em>
+              </td>
               <td>
                 {/* null은 «매출 근거 없음»이지 0이 아니다 */}
                 {it.burdenRate !== null ? pct1(it.burdenRate) : <span className={s.none}>정보 없음</span>}
@@ -442,6 +450,43 @@ function Reversal({ r }: { r: CompareResponse }) {
           ? ` 권리금은 ${horizonMonths / 12}년에 나눠 담은 값이에요 — 기간을 바꾸면 순위가 달라질 수 있어요.`
           : ""}
       </p>
+
+      {/* 이 화면이 산술에서 판단으로 넘어가는 지점. 밴드 폭 자체가 정보다 —
+          좁으면 어떤 가정을 써도 같은 값이고, 넓으면 «고르기 어려운 자리»다.
+          회수 축은 승계 모델(M2)이 격자별로 내는 값이라 자리마다 다르다. */}
+      <div className={s.uncertainty}>
+        <h3>가정을 흔들어도 그대로인가</h3>
+        <ul>
+          {byTeo.map((it) => {
+            const width = it.effectiveCostBand.high - it.effectiveCostBand.low;
+            const firm = width < it.effectiveCost * 0.05;
+            return (
+              <li key={it.label}>
+                <span className={s.tag}>{it.label}</span>
+                <b className={firm ? s.firm : s.shaky}>
+                  {firm ? "거의 안 움직여요" : `${man(width)} 폭으로 움직여요`}
+                </b>
+                <span className={s.uncertaintyWhy}>
+                  {firm
+                    ? "권리금이 없거나 작아서, 몇 년을 하든 회수를 얼마나 하든 결과가 같아요."
+                    : `권리금을 못 건지면 ${man(it.effectiveCostBand.high)}, 이 자리 승계 비율만큼 건지면 ${man(it.effectiveCostBand.low)}이에요.`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className={s.uncertaintyNote}>
+          {/* 승계확률의 뜻을 좁게 못박는다. 지불비율 원천이 없다는 사실을 빼면
+              «권리금을 36% 돌려받는다»로 읽힌다 — 우리가 재지 않은 값이다. */}
+          «승계 비율»은 그 자리에서 가게가 문을 닫은 뒤 다음 가게가 곧바로 들어온
+          비율이에요. 인허가 이력으로 학습해 맞춰 본 값이고
+          {byTeo.some((it) => it.successionProb > 0)
+            ? ` (${byTeo.map((it) => `${it.label} ${pct0(it.successionProb)}`).join(" · ")})`
+            : ""}
+          , 권리금을 그만큼 돌려받는다는 뜻은 아니에요 — 얼마에 넘겼는지는 공개된
+          기록이 없어요. 대표값은 <b>한 푼도 못 건진다</b>고 본 쪽입니다.
+        </p>
+      </div>
 
       {/* 부담률로 줄 세울 수 있는지 — 같은 상권이면 매출이 동점이라 못 한다 */}
       <p className={burdenComparable ? s.burdenOk : s.burdenNo}>
