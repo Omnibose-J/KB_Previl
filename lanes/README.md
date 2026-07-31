@@ -41,7 +41,7 @@ A가 모델을 바꿔도 이 스키마만 유지하면 B는 영향받지 않는�
 ```powershell
 powershell -File lanes/setup-worktrees.ps1
 ```
-`kb.db`(229MB)와 `pipeline/cache/`(807MB)는 gitignore라 worktree에 복사되지 않는다. 스크립트가 `KB_DB`/`KB_CACHE`/`KB_ENV` 환경변수로 원본을 가리키게 설정한다.
+`kb.db`와 `pipeline/cache/`는 gitignore라 worktree에 복사되지 않는다. 스크립트가 `KB_DB`/`KB_CACHE`/`KB_ENV` 환경변수로 원본을 가리키게 설정한다.
 
 ## 하지 말 것
 

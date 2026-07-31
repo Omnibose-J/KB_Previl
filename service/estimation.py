@@ -101,7 +101,8 @@ def _trade_area_revenue(grid_id, uptae, sales_available):
         # 아래 세 갈래는 «원천이 그 조합을 안 담고 있다»는 사실이지 장애가 아니다.
         # 예전에는 여기서 예외를 올려 «다시 시도» 버튼이 떴는데, 다시 눌러도 없는
         # 행은 생기지 않는다. 실측(2026-07-30)으로 기타·외국음식전문점은 100%,
-        # 경양식 62.5% · 일식 60% · 통닭 57.5% 가 이 경로였다.
+        # 경양식 62.5% · 일식 60% · 통닭 57.5% 가 이 경로였고, 추천 상위 20곳에서도
+        # 경양식 8/20 이 오류 화면이었다.
         induty_code = UPTAE_INDUTY.get(uptae)
         if induty_code is None:
             return None, None, trade_area_code

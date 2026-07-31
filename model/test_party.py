@@ -187,7 +187,9 @@ def fetch_failure_raises_instead_of_returning_empty():
 def load_refuses_a_broken_file_before_touching_the_db():
     """깨진 행을 건너뛰고 DELETE 가 돌면, 잘린 파일이 조용히 서빙 테이블을
     줄인다. DB 를 건드리기 전에 실패해야 한다."""
-    import tempfile, pathlib, json as _j
+    import tempfile
+    import pathlib
+    import json as _j
     from model import party as P
 
     tmp = pathlib.Path(tempfile.mkdtemp())

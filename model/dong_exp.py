@@ -70,7 +70,7 @@ def main():
         print(f"  {nm:20s} {bb[i]:+.4f}  CI {fmt_ci(boot)}  "
               f"{'0 배제' if (lo > 0 or hi < 0) else '0 포함'}")
 
-    print(f"\n컨셉별 (각각 기저 + 컨셉 1개)")
+    print("\n컨셉별 (각각 기저 + 컨셉 1개)")
     res = []
     for c in range(K):
         cols = BASE + [f"d{c}"]

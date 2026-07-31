@@ -41,8 +41,8 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
 
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
 
-  // Threshold cut (lib/grade.ts isRecommendable): grade-1 cells only, so a
-  // small scope shows its 3 real candidates instead of 20 padded ones.
+  // 문턱 자르기(lib/grade.ts isRecommendable): 1~2등급만. 좁은 범위는 20장을
+  // 채우는 대신 진짜 후보 3곳만 보여준다.
   const items = useMemo(() => (q.data?.items ?? []).filter(isRecommendable), [q.data]);
   const candidateIds = useMemo(() => items.map((c) => c.gridId), [items]);
   const top = items[0];

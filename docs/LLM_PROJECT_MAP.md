@@ -69,8 +69,9 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
   service module allowed to import model code.
 - Grid change classification between two scoring runs: `service/alerts.py`
   (read-only; it never sends anything).
-- Submission database extraction: `service/demo_db.py`; the shipped table list
-  is re-derived from `service/*.py` by `--audit`, never hand-maintained.
+- Submission database extraction: `service/demo_db.py`. Its `TABLES` list is
+  hand-maintained but gate-verified: `--audit` re-derives the tables `service/*.py`
+  actually queries and refuses to build when the two disagree.
 
 ## Frontend ownership
 

@@ -182,7 +182,7 @@ def main():
     cols = list(DEPLOY)
 
     print("=" * 96)
-    print(f"R12 하이퍼파라미터 탐색 — 선별은 내부 검증에서만 · 홀드아웃은 승자+현행 1회")
+    print("R12 하이퍼파라미터 탐색 — 선별은 내부 검증에서만 · 홀드아웃은 승자+현행 1회")
     print(f"사전 등록: 선별 1순위 = 내부검증 상위10% 실측 · 채택 = 짝지은 부트 Δ(상위10%) "
           f"CI 하한 > 0 그리고 점추정 >= +{DECILE_MIN_GAIN*100:.1f}%p 그리고 십분위 단조")
     print("=" * 96)
@@ -223,7 +223,7 @@ def main():
     # selection: top decile, then gap, then AUC (tournament.py decile criterion)
     results.sort(key=lambda r: (-r["top"], -r["gap"], -r["auc"]))
     win = results[0]
-    print(f"\n  내부검증 상위 5:")
+    print("\n  내부검증 상위 5:")
     for r in results[:5]:
         print(f"    {r['family']:<6} 상위10% {r['top']*100:5.2f}%  AUC {r['auc']:.4f}  "
               f"격차 {r['gap']*100:4.1f}%p  {r['params']}")
@@ -232,7 +232,7 @@ def main():
     print(f"  파라미터: {win['params']}")
 
     if win["top"] <= base["top"]:
-        print(f"\n홀드아웃 확인 생략 — 내부검증에서 현행을 넘지 못했다. R12 기각으로 기록한다.")
+        print("\n홀드아웃 확인 생략 — 내부검증에서 현행을 넘지 못했다. R12 기각으로 기록한다.")
         print(f"\n({time.time()-t0:.0f}초 · 시도 {len(results)}건)")
         return 0
 

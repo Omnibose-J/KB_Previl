@@ -7,7 +7,7 @@
 // 실제로 관측된 생존율을 대신 보여준다.
 //
 // 아래 `| null` 은 전부 의미가 있다. NULL 은 «관측되지 않음»이고 0 으로 그리면
-// 안 된다.
+// 안 된다. 아직 항상 null 로만 오는 필드: openings36m · signal · n/ciLow/ciHigh.
 
 /** grade 1 = best. Shares are 내신형 (4/7/12/17/20/17/12/7/4%), so grade 1 is
  *  the top ~4%, not a decile. Direction is part of the API contract. */

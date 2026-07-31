@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Data lives outside version control (229MB db, 807MB cache) and is shared by
+# Data lives outside version control (~460MB db, ~810MB cache as of 2026-08) and is shared by
 # every lane. A git worktree gets its own checkout but must NOT get its own
 # copy of these, so both paths are overridable:
 #   KB_DB    - absolute path to kb.db

@@ -116,7 +116,7 @@ def main():
 
     res = [run_cell(con, *c, cols, a.model) for c in cells]
 
-    print(f"\n  요약")
+    print("\n  요약")
     print(f"  {'셀':<9} {'n':>7} {'전체':>7} {'AUC':>7} {'격차':>8} {'판정':>6}")
     for r in res:
         print(f"  {r['label']:<9} {r['n']:>7,} {r['overall']*100:>6.1f}% "

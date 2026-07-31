@@ -111,7 +111,7 @@ python -m model.backtest --model gbm --features DEPLOY   # 9등급 실측 생존
 ## 동봉물
 
 ```
-kb-demo.db              서빙용 경량 DB (14개 테이블 · 원본 445MB 중 필요분만)
+kb-demo.db              서빙용 경량 DB (16개 테이블 · 원본 445MB 중 필요분만)
 requirements.txt        데모 실행용
 requirements-full.txt   파이프라인·모델 재현용
 .env.example            키 형식 (실제 키는 포함되지 않는다)

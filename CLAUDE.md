@@ -34,7 +34,7 @@ python -m model.asof --selftest-cut   # 신규 피처: T 이후 행을 지워도
 ## 환경
 
 - `.env`에 API 키(커밋 금지). 읽을 때는 `pipeline.config.load_env()` — 직접 파싱 금지
-- `kb.db`(229MB)·`pipeline/cache/`(807MB)는 gitignore. 경로는 `KB_DB`/`KB_CACHE`/`KB_ENV`로 덮어쓸 수 있다(worktree 대응)
+- `kb.db`·`pipeline/cache/`(둘 다 수백 MB)는 gitignore. 경로는 `KB_DB`/`KB_CACHE`/`KB_ENV`로 덮어쓸 수 있다(worktree 대응)
 - `kb.db` **쓰기는 레인 A만**. B·C는 읽기만
 
 ## 현재 수치 (인용 시 이 값을 쓸 것)

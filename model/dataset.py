@@ -134,7 +134,7 @@ def check(con, year, horizon=3):
     d = abs(mine - ref[0])
     print(f"  cohort_survival 값 {ref[0]:.1f}% (n={ref[1]:,})")
     print(f"  편차 {d:.2f}%p (허용 0.5%p) -> {'PASS' if d <= 0.5 else 'FAIL'}")
-    print(f"  * 표본 차이: 모델은 좌표 보유 격자만, cohort는 전량")
+    print("  * 표본 차이: 모델은 좌표 보유 격자만, cohort는 전량")
     return d <= 0.5
 
 

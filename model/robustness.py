@@ -182,14 +182,14 @@ def main():
     failed = [i for i in top_idx if yte[i] == 0]
     print(f"  상위 10% {k:,}건 중 3년 내 폐업 {len(failed):,}건 "
           f"({len(failed)/k*100:.1f}%)")
-    print(f"  -> 상위 추천을 따라도 4곳 중 1곳 가까이는 문을 닫는다.")
-    print(f"     이 수치를 감추면 신뢰를 잃는다. 함께 제시할 것.")
+    print("  -> 상위 추천을 따라도 4곳 중 1곳 가까이는 문을 닫는다.")
+    print("     이 수치를 감추면 신뢰를 잃는다. 함께 제시할 것.")
 
     bot_idx = np.argsort(-p)[-k:]
     survived = [i for i in bot_idx if yte[i] == 1]
     print(f"  하위 10% {k:,}건 중 3년 생존 {len(survived):,}건 "
           f"({len(survived)/k*100:.1f}%)")
-    print(f"  -> 나쁜 자리에서도 열에 넷은 살아남는다. 입지는 일부일 뿐이다.")
+    print("  -> 나쁜 자리에서도 열에 넷은 살아남는다. 입지는 일부일 뿐이다.")
     return 0
 
 

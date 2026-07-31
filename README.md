@@ -66,7 +66,7 @@ cd frontend/app && npm install && npm run dev   # http://localhost:5173
 | 상권 내 격자 | 11,901개 (50.5%). 나머지는 매출이 NULL |
 | 모델 | LightGBM · AUC **0.6383** (seed=0 단일 적합 = 배포되는 그 적합) |
 | 베이스라인 | 최고 `prior_surv` 0.5668 → **마진 +0.0715** |
-| 1등급 자리 | 실측 3년 생존율 **80.1%** (95% CI 75.4~84.2 · n=317) |
+| 1등급 자리 | 실측 3년 생존율 **80.1%** (95% CI 75.4~84.1 · n=317) |
 | 9등급 자리 | 실측 3년 생존율 **10.1%** (95% CI 7.2~13.9 · n=317) |
 | 서울 전체 | 58.6%. 2013년 개업 71.3% → 2022년 개업 58.6% 로 계속 내려가는 중 |
 
@@ -145,9 +145,9 @@ python -m pipeline.bootstrap --preflight   # 키·경로·잔여 쿼터 점검 (
 python -m pipeline.bootstrap --gates       # 수집 → … → grid_score → 게이트
 ```
 
-17단계입니다: `schema → collect → normalize → tier2 → cohort → grid → geocode →
+18단계입니다: `schema → collect → normalize → tier2 → cohort → grid → geocode →
 sgis → sgis_match → features → access → addr_history → concept → concept_mix →
-precompute → ui_curves → succession`.
+precompute → ui_curves → succession → party`.
 
 `tier2`(휴게음식점)는 `concept_mix` 보다 앞이어야 합니다. 카페·베이커리는 일반
 음식점이 아니라 휴게음식점으로 인허가되고 `concept_mix` 가 그 표를 읽습니다.
@@ -177,6 +177,7 @@ precompute → ui_curves → succession`.
 | concept | 78초 |
 | precompute (모델 학습 + 채점) | 59초 |
 | succession (M2) | 68초 |
+| party (방문객 동반자 집계) | 6초 |
 | ui_curves (1·3·5년 곡선 × 등급 × 면적대) | **895초** |
 
 캐시가 없으면 여기에 수집이 붙습니다. 서울 열린데이터는 **일일 900콜**인데 실측
@@ -266,7 +267,7 @@ AUC 0.6227). 하지만 점포 속성이지 입지가 아니고, 추천에서는 
 ## 정직하게 남겨둔 것
 
 이 프로젝트에서 기각은 실패가 아니라 결과입니다. 전체 대장은
-`docs/model-findings.md` §0 에 24건이 판정과 함께 있습니다.
+`docs/model-findings.md` §0 에 50건이 판정과 근거 수치와 함께 있습니다.
 
 **비정형으로 예측하려는 시도는 아홉 번 전부 기각됐습니다.** 예측 정확도 3회,
 지명 단위로 용도를 바꿔 3회, 실거래가 1회, LLM 으로 뽑은 방문 시간대 1회, 1인당
@@ -293,7 +294,7 @@ AUC 0.6227). 하지만 점포 속성이지 입지가 아니고, 추천에서는 
 | 지하철 승하차·접근성 6개 | 홀드아웃 기여 판별 불가 |
 | 검색 트렌드 2개 | 절제표에서는 기여로 보였으나 **위약 대조**에서 위양성 |
 | 모델 교체 (후보 6종) | 제품이 쓰는 기준에서 현행 LightGBM 보다 나은 것 없음 |
-| 앙상블 (무가중 결합 5종) | 배포 계보에서 Δ상위10% +0.13%p [−2.53, +1.90], 십분위 단조도 깨짐 |
+| 앙상블 (무가중 결합 5종) | 등록 게이트는 통과했으나 배포 계보에서 +0.13%p [−2.53, +1.90] 로 0 을 품음 |
 | 동급 상권 군집화(E6) | 업종 내 점포당 매출 분산의 13%만 설명 (요구 20%) |
 
 **함께 말해야 할 한계**
@@ -315,7 +316,7 @@ AUC 0.6227). 하지만 점포 속성이지 입지가 아니고, 추천에서는 
 |---|---|
 | `lanes/README.md` | **3레인 병렬 작업 규칙. 코드 만지기 전에 먼저** |
 | `docs/data-inventory.md` | 데이터 소스별 실측 결과와 공간해상도 판정 |
-| `docs/model-findings.md` | **실험 대장 24건 전부 판정** · 모델 선정표 · 피처 가중치 |
+| `docs/model-findings.md` | **실험 대장 50건 전부 판정** · 모델 선정표 · 피처 가중치 |
 | `docs/serving-design.md` | 모델 ↔ 백엔드 계약. 무엇이 언제 계산되고 무엇을 하면 안 되는가 |
 | `docs/submission.md` | 제출물 설계. zip 패키징 · 기술설명서 서사 매핑 |
 | `docs/goodwill-report-design.md` | 권리금 적정가 리포트와 건물·층 해상도 사다리 |

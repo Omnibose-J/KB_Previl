@@ -113,7 +113,7 @@ def main():
                      "lo": lo, "hi": hi, "solo": float("nan"), "verdict":
                      "기여" if lo > 0 else "판별 불가", "note": "폴백"})
 
-    print(f"\n[측정 벤치] DEPLOY + site_area — 순위 모델에는 넣지 않는다")
+    print("\n[측정 벤치] DEPLOY + site_area — 순위 모델에는 넣지 않는다")
     r = measure("G6_store_attrs", (rank[0], rank[1]), meas_cols, "G6_store_attrs", a.model,
                 note="측정 전용")
     if r:
@@ -123,7 +123,7 @@ def main():
     # leave-one-out delta is measured the same way as G1-G5 rather than as an
     # add-one screen. They are measured despite the bundle being rejected: the
     # rejection is the finding, and it only means something if the number is shown.
-    print(f"\n[확장 측정 벤치] DEPLOY + Tier1 + Tier2 — 편입은 기각됐고 측정만 한다")
+    print("\n[확장 측정 벤치] DEPLOY + Tier1 + Tier2 — 편입은 기각됐고 측정만 한다")
     ext_cols = rank_cols + TIER1 + TIER2
     p_ext = seed_avg_predict(a.model, rank[0], rank[1], ext_cols)
     for g in ("G8_tier1_rederived", "G9_tier2_rest"):

@@ -16,6 +16,18 @@ it. Nothing below has a known user-visible symptom today — each is a latent tr
 | `cohort.compare_probe()` returns `True` when the probe JSON is absent — and the submission allowlist ships `probe/**/*.py` only, never `probe/results/*.json`, so the gate is vacuous in every judge's copy | `pipeline/cohort.py:99-104` | the fix may be the allowlist rather than the code; packaging owner's call |
 | `fill_dong` — the retired 75.5% proximity heuristic — is still a live function | `pipeline/features.py:84` | its `__main__` caller was removed and the docstring now says RETIRED; deleting the function itself is a separate call |
 
+**Design debt** (a judgement already made once, recorded so it is not re-litigated)
+
+추천 문턱(`frontend/app/src/lib/grade.ts`)이 1~2등급인 것은 차선책이다. 내신형
+9등급에서 1등급이 전체의 4.5%가 되면서 자치구 28곳 중 7곳(한식)에 1등급 칸이
+아예 없고 21곳이 20장 페이지를 못 채웠다. 문턱을 2등급까지 열어 빈 자치구를
+3곳으로 줄였지만, 2등급 실측은 72.7%로 옛 등분위 1등급(76.8%)보다 낮아 배지가
+약속하는 값이 그만큼 내려갔다.
+
+**더 나은 설계는 문턱을 1등급에 두고 나머지를 배지 없는 «진단» 카드로 그리는
+것이다** — 목록에서 빼는 대신 등급을 주장하지 않고 보여주는 상태. 새 카드 상태가
+필요해 한 줄로 끝나지 않고, 마감 전에는 만들지 않았다.
+
 **Serving robustness** (none reachable from the UI today)
 
 | what | where | current containment |

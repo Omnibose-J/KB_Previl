@@ -51,7 +51,7 @@ def run(con, h, cols, model):
     print(f"  {h}년  test {WINDOWS[h][0]}-{WINDOWS[h][-1]} n={len(y):,}  "
           f"전체생존 {y.mean()*100:.1f}%  AUC {auc:.4f} (prior_surv {prior:.4f})  "
           f"{k}분위 단조 {'O' if mono else 'X'}")
-    print(f"        등급별 실측: " + " · ".join(f"{v*100:.1f}" for v in obs))
+    print("        등급별 실측: " + " · ".join(f"{v*100:.1f}" for v in obs))
     return {"h": h, "auc": auc, "prior": prior, "mono": mono, "obs": obs,
             "beats": auc > prior, "meta": test[2], "grade": g, "n": len(y)}
 
@@ -66,7 +66,7 @@ def main():
 
     res = {h: run(con, h, cols, a.model) for h in (3, 1, 5)}
 
-    print(f"\n  3년 등급과의 순위 일치 (Spearman ρ, 공통 점포 기준)")
+    print("\n  3년 등급과의 순위 일치 (Spearman ρ, 공통 점포 기준)")
     base = {(m["grid_id"], m["open_ym"]): g for m, g in zip(res[3]["meta"], res[3]["grade"])}
     for h in (1, 5):
         pairs = [(base[k], g) for k, g in
@@ -79,7 +79,7 @@ def main():
         print(f"    {h}년 vs 3년  ρ={rho:.3f}  (공통 {len(pairs):,}건)  "
               f"{'>= 0.8 — UI는 등급 하나 + horizon별 곡선으로 단순화 가능' if rho >= 0.8 else '< 0.8 — 등급을 horizon별로 따로 제시해야 한다'}")
 
-    print(f"\n  판정 (사전 등록: 각 horizon에서 모델 > prior_surv 그리고 등급별 실측 단조)")
+    print("\n  판정 (사전 등록: 각 horizon에서 모델 > prior_surv 그리고 등급별 실측 단조)")
     for h in (1, 5):
         ok = res[h]["beats"] and res[h]["mono"]
         print(f"    {h}년 horizon: {'통과' if ok else '기각 — 해당 horizon은 모델 없이 실측 코호트 곡선만 제공'}")

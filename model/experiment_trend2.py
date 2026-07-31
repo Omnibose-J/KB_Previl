@@ -96,7 +96,7 @@ def main():
           f"(결측은 학습 중앙값으로 대치된다)")
 
     # ------------------------------------------------------------- 관측값
-    print(f"\n[1] 관측 효과 — 모델 3종 (시드 5개 평균 · 짝지은 부트스트랩 400회)")
+    print("\n[1] 관측 효과 — 모델 3종 (시드 5개 평균 · 짝지은 부트스트랩 400회)")
     print(f"  {'모델':<8} {'ΔAUC':>10} {'95% CI':>22} {'Δ상위10%':>10} {'95% CI':>20}")
     obs = {}
     for m in MODELS:
@@ -119,7 +119,7 @@ def main():
 
     # ------------------------------------------------------- 플라시보 귀무
     print(f"\n[2] 플라시보 귀무분포 — 트렌드 2컬럼을 행 방향으로 섞어 {a.placebo}회 반복")
-    print(f"    (정보만 파괴하고 주변분포·결측패턴·상호상관은 보존)")
+    print("    (정보만 파괴하고 주변분포·결측패턴·상호상관은 보존)")
     rng = np.random.default_rng(0)
     p_base = seed_avg_predict("gbm", tr, te, base)
     null = []
@@ -144,7 +144,7 @@ def main():
          ("(d) 3종 중 2종 이상 CI 하한 > 0",
           sum(1 for m in MODELS if obs[m]["lo"] > 0) >= 2,
           f"{sum(1 for m in MODELS if obs[m]['lo'] > 0)}/3")]
-    print(f"\n[3] 사전 등록 판정")
+    print("\n[3] 사전 등록 판정")
     for nm, ok, v in c:
         print(f"    {nm:<28} {v:>8}  {'PASS' if ok else 'FAIL'}")
     ok = all(x[1] for x in c)

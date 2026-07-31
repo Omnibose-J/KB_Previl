@@ -120,15 +120,15 @@ def main():
         print("① 신선 홀드아웃 — 2023 코호트 (한 번도 채점되지 않은 유일한 행)")
         print("=" * 92)
         b = baseline_report(con, base, WINNER)
-        print(f"\n  검정력 (같은 벤치에서 G2X 유무를 비교했을 때의 최소검출효과)")
+        print("\n  검정력 (같은 벤치에서 G2X 유무를 비교했을 때의 최소검출효과)")
         for tag, tr_y, te_y in (("구 홀드아웃", LEGACY_TRAIN_YEARS, TEST_YEARS),
                                 ("신선 홀드아웃", FRESH_TRAIN_YEARS, FRESH_TEST_YEARS)):
             tr, te = cached_split(con, tr_y, te_y, 3)
             pb = seed_avg_predict(WINNER, tr, te, base)
             pf = seed_avg_predict(WINNER, tr, te, full)
             mde_report(te[1], pf, pb, tag)
-        print(f"\n  읽는 법: 신선 홀드아웃은 표본이 1/6이라 MDE가 그만큼 커진다.")
-        print(f"  크기를 재는 일은 구 홀드아웃이, 부호가 재현되는지는 신선 홀드아웃이 맡는다.")
+        print("\n  읽는 법: 신선 홀드아웃은 표본이 1/6이라 MDE가 그만큼 커진다.")
+        print("  크기를 재는 일은 구 홀드아웃이, 부호가 재현되는지는 신선 홀드아웃이 맡는다.")
 
     if "2" in want:
         print("\n" + "=" * 92)
@@ -204,7 +204,7 @@ def main():
             ("(5) 3종 중 2종 이상 (1)",
              sum(1 for m in MODELS if res["A"][m]["dlo"] > 0) >= 2,
              f"{sum(1 for m in MODELS if res['A'][m]['dlo'] > 0)}/3")]
-        print(f"\n[판정] 사전 등록")
+        print("\n[판정] 사전 등록")
         for nm, ok, v in checks:
             print(f"  {nm:<28} {v:>9}  {'PASS' if ok else 'FAIL'}")
         print(f"\n  -> G2X {'채택' if all(c[1] for c in checks) else '기각'}")

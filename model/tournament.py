@@ -153,7 +153,7 @@ def select(con, cols, criterion):
             best[r["kind"]] = r
     ranked = sorted(best.values(), key=lambda r: _key(r, criterion))
 
-    print(f"\n  후보별 최고 — 선발 기준 순 (상위10%는 부트스트랩 95% 밴드 동반)")
+    print("\n  후보별 최고 — 선발 기준 순 (상위10%는 부트스트랩 95% 밴드 동반)")
     for i, r in enumerate(ranked, 1):
         lo, hi = decile_ci(yv, r["p"])
         r["ci"] = (lo, hi)

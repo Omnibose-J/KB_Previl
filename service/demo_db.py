@@ -1,6 +1,7 @@
 """kb.db 에서 서빙에 필요한 부분만 뽑아 제출용 경량 DB 를 만든다.
 
-zip 은 kb.db(445MB)도 pipeline/cache/(807MB)도 못 담고, 담아서도 안 된다.
+zip 은 kb.db 도 pipeline/cache/ 도 못 담고, 담아서도 안 된다(둘 다 수백 MB
+이고 계속 자란다 — 실측 크기는 `pipeline/config.py` 참조).
 심사자에게 필요한 것은 앱이 도는 것이지 아카이브에서 파이프라인을 재현하는
 것이 아니다.
 

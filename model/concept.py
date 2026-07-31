@@ -114,12 +114,12 @@ def main():
     # 관문은 군집 학습에 쓴 구간에서 판정한다
     m = np.array([FIT_YEARS[0] <= y <= FIT_YEARS[1] for y in years])
     f1, n_gate = era_gate(labels[m], years[m])
-    print(f"\n=== 시대 누수 관문 ===")
+    print("\n=== 시대 누수 관문 ===")
     print(f"컨셉 → 개업연도 5구간, 무작위 5-fold macro-F1 = {f1:.4f}  (n={n_gate:,})")
     print(f"기준 ≤ {GATE_MACRO_F1} → {'PASS' if f1 <= GATE_MACRO_F1 else 'FAIL'}")
 
     # 군집 요약 — 정의는 이미 고정됐고, 이름 붙이기(해석)만 결과 후에 한다
-    print(f"\n=== 군집 요약 (크기 상위) ===")
+    print("\n=== 군집 요약 (크기 상위) ===")
     order = np.argsort(-np.bincount(labels, minlength=K))
     for c in order[:K]:
         idx = np.where(labels == c)[0]

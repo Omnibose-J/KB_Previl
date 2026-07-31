@@ -101,10 +101,10 @@ def score(y, p, kind, order=99):
             "top": d[0], "gap": d[0] - d[-1], "dec": d, "order": order}
 
 
-def fit_families(train, test, cols, enc, best_params):
-    """각 계열을 그 계열의 최적 설정으로 한 번씩 적합. seed=0 은 배포와 같다."""
+def fit_families(train, test, cols, enc, best_params, kinds):
+    """필요한 계열만 그 계열의 최적 설정으로 한 번씩 적합. seed=0 은 배포와 같다."""
     out = []
-    for kind in SIMPLICITY:
+    for kind in [k for k in SIMPLICITY if k in kinds]:
         t0 = time.time()
         p, _ = fit_predict(kind, train, test, num=cols, seed=0,
                            params=best_params[kind], enc=enc)
@@ -184,7 +184,8 @@ def run_holdout(con, cols, tag, train_years, test_years, winner, best_params):
 
     members = winner["members"]
     print(f"  구성원 적합 ({'+'.join(members)})")
-    fitted = dict(fit_families(train, test, cols, enc, best_params))
+    fitted = dict(fit_families(train, test, cols, enc, best_params,
+                               set(members) | {INCUMBENT}))
     p_ens = blend([(k, fitted[k]) for k in members], winner["how"])
 
     r_ens = score(yte, p_ens, winner["kind"])
@@ -236,13 +237,17 @@ def main():
           f"십분위 단조 ({'O' if A['ens']['mono'] else 'X'})  -> {'통과' if a_ok else '미달'}")
     print(f"확인 B  부호 일치 ({'O' if b_ok else 'X'})  "
           f"A {A['point']*100:+.2f}%p / B {B['point']*100:+.2f}%p")
-    print(f"-> {'앙상블 채택' if (a_ok and b_ok) else f'기각: 현행 단일 {INCUMBENT} 유지'}")
+    print(f"등록 판정 -> {'채택' if (a_ok and b_ok) else f'기각: 현행 단일 {INCUMBENT} 유지'}")
+
     # 등록 밖 관측. 게이트에 넣지 않는다(사후 조정) — 다만 배포되는 계보가 B 라,
-    # 여기서 십분위가 깨지면 판정을 그대로 읽으면 안 된다.
-    print(f"\n[등록 밖] 확인 B 십분위 단조  앙상블 "
+    # 여기서 십분위가 깨지면 등록 판정을 그대로 읽으면 안 된다. 재현한 사람이
+    # 기록(§30)과 반대되는 결론을 화면에서 먼저 읽지 않도록 함께 찍는다.
+    print(f"[등록 밖] 확인 B 십분위 단조  앙상블 "
           f"{'O' if B['ens']['mono'] else 'X'} / 현행 {'O' if B['inc']['mono'] else 'X'}")
     print(f"[등록 밖] 확인 B 는 배포 계보다. 여기 CI 는 "
           f"[{B['lo']*100:+.2f}, {B['hi']*100:+.2f}]%p 로 0 을 품는다.")
+    print("\n기록된 판정 -> 기각(현행 단일 gbm 유지). 등록 게이트는 통과했으나 "
+          "배포 계보에서 크기가 0 이고 단조가 깨진다 — docs/model-findings.md §30.")
     print("=" * 78)
     return 0
 

@@ -147,7 +147,7 @@ def exp_b1(panel):
     rows = [r for r in complete(panel, keys) if r["year"] in B1_COHORTS]
     print(f"대상 {len(rows)}행 · 지명 {len({r['place'] for r in rows})} "
           f"· 코호트 {sorted({r['year'] for r in rows})}")
-    print(f"통제: size(log 영업점포) · past_inflow · 연도 고정효과\n")
+    print("통제: size(log 영업점포) · past_inflow · 연도 고정효과\n")
 
     # 코호트별 부호
     print("코호트별 (각 연도 단독 회귀, trend 계수)")
@@ -225,7 +225,7 @@ def exp_b2c1(panel):
         r2[name] = v
         print(f"{name:32s} {v:12.4f}   (n={n})")
 
-    print(f"\n증분 — 기저 대비")
+    print("\n증분 — 기저 대비")
     for name in list(models)[1:]:
         print(f"  {name:30s} {r2[name]-r2['기저 (과거유입+규모+연도FE)']:+.4f}")
 
@@ -281,7 +281,7 @@ def exp_d1(panel):
     rows = [r for r in complete(panel, keys) if r["n_now"] >= 20 and r["n_prev"] >= 20]
     print(f"대상 {len(rows)}행 · 지명 {len({r['place'] for r in rows})} "
           f"(t-3~t 와 그 이전 3년 개업이 각 20건 이상)")
-    print(f"예측변수: concept_delta_c = 컨셉 c 의 개업 비중 변화 (최근 3년 - 그 이전 3년)")
+    print("예측변수: concept_delta_c = 컨셉 c 의 개업 비중 변화 (최근 3년 - 그 이전 3년)")
     print(f"통제: past_inflow · size · 연도 고정효과 | 보정: BH FDR q<={FDR_Q}\n")
 
     for r in rows:

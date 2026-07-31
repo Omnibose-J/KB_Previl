@@ -120,7 +120,7 @@ def main():
 
     rows = []
     if "cohorts" in axes:
-        print(f"\n[코호트 축] 학습 시작연도를 뒤로 밀면 검증 성능이 계속 오르나")
+        print("\n[코호트 축] 학습 시작연도를 뒤로 밀면 검증 성능이 계속 오르나")
         for start in COHORT_STARTS:
             rows.append(evaluate(_subset(train, years >= start), val, cols,
                                  a.model, f"{start}-{wide_years[-1]}", "cohorts"))
@@ -137,7 +137,7 @@ def main():
                                  f"{int(frac*100)}% rows", "rows"))
 
     if "regular" in axes:
-        print(f"\n[정규화·용량 축] 전체 창에서 손잡이를 하나씩만 돌린다 (기본값 양쪽으로)")
+        print("\n[정규화·용량 축] 전체 창에서 손잡이를 하나씩만 돌린다 (기본값 양쪽으로)")
         for name, values in REGULAR_SCANS:
             print(f"  -- {name} --")
             for v in values:
@@ -146,7 +146,7 @@ def main():
 
     # Reading: compare the last two points on each axis. A flat tail means the
     # lever is spent; a rising tail means the next round should widen the window.
-    print(f"\n  읽는 법")
+    print("\n  읽는 법")
     for axis in ("cohorts", "rows"):
         seg = [r for r in rows if r["axis"] == axis]
         if len(seg) < 2:
@@ -163,7 +163,7 @@ def main():
     # LOOSENED says the constraint was capacity, not variance.
     reg = [r for r in rows if r["axis"].startswith("regular:")]
     if reg:
-        print(f"\n  정규화·용량 손잡이별 최적 (기준 = 현행 기본값)")
+        print("\n  정규화·용량 손잡이별 최적 (기준 = 현행 기본값)")
         for name, values in REGULAR_SCANS:
             seg = [r for r in reg if r["axis"] == f"regular:{name}"]
             if not seg:

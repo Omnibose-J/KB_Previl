@@ -147,7 +147,7 @@ def main():
     labels_of = dict(zip(sub_keys, lab.tolist()))
     eta = eta2_by_industry(con, labels_of)
     med = float(np.median(list(eta.values()))) if eta else 0.0
-    print(f"\n  업종별 η² (군집이 설명하는 점포당 매출 분산 비율) — 매출은 군집에 미사용")
+    print("\n  업종별 η² (군집이 설명하는 점포당 매출 분산 비율) — 매출은 군집에 미사용")
     for i, v in sorted(eta.items(), key=lambda kv: -kv[1]):
         print(f"    {i}  {v:.4f}")
     print(f"    중앙값 {med:.4f}")
@@ -165,7 +165,7 @@ def main():
     checks = [(f"실루엣 >= {SIL_MIN}", sil >= SIL_MIN, f"{sil:.4f}"),
               (f"η² 중앙값 >= {ETA2_MIN}", med >= ETA2_MIN, f"{med:.4f}"),
               (f"부트스트랩 ARI >= {ARI_MIN}", ari >= ARI_MIN, f"{ari:.4f}")]
-    print(f"\n  사전 등록 검증 3종")
+    print("\n  사전 등록 검증 3종")
     for nm, ok, v in checks:
         print(f"    {nm:<22} {v:>8}  {'PASS' if ok else 'FAIL'}")
     ok = all(c[1] for c in checks)

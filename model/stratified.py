@@ -42,7 +42,7 @@ def main():
 
     areas = np.array([f["site_area"] or 0 for f in Xte], dtype=float)
 
-    print(f"변인통제: 점포 면적을 구간으로 고정하고, 그 안에서 입지 순위만으로 비교")
+    print("변인통제: 점포 면적을 구간으로 고정하고, 그 안에서 입지 순위만으로 비교")
     print(f"순위 피처: 면적 제외 {len(loc_cols)}개\n")
     print(f"  {'면적 구간':<14} {'건수':>7} {'구간 생존율':>11} "
           f"{'상위'+str(int(a.q*100))+'% 생존':>12} {'차이':>8} {'AUC':>8}")
@@ -72,7 +72,7 @@ def main():
         print("  -> 일부 구간에서 개선이 사라진다. 그 구간에서는 입지 신호가 약하다.")
 
     # same test, but sliced by 업태 as a second control
-    print(f"\n업태를 고정했을 때 (2차 통제)")
+    print("\n업태를 고정했을 때 (2차 통제)")
     print(f"  {'업태':<16} {'건수':>7} {'생존율':>9} {'상위'+str(int(a.q*100))+'%':>9} {'차이':>8}")
     from collections import defaultdict
     by_u = defaultdict(list)
@@ -87,7 +87,7 @@ def main():
               f"{(top-yy.mean())*100:>+7.1f}%p")
 
     # size x location interaction: is a good location worth more when small?
-    print(f"\n면적 x 입지 상호작용 — 작은 가게일수록 입지가 더 중요한가")
+    print("\n면적 x 입지 상호작용 — 작은 가게일수록 입지가 더 중요한가")
     for lo, hi in BANDS:
         m = (areas >= lo) & (areas < hi)
         if m.sum() < 300:
