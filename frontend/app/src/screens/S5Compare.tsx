@@ -580,14 +580,26 @@ function SlotCard({
   onChange: (next: Partial<Slot>) => void;
   onRemove: () => void;
 }) {
+  // 후보가 둘 이상이면 «6등급 자리» 만으로는 어느 게 어디였는지 알 수 없다.
+  // 지도 말풍선과 같은 캐시 키라, 찍는 순간 이미 받아둔 값이 그대로 온다.
+  const addr = useQuery({
+    queryKey: ["gridAddress", slot.cell?.gridId],
+    queryFn: () => api.gridAddress(slot.cell!.gridId),
+    enabled: slot.cell !== null,
+    staleTime: Infinity,
+  });
+
   return (
     <div className={active ? s.slotOn : s.slot} onFocusCapture={onActivate} onClick={onActivate}>
       <div className={s.slotHead}>
         <span className={s.slotTag}>{slot.label}</span>
         {slot.cell ? (
           <span className={s.slotPlace}>
-            {slot.cell.grade}등급 자리
-            {slot.cell.salesAvailable ? "" : " · 상권 밖"}
+            {addr.data?.label ? <b className={s.slotAddr}>{addr.data.label}</b> : null}
+            <span className={s.slotGrade}>
+              {slot.cell.grade}등급 자리
+              {slot.cell.salesAvailable ? "" : " · 상권 밖"}
+            </span>
           </span>
         ) : (
           <span className={s.slotPlaceNone}>지도에서 자리를 찍어 주세요</span>

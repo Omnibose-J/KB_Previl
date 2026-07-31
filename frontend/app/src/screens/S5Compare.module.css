@@ -207,8 +207,25 @@
   font-size: 14px;
 }
 
+/* 주소가 «어느 자리냐»고 등급은 그 자리의 값이다 — 주소를 먼저, 진하게. */
 .slotPlace {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   color: var(--fg-t3);
+}
+
+.slotAddr {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--fg-ink);
+}
+
+.slotGrade {
+  flex: none;
 }
 
 .slotPlaceNone {
