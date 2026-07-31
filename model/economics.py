@@ -53,24 +53,33 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
     edges = grade_edges(p)
     grades = grade_numbers(p, edges)
 
-    # durations from the licence table, keyed by (cell, opening month)
+    # Durations from the licence table, keyed exactly as service/precompute.py
+    # keys them: (cell, uptae, opening month). Dropping uptae collapses shops
+    # that merely share a cell and a month, which both attached an arbitrary
+    # closure to a holdout row and discarded the rest (F-A6).
     lic = defaultdict(list)
     for r in con.execute(
-            "SELECT grid_id, open_y, open_m, close_y, close_m, is_closed "
+            "SELECT grid_id, uptae, open_y, open_m, close_y, close_m, is_closed "
             "FROM licence WHERE grid_id IS NOT NULL AND open_y IS NOT NULL"):
         o = ym(r["open_y"], r["open_m"])
         c = ym(r["close_y"], r["close_m"]) if (r["is_closed"] and r["close_y"]) else None
-        lic[(r["grid_id"], o)].append(c)
+        lic[(r["grid_id"], r["uptae"] or "기타", o)].append(c)
+
+    grade_by_key = {}
+    for i, m in enumerate(mte):
+        key = (m["grid_id"], m["uptae"], m["open_ym"])
+        grade = int(grades[i])
+        if grade_by_key.setdefault(key, grade) != grade:
+            raise RuntimeError("같은 점포 코호트 키가 둘 이상의 등급에 배정됐습니다.")
 
     by_grade = defaultdict(list)
-    for i, m in enumerate(mte):
-        key = (m["grid_id"], m["open_ym"])
+    for key, grade in grade_by_key.items():
         cands = lic.get(key)
         if not cands:
             continue
-        c = cands[0]
-        d = (c - m["open_ym"]) if c is not None else None
-        by_grade[int(grades[i])].append(d)
+        opened = key[2]
+        by_grade[grade].extend(
+            (c - opened) if c is not None else None for c in cands)
 
     curves = {}
     for g, ds in by_grade.items():
