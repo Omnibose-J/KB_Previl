@@ -697,7 +697,7 @@ def _uptae_sales_batch(con, grid_ids, uptae):
         chunk = ids[start : start + 400]
         holes = ",".join("?" * len(chunk))
         for row in con.execute(
-            f"SELECT f.grid_id, "
+            f"SELECT f.grid_id, f.trdar_cd, "
             f"       (SELECT MAX(t.stor_co) FROM trdar_store t "
             f"         WHERE t.trdar_cd = f.trdar_cd AND t.induty_cd = ?) stores, "
             f"       EXISTS (SELECT 1 FROM trdar_sales s JOIN trdar_store t2 "
@@ -708,16 +708,17 @@ def _uptae_sales_batch(con, grid_ids, uptae):
             f"FROM grid_feature f WHERE f.grid_id IN ({holes})",
             [induty, induty, *chunk],
         ):
-            # 행이 없으면 0 이다. trdar_store 는 stor_co=0 인 행도 1,001개 담고
-            # 있으므로 «행 없음» 과 «0곳» 이 원천에서 같은 뜻이다. null 은
-            # 위쪽 업태 매핑 없음 한 경우만 쓴다 — 두 상태를 같은 값으로 내면
-            # 화면이 «업종 분류에 없어요» 와 «그 업종 가게가 없어요» 를 구분
-            # 못 하고, 실제로 통닭(치킨)이 전자로 잘못 표시됐다.
+            # 상권 안에서 행이 없으면 0 이다. trdar_store 는 stor_co=0 인 행도
+            # 1,001개 담고 있으므로 «행 없음» 과 «0곳» 이 원천에서 같은 뜻이다.
+            # 상권 밖(trdar_cd NULL, 격자의 49.5%)은 다르다 — 셀 대상이 아예
+            # 없으므로 0 이 아니라 null 이다. 여기에 0 을 넣으면 «이 상권에 그
+            # 업종 0곳» 이라는 없는 사실이 만들어진다 (CLAUDE.md 규칙 1).
             out[row["grid_id"]] = {
-                "stores": row["stores"] if row["stores"] is not None else 0,
+                "stores": (None if row["trdar_cd"] is None
+                           else (row["stores"] if row["stores"] is not None else 0)),
                 "published": bool(row["published"]),
             }
-    return {gid: out.get(gid, {"stores": 0, "published": False}) for gid in ids}
+    return {gid: out.get(gid, {"stores": None, "published": False}) for gid in ids}
 
 
 def _rest_food_batch(con, grid_ids):

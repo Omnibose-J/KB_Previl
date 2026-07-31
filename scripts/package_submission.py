@@ -200,8 +200,10 @@ def rehearse(zip_path):
         # Boot from the unpacked copy with cwd there and ROOT off sys.path, so a
         # file that only exists in the working tree cannot rescue the run.
         script = BOOT_SCRIPT
-        env = dict(os.environ, KB_DB=str(tmp / "kb-demo.db"), PYTHONPATH="",
-                   PYTHONIOENCODING="utf-8")
+        # KB_DB 를 넣지 않는다. 심사자는 환경변수 없이 실행하므로, 여기서
+        # 지정해 주면 게이트가 심사자와 다른 경로를 검사하게 된다.
+        env = dict(os.environ, PYTHONPATH="", PYTHONIOENCODING="utf-8")
+        env.pop("KB_DB", None)
         p = subprocess.run([sys.executable, "-c", script], cwd=tmp, env=env,
                            capture_output=True, text=True, timeout=300)
         line = [l for l in p.stdout.splitlines() if l.startswith("{")]

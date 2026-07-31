@@ -29,10 +29,30 @@ ROOT = Path(__file__).resolve().parent.parent
 #   KB_ENV   - absolute path to the .env holding API keys
 # Unset means "the copy next to this checkout", which is right for the primary
 # tree and wrong for a worktree - lanes/setup-worktrees.ps1 sets them.
-DB_PATH = Path(os.environ.get("KB_DB") or (ROOT / "kb.db"))
+def _resolve_db():
+    """KB_DB > kb.db > kb-demo.db.
+
+    제출 패키지에는 서빙용 경량 DB(`kb-demo.db`)만 들어가고 심사자는 환경변수
+    없이 실행한다. 개발 트리에는 `kb.db`가 있으므로 언제나 그쪽이 먼저다.
+    둘 다 없으면 `kb.db` 이름 그대로 실패시킨다 — 없는 것을 있는 척하지 않는다.
+    """
+    override = os.environ.get("KB_DB")
+    if override:
+        return Path(override)
+    full = ROOT / "kb.db"
+    if full.exists():
+        return full
+    demo = ROOT / "kb-demo.db"
+    return demo if demo.exists() else full
+
+
+DB_PATH = _resolve_db()
 CACHE_DIR = Path(os.environ.get("KB_CACHE") or (ROOT / "pipeline" / "cache"))
 ENV_PATH = Path(os.environ.get("KB_ENV") or (ROOT / ".env"))
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass  # 수집 캐시는 서빙에 필요 없다. 쓰기 권한 없는 배치에서 부팅을 막지 않는다.
 
 # --- coordinate systems -------------------------------------------------
 CRS_LICENCE = "EPSG:5174"
