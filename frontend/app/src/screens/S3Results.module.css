@@ -132,9 +132,18 @@ button.wCtl:not(:disabled):hover {
   border-color: var(--fg-dt3);
 }
 
+/* 흐리게만 하면 테두리·배경이 그대로라 여전히 «누르는 카드»로 읽힌다.
+   누를 수 없으면 컨트롤 형태를 벗겨 안내문으로 보이게 한다. 금지가 아니라
+   이미 그 상태인 것이므로 커서도 not-allowed 가 아니라 기본값이다. */
 button.wCtl:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  cursor: default;
+  background: transparent;
+  border-color: transparent;
+}
+
+button.wCtl:disabled .wTitle {
+  color: var(--fg-dt3);
+  font-weight: 500;
 }
 
 .wTitle {

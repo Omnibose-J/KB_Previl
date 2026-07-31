@@ -188,7 +188,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                 <span>서울 전체 자리</span>
                 <strong className={s.fDim}>{meta.data ? `${int(meta.data.gridCount)}곳` : "…"}</strong>
               </div>
-              <div>
+              <div className={search.districts.length === 0 ? s.funnelStack : undefined}>
                 <span>고른 동네의 자리</span>
                 {/* 서울 전역이면 inScope === gridCount — repeating the same
                     number twice reads as broken (owner report). A funnel row

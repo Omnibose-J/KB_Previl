@@ -309,9 +309,17 @@
 
 /* funnel row that is not narrowing yet — a hint, not a number */
 .fHint {
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   color: var(--fg-dt4) !important;
+}
+
+/* 값 칸에 숫자 대신 문장이 들어가는 행. 다른 행처럼 좌우로 밀어 붙이면
+   라벨과 안내가 맞붙어 어느 쪽이 값인지 읽히지 않는다 — 아래로 내린다. */
+.funnelStack {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 2px;
 }
 
 .cta {
