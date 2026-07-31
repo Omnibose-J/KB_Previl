@@ -186,6 +186,10 @@
 
 /* search pill */
 .searchCard {
+  /* 히어로 자식이 전부 z-index:1 이라 순서로 갈린다 — 아래에 오는 문구·통계가
+     검색 카드 위에 그려지고, 열린 드롭다운은 카드 안쪽이라 같이 깔려서 글자가
+     비쳤다. 드롭다운 자신의 z-index 로는 못 벗어난다(카드가 쌓임 맥락). */
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 0;
