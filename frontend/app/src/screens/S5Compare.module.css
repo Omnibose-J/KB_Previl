@@ -400,6 +400,78 @@
 
 /* slope: 두 순위와 잇는 선.
    열 머리글이 absolute(top:-22px)라 위 문단과 겹친다 — 그만큼 띄운다. */
+/* ── 임차 기간 슬라이더 (S4 권리금 카드와 같은 형태) ────────── */
+
+.leaseField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 340px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.leaseHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.leaseLabel {
+  font-size: 13px;
+  color: var(--fg-t6);
+}
+
+.leaseHead strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.leaseRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 3px 0 0;
+  border-radius: 100px;
+  outline: none;
+}
+
+.leaseRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--fg-dark);
+  border: 3px solid var(--fg-y);
+  cursor: pointer;
+}
+
+.leaseRange::-moz-range-thumb {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--fg-dark);
+  border: 3px solid var(--fg-y);
+  cursor: pointer;
+}
+
+.leaseRange:focus-visible {
+  box-shadow: 0 0 0 3px var(--fg-y-bg);
+}
+
+.leaseTicks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--fg-t8);
+}
+
 /* 대표값 아래 한 줄로 붙는 구간 — 숫자를 밀어내지 않게 작고 옅게. */
 .cellBand {
   display: block;

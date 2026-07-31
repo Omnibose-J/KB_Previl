@@ -28,8 +28,9 @@ const SLOT_LABELS = ["A", "B", "C"] as const;
 
 // 권리금을 몇 달에 나눠 담을지. 결과를 가장 크게 흔드는 값인데 예전에는 36개월로
 // 고정돼 있었다 — 같은 후보가 2년이면 516만, 8년이면 329만으로 순위까지 바뀐다.
-// 서버는 1~120개월을 받으므로(app.py CostParamsInput) 여기서 고르게 한다.
-const LEASE_YEARS = [2, 3, 5, 10] as const;
+// 서버는 1~120개월을 받으므로(app.py CostParamsInput) 그 범위를 연 단위로 연다.
+const LEASE_MIN = 1;
+const LEASE_MAX = 10;
 
 interface Slot {
   label: string;
@@ -236,16 +237,30 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
               권리금을 이 기간에 나눠 담아요. 짧게 잡을수록 한 달 부담이 커지고, 순위가
               바뀌기도 해요.
             </p>
-            <div className={s.chips}>
-              {LEASE_YEARS.map((y) => (
-                <button
-                  key={y}
-                  className={y === leaseYears ? s.chipOn : s.chip}
-                  onClick={() => setLeaseYears(y)}
-                >
-                  {y}년
-                </button>
-              ))}
+            <div className={s.leaseField}>
+              <div className={s.leaseHead}>
+                <span className={s.leaseLabel}>임차 기간</span>
+                <strong>{leaseYears}년</strong>
+              </div>
+              <input
+                className={s.leaseRange}
+                type="range"
+                min={LEASE_MIN}
+                max={LEASE_MAX}
+                step={1}
+                value={leaseYears}
+                aria-label="임차 기간(년)"
+                onChange={(e) => setLeaseYears(Number(e.target.value))}
+                style={{
+                  background: `linear-gradient(to right, var(--fg-y) ${
+                    ((leaseYears - LEASE_MIN) / (LEASE_MAX - LEASE_MIN)) * 100
+                  }%, var(--fg-line2) 0)`,
+                }}
+              />
+              <div className={s.leaseTicks}>
+                <span>{LEASE_MIN}년</span>
+                <span>{LEASE_MAX}년</span>
+              </div>
             </div>
           </div>
 
