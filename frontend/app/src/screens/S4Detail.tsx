@@ -4,7 +4,6 @@ import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
 import type { GridDetail, Meta } from "../api/types";
 import AiSummaryCard from "../components/AiSummaryCard";
-import BrandMark from "../components/BrandMark";
 import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
@@ -71,9 +70,10 @@ export default function S4Detail({
   return (
     <div className={s.page}>
       {/* ── breadcrumb bar ─────────────────────────────────────────── */}
+      {/* 되돌아가기 + 현재 위치. S5 와 같은 구성이다 — 잎 화면에는 로고를 두지
+          않는다. 바로 옆에 되돌아가기가 있어 이동 수단이 둘이 되고, 로고는 여기서
+          제목 자리를 왼쪽으로 밀기만 했다. */}
       <div className={s.crumb}>
-        <BrandMark onClick={() => go({ name: "landing" })} />
-        <i className={s.crumbRule} />
         {/* diagnosis entries come from the S3 map — back returns there too */}
         <button className={s.back} onClick={() => go({ name: "results" })}>
           ← {from === "results" ? "결과 목록으로" : "지도로 돌아가기"}
@@ -82,7 +82,6 @@ export default function S4Detail({
           {from === "results" ? (rank > 0 ? `추천 ${rank}위` : "추천 후보") : "진단 결과"}
           {detail.data?.admDong ? `  /  ${detail.data.admDong}` : ""}
         </span>
-        <span className={s.crumbSpacer} />
       </div>
 
       {detail.isPending ? (
