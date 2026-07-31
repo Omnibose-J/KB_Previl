@@ -40,7 +40,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
         <div className={s.form}>
           <header className={s.head}>
             <h1>어떤 가게를 여시나요?</h1>
-            <p>업종만 골라도 바로 볼 수 있어요. 예산은 나중에 넣어도 돼요.</p>
+            <p>업종만 골라도 바로 볼 수 있어요.</p>
           </header>
 
           <div className={s.sheet}>
@@ -220,10 +220,6 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             </button>
           </div>
           <p className={s.caption}>결과는 참고 정보이며 최종 판단은 사용자에게 있습니다.</p>
-          <div className={s.help}>
-            <strong>아직 업종을 못 정하셨나요?</strong>
-            <span>업종을 바꿔가며 비교해 보세요.</span>
-          </div>
         </aside>
       </main>
       <CaveatStrip />

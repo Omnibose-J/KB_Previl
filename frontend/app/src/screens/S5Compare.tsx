@@ -323,11 +323,6 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                 />
               </div>
               )}
-              <p className={s.mapNote}>
-                지도는 이 업종에서 가장 잘 나온 자리 근처에서 열려요. 원하는 자리로 옮겨서 찍으면
-                돼요. 넓게 보면 칸이 사라지는데, 자리가 없어서가 아니라 한 번에 그릴 수 있는 칸
-                수를 넘어서예요.
-              </p>
             </>
           ) : (
             <div className={s.mapEmpty}>업종을 고르면 지도가 열려요.</div>

@@ -527,7 +527,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
           <div className={s.coach}>
             <span className={s.coachTag}>전문가 최종 코칭 · 준비 중</span>
-            <p>AI가 1차 스크리닝을 마쳤습니다. KB 소상공인 컨설팅 전문가와 최종 점검을 이어가세요.</p>
+            <p>이 리포트와 함께 KB 소상공인 컨설팅 전문가와 최종 점검을 이어갈 수 있게 됩니다.</p>
             <div className={s.coachChips}>
               <span>상권 분석</span>
               <span>창업 일반</span>
