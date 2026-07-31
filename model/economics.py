@@ -53,10 +53,8 @@ def survival_curve(con, decile_of_interest=None, months=HORIZON_M):
     edges = grade_edges(p)
     grades = grade_numbers(p, edges)
 
-    # Durations from the licence table, keyed exactly as service/precompute.py
-    # keys them: (cell, uptae, opening month). Dropping uptae collapses shops
-    # that merely share a cell and a month, which both attached an arbitrary
-    # closure to a holdout row and discarded the rest (F-A6).
+    # Keyed as service/precompute.py keys it. Without uptae, shops sharing a
+    # cell and a month collapse into one arbitrary closure (F-A6).
     lic = defaultdict(list)
     for r in con.execute(
             "SELECT grid_id, uptae, open_y, open_m, close_y, close_m, is_closed "

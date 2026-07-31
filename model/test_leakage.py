@@ -145,21 +145,15 @@ def main():
     from .recovery import RECOVERY_FEATURES
     from .robustness import FEATURE_SETS
     from .train import DEPLOY, TIER1, TIER2, TIER3
-    # Every set a model may be fitted on, not just the v1 NUM set: a feature can
-    # only be used if asof.FEATURES states when it becomes observable. The list
-    # is derived from robustness.FEATURE_SETS rather than enumerated, so a new
-    # candidate family extends the check by being registered there — the old
-    # hand-listed five let OSM and CBD be measured without ever passing here.
+    # Derived from FEATURE_SETS, not enumerated: a candidate family is checked
+    # as soon as it is registered where it is measured.
     covered = sorted(
         set().union(*(set(c) for c in FEATURE_SETS.values()))
         | set(RECOVERY_FEATURES)
         | set(TIER1 + TIER2 + TIER3)
     )
-    # OSM is a current snapshot (model/osm.py docstring): a road built in 2015
-    # is credited to a 2010 opening, so it can be measured as a candidate but
-    # never reconstructed as of T. Listing it as documented would make the
-    # check green on exactly the source it exists to catch, so it is a second
-    # register, and entering DEPLOY from it fails the guard.
+    # A current snapshot (model/osm.py), so it counts as documented in its own
+    # register — not in FEATURES — and fails the guard if it reaches DEPLOY.
     snapshot = set(SNAPSHOT)
     unknown = [n for n in covered if n not in FEATURES and n not in snapshot]
     deployed_snapshot = sorted(snapshot & set(DEPLOY))
