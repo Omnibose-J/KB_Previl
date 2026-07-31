@@ -131,8 +131,9 @@ export default function EconomicsCard({
           {q.data.usedSeoulAverageRevenue ? (
             <p className={s.caption}>서울 상권 평균 매출로 계산했어요. 이 자리의 추정 매출이 아니에요.</p>
           ) : null}
+          {/* 마진율 조절기가 바로 위에 있다 — 그것을 쓰라고 또 적지 않는다. */}
           {q.data.marginSensitive ? (
-            <p className={s.sensitive}>마진을 조금만 바꿔도 흑자와 적자가 뒤집혀요. 내 마진을 넣어보세요.</p>
+            <p className={s.sensitive}>마진을 조금만 바꿔도 흑자와 적자가 뒤집혀요.</p>
           ) : null}
 
           {q.data.gradeComparison?.length ? (

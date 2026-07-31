@@ -76,7 +76,7 @@ export default function OccupancyCostCard({
       <header className={s.head}>
         <h2 className={s.title}>한 달에 진짜로 나가는 돈</h2>
         <p className={s.lead}>
-          보증금과 권리금도 결국 매달 빠져나가는 돈이에요. 셋을 하나로 합쳐 봤어요.
+          보증금과 권리금도 결국 매달 빠져나가는 돈이라, 셋을 하나로 합쳐 봤어요.
         </p>
       </header>
 
@@ -223,7 +223,7 @@ function SuccessionRow({ prob, source }: { prob: number; source: RecoverySource 
       <strong className={measured ? s.successionValue : s.successionValueDim}>{pct1(prob)}</strong>
       <p className={s.successionNote}>
         {source === "constant"
-          ? "아직 이 자리를 계산한 값이 아니라 모든 자리에 같게 넣은 기본값이에요. 자리마다 다른 값을 내려면 승계 기록을 학습한 모델이 필요해요."
+          ? "아직 이 자리를 계산한 값이 아니라 모든 자리에 같게 넣은 기본값이에요."
           : source === "survival_curve_proxy"
             ? "이 등급 자리들이 실제로 버틴 기록에서 나온 하한이에요. 이보다 나쁠 수는 있어도 좋기는 어려워요."
             : "이 자리의 승계 기록을 학습한 모델로 계산했어요."}
@@ -249,18 +249,13 @@ function SuccessionRow({ prob, source }: { prob: number; source: RecoverySource 
  *  몰려 있어서, 평균을 붙이면 한산한 골목에 번화가 값이 붙는다. */
 function WhyNoRevenue({ sales, uptae }: { sales: Sales; uptae: string }) {
   if (!sales.available) {
-    return (
-      <p>
-        이 자리는 상권 밖이라 매출 통계가 없어요. 아래 실질 점유비용은 그대로
-        보셔도 됩니다.
-      </p>
-    );
+    return <p>이 자리는 상권 밖이라 매출 통계가 없어요.</p>;
   }
   if (sales.uptaeStores === null) {
     return (
       <p>
         {uptae}은(는) 상권 매출 통계의 업종 분류에 없어서 «매출 대비 얼마인지»를
-        낼 수 없어요. 아래 실질 점유비용은 그대로 보셔도 됩니다.
+        낼 수 없어요.
       </p>
     );
   }
@@ -276,7 +271,7 @@ function WhyNoRevenue({ sales, uptae }: { sales: Sales; uptae: string }) {
     <p>
       이 상권엔 {uptae} 가게가 <b>{int(sales.uptaeStores)}곳</b>뿐이라 매출
       통계가 공표되지 않았어요. 가게가 적으면 개별 매출이 드러나서 서울시가
-      비공개합니다. 아래 실질 점유비용은 그대로 보셔도 됩니다.
+      비공개합니다.
     </p>
   );
 }
@@ -290,7 +285,10 @@ function BurdenRow({ data, sales, uptae }: {
     return (
       <div className={s.burdenNone}>
         <strong>부담률은 계산하지 못했어요</strong>
+        {/* 갈래마다 사정이 다르고, «그래도 위 점유비용은 유효하다» 는 어느
+            갈래에서나 같다 — 갈래 안에 두면 같은 문장이 세 번 나온다. */}
         <WhyNoRevenue sales={sales} uptae={uptae} />
+        <p>위 실질 점유비용은 그대로 보셔도 됩니다.</p>
       </div>
     );
   }

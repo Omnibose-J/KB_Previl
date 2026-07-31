@@ -171,8 +171,9 @@ function LeaseSlider({ value, onChange }: { value: number; onChange: (v: number)
 function Head() {
   return (
     <div className={s.head}>
+      {/* 부제는 진입 카드에만 둔다 — 한 번 누르면 열리는 창이라, 같은 두 줄을
+          한 클릭 만에 다시 읽게 된다. 아래 notice 가 이 창의 한계를 따로 밝힌다. */}
       <h2>부르는 권리금, 적당한가요?</h2>
-      <p>이 자리 기록으로 참고가를 계산해 드려요. 감정평가는 아니에요.</p>
     </div>
   );
 }
@@ -302,8 +303,8 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
           참고가가 왜 안 오르는지 사용자가 알 방법이 없다. */}
       {r.leaseRemainingYears >= r.expectedSurvivalYears ? (
         <p className={s.capNote}>
-          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. <b>실제 계약이 더 길어도</b>{" "}
-          참고가는 그 이상 오르지 않으니, <b>오래 갈 자리라면 실제 가치는 이보다 높다</b>고 보셔야 해요.
+          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. 계약이 더 길다면{" "}
+          <b>실제 가치는 이보다 높다</b>고 보셔야 해요.
         </p>
       ) : null}
 

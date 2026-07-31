@@ -325,7 +325,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                   here with a hardcoded AUC was a second source of truth. */}
               <div className={s.risks}>
                 {search.rentMonthly === null ? (
-                  <RiskRow level="high" title="임대료를 아직 안 넣으셨어요" desc="임대료를 넣으면 손익까지 계산해 드려요. 손익·권리금 탭에서 넣을 수 있어요." />
+                  <RiskRow level="high" title="임대료를 아직 안 넣으셨어요" desc="손익·권리금 탭에서 넣으면 손익까지 계산해 드려요." />
                 ) : null}
                 {d.confidence === "partial" ? (
                   <RiskRow
