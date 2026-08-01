@@ -1,5 +1,7 @@
 """Service wrapper around the measured-survival economics model."""
 
+import math
+
 from service import api
 from service.curve_contract import (
     CURVE_GRADES,
@@ -144,6 +146,19 @@ def calculate(
                 "expected_profit_3y": comparison_result["expected"],
             }
         )
+
+    # 입력 금액에 상한이 없으므로 3년 합산이 float 을 넘칠 수 있다. inf 를
+    # 응답에 실으면 직렬화에서 500 이 되니, estimate 와 같은 방식으로 여기서
+    # 422 로 거른다.
+    served = [
+        result["profit"],
+        result["expected"],
+        *(entry["expected_profit_3y"] for entry in comparison),
+    ]
+    if result["naive_be"] is not None:
+        served.append(result["naive_be"])
+    if not all(math.isfinite(value) for value in served):
+        raise api.ApiInputError("수익 계산 결과가 유한 범위를 벗어납니다.")
 
     return {
         "grid_id": grid_id,

@@ -7,11 +7,14 @@ responses expose observed grade survival, never the model score, and all map
 coordinates are WGS84.
 """
 
+import math
 import mimetypes
 import pathlib                    # not `from pathlib import Path` - fastapi.Path is taken
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -112,6 +115,29 @@ async def viewport_too_large(
 @app.exception_handler(api.ApiInputError)
 async def invalid_api_input(_request: Request, exc: api.ApiInputError) -> JSONResponse:
     return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+def _finite_detail(value):
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _finite_detail(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_finite_detail(item) for item in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request_body(
+    _request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    # 본문에 NaN/Infinity 리터럴이 오면 pydantic 은 거부하지만, 거부 상세에 그
+    # 값이 그대로 실려 422 응답 자체의 직렬화가 터진다(= 500). JSON 이 못 싣는
+    # 값은 글자로 바꿔 422 를 지킨다.
+    return JSONResponse(
+        status_code=422,
+        content={"detail": _finite_detail(jsonable_encoder(exc.errors()))},
+    )
 
 
 @app.exception_handler(api.ResourceNotFoundError)

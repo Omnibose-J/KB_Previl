@@ -574,6 +574,19 @@ def test_changes_endpoint_separates_no_baseline_from_no_change():
         assert body["reason"]
 
 
+def test_changes_unknown_grid_is_not_found():
+    """채점된 적 없는 격자의 변동 조회는 형제 엔드포인트처럼 404 다.
+
+    available=False 로 답하면 «판이 아직 없다» 는 거짓 사유가 실린다.
+    """
+    response = client.get(
+        "/api/grid/1_1/changes",
+        params={"uptae": "한식"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "이웃 이력 부족으로 평가하지 않음"
+
+
 def _create_changes_history_db(
         path, licence_rows=(), rest_rows=(), current_as_of="2026-07"):
     with sqlite3.connect(path) as con:
@@ -2603,6 +2616,48 @@ def test_estimate_rejects_non_finite_calculation():
 
     assert response.status_code == 422
     assert "유한 범위" in response.json()["detail"]
+
+
+def test_economics_rejects_non_finite_calculation():
+    """금액 입력에 상한이 없으므로 3년 합산이 inf 로 넘칠 수 있다.
+
+    inf 가 응답 모델(allow_inf_nan=False)에 닿으면 500 이므로, 계산 직후
+    422 로 걸러야 한다.
+    """
+    sample = _sample_grid()
+
+    response = client.post(
+        "/api/economics",
+        json={
+            "gridId": sample["grid_id"],
+            "uptae": sample["uptae"],
+            "rentMonthly": 1e308,
+            "upfront": 1e308,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "유한 범위" in response.json()["detail"]
+
+
+def test_nan_json_literal_is_rejected_as_422():
+    """본문의 NaN 리터럴은 pydantic 이 거부하지만, 거부 상세에 NaN 이 실리면
+    422 응답 직렬화가 터져 500 이 된다. 방어 후에는 422 가 온전히 나가야 한다.
+    """
+    sample = _sample_grid()
+
+    response = client.post(
+        "/api/estimate",
+        content=(
+            '{"uptae": "%s", "gridId": "%s", "deposit": NaN, "monthlyRent": 1,'
+            ' "askingGoodwill": 1, "areaM2": 1, "floor": 1}'
+            % (sample["uptae"], sample["grid_id"])
+        ).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 422
+    assert "nan" in response.text
 
 
 def _compare_candidate(sample, **overrides):

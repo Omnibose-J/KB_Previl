@@ -2,8 +2,8 @@ from pipeline.grid import neighbors
 from service import alerts
 
 from . import base
-from .base import DatabaseUnavailableError
-from .cells import RESOLUTION
+from .base import DatabaseUnavailableError, ResourceNotFoundError
+from .cells import NOT_EVALUATED_DETAIL, RESOLUTION
 from .context import REST_EATERY
 from .search import _ensure_uptae
 
@@ -112,6 +112,14 @@ def grid_changes(grid_id, uptae):
     """
     with base.readonly_connection() as con:
         _ensure_uptae(con, uptae)
+        # 채점된 적 없는 격자는 형제 엔드포인트(detail·address·buildings)와
+        # 같이 404 다. available=False 로 답하면 «판이 아직 없다» 는 거짓이 된다.
+        scored = con.execute(
+            "SELECT 1 FROM grid_score WHERE grid_id = ? AND uptae = ? LIMIT 1",
+            (grid_id, uptae),
+        ).fetchone()
+        if not scored:
+            raise ResourceNotFoundError(NOT_EVALUATED_DETAIL)
         history = _changes_history(con, grid_id)
         try:
             return {
