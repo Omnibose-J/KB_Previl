@@ -159,16 +159,23 @@ export default function GridMap({
           "line-opacity": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, 0.5],
         },
       });
-      // Ranked candidates get a dark outline: the ramp itself is now brand
-      // yellow (figma heatmap), so yellow outlines would vanish into it.
+      // 순위에 든 칸을 표시한다. 램프가 브랜드 노랑이라 노란 선은 묻히므로
+      // 어두운 선을 쓰되, **아래 선택 테두리보다 확실히 약해야 한다** —
+      // 둘 다 진한 검정이면 «고르지도 않았는데 검은 테두리»로 읽힌다.
+      // 순위 1~3위는 핀이 따로 말하고, 이 선은 4위 이하를 묶어 주는 몫이다.
       m.addLayer({
         id: "grid-top",
         type: "line",
         source: "grids",
         filter: ["in", ["get", "gridId"], ["literal", []]],
-        paint: { "line-color": "#141414", "line-width": 1.6 },
+        paint: {
+          "line-color": "#3A2A12",
+          "line-width": 1,
+          "line-opacity": 0.3,
+        },
       });
       // Hover/selection echo from the list (Zillow-style two-way sync).
+      // 화면에서 «지금 이 칸»은 이것 하나뿐이어야 한다.
       m.addLayer({
         id: "grid-active",
         type: "line",
