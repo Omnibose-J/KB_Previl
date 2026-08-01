@@ -25,6 +25,7 @@ ENV_KEY_WORDS = ("KEY", "SECRET", "TOKEN", "CLIENT_ID", "SERVICE")
 OUT = ROOT / "SUBMISSION"
 SERVICE_ZIP = OUT / "KB_Previl_service.zip"
 DB_ZIP = OUT / "KB_Previl_db.zip"
+BUNDLE_ZIP = OUT / "KB_Previl_all.zip"
 DB_FILE = ROOT / "kb-demo.db"
 REHEARSAL_PORT = 8123
 
@@ -97,6 +98,26 @@ def build_db():
     mb = DB_ZIP.stat().st_size / 1e6
     print(f"② {DB_ZIP.name:<26} {mb:>6.1f} MB  (원본 {raw:,.0f} MB)")
     return DB_ZIP
+
+
+def build_bundle():
+    """코드와 DB 를 한 zip 에 담는다. 나누어 낼 수 없을 때 쓴다."""
+    if not DB_FILE.is_file():
+        raise SystemExit(f"{DB_FILE.name} 없음 — `python -m service.demo_db` 로 만든다")
+    items = service_items()
+    OUT.mkdir(parents=True, exist_ok=True)
+    _clear(BUNDLE_ZIP)
+    with zipfile.ZipFile(BUNDLE_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for src, arc in items:
+            if src.suffix in STRIPPED and not arc.startswith(f"{ZIP_ROOT}/web/"):
+                z.writestr(arc, shipped_text(src))
+            else:
+                z.write(src, arc)
+        z.write(DB_FILE, f"{ZIP_ROOT}/{DB_FILE.name}")
+    mb = BUNDLE_ZIP.stat().st_size / 1e6
+    print(f"① {BUNDLE_ZIP.name:<26} {mb:>6.1f} MB · {len(items) + 1:,}개 파일 "
+          f"(코드 + DB)")
+    return BUNDLE_ZIP
 
 
 def needed_env_keys():
@@ -179,17 +200,21 @@ def _stop_tree(proc):
         proc.kill()
 
 
-def rehearse():
-    """service.zip + db.zip 을 빈 폴더에 풀고 run.py 하나로 띄워 본다."""
+def rehearse(bundled=False):
+    """실제로 낼 zip 을 빈 폴더에 풀고 run.py 하나로 띄워 본다."""
     outer = Path(tempfile.mkdtemp(prefix="kb-rehearsal-"))
     tmp = outer / ZIP_ROOT
     proc = None
     try:
-        print(f"\n[리허설] {outer}")
-        with zipfile.ZipFile(SERVICE_ZIP) as f:
-            f.extractall(outer)
-        with zipfile.ZipFile(DB_ZIP) as f:
-            f.extractall(tmp)
+        print(f"\n[리허설] {outer}  ({'합본' if bundled else '분리 2종'})")
+        if bundled:
+            with zipfile.ZipFile(BUNDLE_ZIP) as f:
+                f.extractall(outer)
+        else:
+            with zipfile.ZipFile(SERVICE_ZIP) as f:
+                f.extractall(outer)
+            with zipfile.ZipFile(DB_ZIP) as f:
+                f.extractall(tmp)
         for must in ("README.md", "run.py", "requirements.txt", "kb-demo.db",
                      "service/app.py", "web/index.html", "verify.ipynb"):
             ok = (tmp / must).is_file()
@@ -257,7 +282,8 @@ def rehearse():
                 print(f"      {label}: {', '.join(bad)}")
 
         ok = boot_ok and grid_ok and map_ok
-        print("\n리허설 통과 — 이 3종은 제출 가능하다" if ok else "\n리허설 실패")
+        count = "2종(합본 + .env)" if bundled else "3종"
+        print(f"\n리허설 통과 — 이 {count} 은 제출 가능하다" if ok else "\n리허설 실패")
         return 0 if ok else 1
     finally:
         _stop_tree(proc)
@@ -268,16 +294,21 @@ def main():
     for s in (sys.stdout, sys.stderr):
         if hasattr(s, "reconfigure"):
             s.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="제출물 3종 빌드 + 리허설")
+    ap = argparse.ArgumentParser(description="제출물 빌드 + 리허설")
     ap.add_argument("--rehearse", action="store_true")
+    ap.add_argument("--bundle", action="store_true",
+                    help="코드와 DB 를 한 zip 으로 (제출물 2개: 합본 + .env)")
     a = ap.parse_args()
     print(f"제출물 → {OUT}")
-    build_service()
-    build_db()
+    if a.bundle:
+        build_bundle()
+    else:
+        build_service()
+        build_db()
     stage_env()
     if not a.rehearse:
         return 0
-    return rehearse()
+    return rehearse(bundled=a.bundle)
 
 
 if __name__ == "__main__":

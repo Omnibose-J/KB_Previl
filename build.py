@@ -55,6 +55,8 @@ def main():
     ap.add_argument("--check", action="store_true", help="게이트만 실행")
     ap.add_argument("--web", action="store_true", help="프론트 강제 재빌드")
     ap.add_argument("--skip-web", action="store_true")
+    ap.add_argument("--bundle", action="store_true",
+                    help="코드와 DB 를 한 zip 으로 낸다 (제출물 2개)")
     a = ap.parse_args()
 
     if run(["tools.audit"], "1. 게이트"):
@@ -64,11 +66,18 @@ def main():
         return 0
     if not a.skip_web and build_web(a.web):
         return 1
-    argv = ["tools.package"] + (["--rehearse"] if a.rehearse else [])
+    argv = ["tools.package"]
+    if a.bundle:
+        argv.append("--bundle")
+    if a.rehearse:
+        argv.append("--rehearse")
     if run(argv, "2. 빌드" + (" + 리허설" if a.rehearse else "")):
         return 1
-    zip_path = ROOT / "SUBMISSION" / "KB_Previl_service.zip"
-    return run(["tools.audit", "--zip", str(zip_path)], "3. zip 내용 검사")
+    name = "KB_Previl_all.zip" if a.bundle else "KB_Previl_service.zip"
+    check = ["tools.audit", "--zip", str(ROOT / "SUBMISSION" / name)]
+    if a.bundle:
+        check.append("--allow-db")
+    return run(check, "3. zip 내용 검사")
 
 
 if __name__ == "__main__":

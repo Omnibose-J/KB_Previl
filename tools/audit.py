@@ -211,25 +211,30 @@ def gate_size(v):
     return len(over) + len(stale)
 
 
-def gate_zip(v, zip_path):
+def gate_zip(v, zip_path, allow_db=False):
     import zipfile
     if not Path(zip_path).is_file():
         print(f"[zip] {zip_path} 없음 — 건너뜀")
         return 0
     names = zipfile.ZipFile(zip_path).namelist()
+    forbidden = set(FORBIDDEN_NAMES)
+    allowed_suffixes = set(ALLOWED_SUFFIXES)
+    if allow_db:
+        forbidden.discard("kb-demo.db")
+        allowed_suffixes.add(".db")
     bad = []
     for n in names:
         parts = n.split("/")
         name = parts[-1]
         if n == f"{ZIP_ROOT}/README.md":
             continue                      # 유일하게 허용되는 문서
-        if name in FORBIDDEN_NAMES or FORBIDDEN_DIRS & set(parts[:-1]):
+        if name in forbidden or FORBIDDEN_DIRS & set(parts[:-1]):
             bad.append((n, "금지 이름·폴더"))
         elif name.endswith(".md") and n != f"{ZIP_ROOT}/README.md":
             bad.append((n, "문서 — 루트 README 하나만 허용"))
         elif TREE_EXCLUDE_DIRS & set(parts[:-1]) or name in TREE_EXCLUDE_FILES:
             bad.append((n, "캐시·빌드 산출물"))
-        elif Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
+        elif Path(name).suffix.lower() not in allowed_suffixes:
             # 블록리스트는 빠뜨린 패턴을 못 잡는다. 모르는 확장자는 일단 세운다.
             bad.append((n, f"허용 목록에 없는 확장자 {Path(name).suffix or '(없음)'}"))
     print(f"[zip] {len(names):,}개 항목 · 금지 {len(bad)}건")
@@ -366,6 +371,8 @@ def main():
     for name in GATES:
         ap.add_argument(f"--{name}", action="store_true")
     ap.add_argument("--zip", metavar="PATH", help="빌드된 코드 zip 검사")
+    ap.add_argument("--allow-db", action="store_true",
+                    help="--zip 과 함께 — 코드와 DB 를 한 zip 에 담은 합본")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
 
@@ -374,7 +381,7 @@ def main():
         picked = list(GATES)
     fails = sum(GATES[n](a.verbose) for n in picked)
     if a.zip:
-        fails += gate_zip(a.verbose, a.zip)
+        fails += gate_zip(a.verbose, a.zip, a.allow_db)
     print("\n" + ("게이트 통과" if not fails else f"게이트 실패 — 위반 {fails}건"))
     return 1 if fails else 0
 

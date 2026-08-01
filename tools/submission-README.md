@@ -21,12 +21,13 @@
 
 ### 순서
 
-**①** `KB_Previl_service.zip` 을 원하는 곳에 풉니다. **`previl` 폴더 하나**가 생깁니다.
+**①** 받은 zip 을 풉니다. **`previl` 폴더 하나**가 생깁니다.
 
-**②** 나머지 두 개를 **그 `previl` 폴더 안에** 넣습니다.
+- zip 이 **하나**(`KB_Previl_all.zip`)라면 그것만 풀면 끝입니다.
+- zip 이 **둘**이라면 `KB_Previl_service.zip` 을 먼저 풀고,
+  `KB_Previl_db.zip` 은 그렇게 생긴 **`previl` 폴더 안에** 풉니다.
 
-- `KB_Previl_db.zip` → `previl` 안에 풀면 `kb-demo.db` 가 생깁니다
-- `.env` → 압축 없이 그대로 `previl` 안에 넣습니다
+**②** `.env` 를 압축 없이 그대로 **`previl` 안에** 넣습니다.
 
 다 하고 나면 이런 모양이 됩니다.
 

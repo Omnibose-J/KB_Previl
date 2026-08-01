@@ -8,13 +8,25 @@
 
 ## 산출물 3종
 
-| # | 이름 | 내용 |
-|---|---|---|
-| 1 | `KB_Previl_service.zip` | `previl/` 하나로 풀린다 — 백엔드 · 프론트 소스 · 빌드본(`web/`) · `run.py` · `verify.ipynb` |
-| 2 | `KB_Previl_db.zip` | `kb-demo.db` 단일 파일 (폴더로 감싸지 않는다) |
-| 3 | `.env` | API 키 — **어느 zip 에도 들어가지 않는다** |
+두 형태를 다 만들 수 있다. 접수 화면이 파일을 몇 개 받는지에 따라 고른다.
 
-빌드·검사는 전부 `python build.py [--rehearse]` 하나로 돈다.
+**분리 (`python build.py --rehearse`)**
+
+| # | 이름 | 실측 | 내용 |
+|---|---|---|---|
+| 1 | `KB_Previl_service.zip` | 20.9MB · 1,134항목 | `previl/` 하나로 풀린다 — 백엔드 · 프론트 소스 · 빌드본(`web/`) · `run.py` · `verify.ipynb` |
+| 2 | `KB_Previl_db.zip` | 69.1MB | `kb-demo.db` 단일 파일 (폴더로 감싸지 않으므로 `previl/` **안에** 푼다) |
+| 3 | `.env` | 738B · 키 9종 | **어느 zip 에도 들어가지 않는다** |
+
+**합본 (`python build.py --bundle --rehearse`)**
+
+| # | 이름 | 실측 | 내용 |
+|---|---|---|---|
+| 1 | `KB_Previl_all.zip` | 89.9MB · 1,135항목 | 위 코드 + `previl/kb-demo.db` |
+| 2 | `.env` | 738B · 키 9종 | 동일 |
+
+README 는 두 경우를 모두 안내하므로 어느 쪽을 내도 그대로 쓴다. 리허설도 실제로
+낼 zip 을 풀어 검사한다(합본이면 합본 하나만).
 
 ## 완료 조건
 
