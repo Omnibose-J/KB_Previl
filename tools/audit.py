@@ -75,6 +75,48 @@ def closure():
 DYNAMIC_CALLS = {"import_module", "run_module", "run_path", "__import__"}
 
 
+def _dotted(path):
+    """저장소 안의 .py 경로 → 모듈 이름. 밖이면 None."""
+    try:
+        parts = Path(path).resolve().relative_to(ROOT).with_suffix("").parts
+    except ValueError:
+        return None
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+
+
+def _literal(node):
+    return node.value if (isinstance(node, ast.Constant)
+                          and isinstance(node.value, str)) else None
+
+
+def _resolve_dynamic(call, where, name):
+    """동적 호출의 대상 모듈 이름. 정적으로 못 풀면 None."""
+    target = _literal(call.args[0]) if call.args else None
+    if target is None:
+        return None
+    if name == "run_path":
+        return _dotted(ROOT / target)          # 이름이 아니라 경로를 받는다
+    if not target.startswith("."):
+        return target
+    # 상대 이름. importlib 의 두 번째 인자가 기준 패키지이고, 실제로 거의 항상
+    # `__package__` 다 — 그 값은 이 파일이 놓인 패키지와 같다.
+    base = where
+    if len(call.args) > 1:
+        given = _literal(call.args[1])
+        second = call.args[1]
+        if given is not None:
+            base = given
+        elif not (isinstance(second, ast.Name) and second.id == "__package__"):
+            return None
+    level = len(target) - len(target.lstrip("."))
+    parts = base.split(".")
+    if level > len(parts):
+        return None
+    head = parts[:len(parts) - level + 1]
+    rest = target.lstrip(".")
+    return ".".join([*head, rest] if rest else head)
+
+
 def _dynamic_refs(path, known):
     """문자열로 지목하는 모듈과, 정적으로 풀 수 없는 동적 호출의 줄 번호.
 
@@ -83,6 +125,7 @@ def _dynamic_refs(path, known):
     손 목록은 다음에 또 어긋나므로 문자열 자체를 근거로 삼는다.
     """
     tree = ast.parse(path.read_text("utf-8"))
+    where = _package_of(path)
     named, unresolved = set(), []
     for n in ast.walk(tree):
         # 점이 있는 것만 — 최상위 패키지 이름(`"model"`)은 폴더명·라벨로도 쓰이고,
@@ -93,10 +136,15 @@ def _dynamic_refs(path, known):
         elif isinstance(n, ast.Call):
             fn = n.func
             name = fn.attr if isinstance(fn, ast.Attribute) else getattr(fn, "id", "")
-            arg = n.args[0] if n.args else None
-            if name in DYNAMIC_CALLS and not (
-                    isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+            if name not in DYNAMIC_CALLS:
+                continue
+            target = _resolve_dynamic(n, where, name)
+            # run_path 는 언제나 저장소 안 파일을 가리킨다. 출하 패키지 밖으로
+            # 풀렸다면 실을 수 없는 것을 실행하는 것이므로 통과시키지 않는다.
+            if target is None or (name == "run_path" and target not in known):
                 unresolved.append(n.lineno)
+            elif target in known:
+                named.add(target)
     return named, unresolved
 
 
@@ -312,33 +360,69 @@ REQUIRED_IN_ZIP = ("README.md", "run.py", "requirements.txt",
                    "service/app.py", "web/index.html")
 
 
-def _sqlite_verdict(blob):
-    """진짜 SQLite 이고, 열리고, 서빙 표가 차 있는지. 아니면 이유를 돌려준다."""
-    import shutil
+def _digest(stream):
+    import hashlib
+    h = hashlib.sha256()
+    for chunk in iter(lambda: stream.read(1 << 20), b""):
+        h.update(chunk)
+    return h.hexdigest()
+
+
+def _db_verdict(archive, arc):
+    """동봉된 DB 가 «이 저장소의 그 DB» 인지. 아니면 이유를 돌려준다.
+
+    «열리는 SQLite 이고 표가 차 있다» 로는 부족하다. 같은 표 이름만 가진 12KB
+    짜리 다른 DB 도 그 조건을 만족하며 통과했다. 정체를 해시로 못박는다.
+    """
     import sqlite3
-    import tempfile
-    if not blob.startswith(b"SQLite format 3\x00"):
-        return "SQLite 파일이 아니다"
-    tmp = Path(tempfile.mkdtemp(prefix="kb-db-"))
+    source = ROOT / DB_NAME
+    if not source.is_file():
+        return f"{DB_NAME} 이 저장소에 없어 대조할 수 없다"
+    with archive.open(arc) as f:
+        packed = _digest(f)
+    with source.open("rb") as f:
+        want = _digest(f)
+    if packed != want:
+        return (f"{DB_NAME} 과 다른 파일이다\n"
+                f"        zip {packed[:16]}… / 원본 {want[:16]}…")
+    # 여기부터는 zip 안의 것과 원본이 같은 바이트다. 원본을 검사하면 된다.
     try:
-        p = tmp / DB_NAME
-        p.write_bytes(blob)
-        con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+        con = sqlite3.connect(f"file:{source}?mode=ro", uri=True)
         try:
             verdict = con.execute("PRAGMA quick_check").fetchone()[0]
             if verdict != "ok":
                 return f"quick_check — {verdict}"
             for table in DB_TABLES:
-                n = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
-                if not n:
+                if not con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]:
                     return f"{table} 이 비어 있다"
         finally:
             con.close()
     except sqlite3.Error as exc:
         return f"열 수 없다 — {exc}"
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
     return None
+
+
+def gate_db_zip(v, zip_path):
+    """DB zip 은 `kb-demo.db` 하나짜리다 — 구조가 달라 코드 zip 게이트로는 못 본다."""
+    import zipfile
+    if not Path(zip_path).is_file():
+        print(f"[db-zip] FAIL — {zip_path} 없음. 먼저 빌드할 것")
+        return 1
+    archive = zipfile.ZipFile(zip_path)
+    names = archive.namelist()
+    bad = []
+    if archive.testzip() is not None:
+        bad.append((archive.testzip(), "CRC 오류"))
+    if names != [DB_NAME]:
+        bad.append((", ".join(names) or "(비어 있음)", f"{DB_NAME} 하나여야 한다"))
+    else:
+        why = _db_verdict(archive, DB_NAME)
+        if why:
+            bad.append((DB_NAME, why))
+    print(f"[db-zip] {len(names)}개 항목 · 위반 {len(bad)}건")
+    for n, why in bad:
+        print(f"    {n}  — {why}")
+    return len(bad)
 
 
 def gate_zip(v, zip_path, allow_db=False):
@@ -373,9 +457,9 @@ def gate_zip(v, zip_path, allow_db=False):
         bad.append((", ".join(db_entries) or "(없음)",
                     f"합본에는 {db_arc} 하나만 있어야 한다"))
     elif allow_db:
-        why = _sqlite_verdict(archive.read(db_arc))
+        why = _db_verdict(archive, db_arc)
         if why:
-            bad.append((db_arc, f"DB 가 쓸 수 없다 — {why}"))
+            bad.append((db_arc, why))
 
     expected = {arc: (src, is_stripped(src, arc)) for src, arc in ship_items()}
     want = set(expected) | ({db_arc} if allow_db else set())
@@ -562,17 +646,20 @@ def main():
     for name in GATES:
         ap.add_argument(f"--{name}", action="store_true")
     ap.add_argument("--zip", metavar="PATH", help="빌드된 코드 zip 검사")
+    ap.add_argument("--db-zip", metavar="PATH", help="나누어 낼 때의 DB zip 검사")
     ap.add_argument("--allow-db", action="store_true",
                     help="--zip 과 함께 — 코드와 DB 를 한 zip 에 담은 합본")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
 
     picked = [n for n in GATES if getattr(a, n)]
-    if not picked and not a.zip:
+    if not picked and not (a.zip or a.db_zip):
         picked = list(GATES)
     fails = sum(GATES[n](a.verbose) for n in picked)
     if a.zip:
         fails += gate_zip(a.verbose, a.zip, a.allow_db)
+    if a.db_zip:
+        fails += gate_db_zip(a.verbose, a.db_zip)
     print("\n" + ("게이트 통과" if not fails else f"게이트 실패 — 위반 {fails}건"))
     return 1 if fails else 0
 

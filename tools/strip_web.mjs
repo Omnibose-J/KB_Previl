@@ -28,7 +28,9 @@ const postcss = require("postcss");
 const SEMANTIC = [
   [/^\/[*/]!/, "보존 표시(/*!)"],
   [/^\/\/\/\s*</, "triple-slash directive"],
-  [/[@#]__PURE__/, "purity annotation"],
+  // `@__PURE__` 하나만 적으면 `@__NO_SIDE_EFFECTS__` 를 놓친다. 이 모양 전체를
+  // 번들러 표시로 본다 — 새 표시가 생겨도 자동으로 걸린다.
+  [/[@#]__[A-Z0-9_]+__/, "번들러 표시"],
   [/@ts-(ignore|expect-error|nocheck|check)/, "TypeScript directive"],
   [/@(license|preserve|copyright)/i, "legal notice"],
   [/@jsx(Runtime|ImportSource|Frag)?\b/, "JSX pragma"],

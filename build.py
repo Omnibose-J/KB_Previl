@@ -70,9 +70,13 @@ def main():
         argv.append("--rehearse")
     if run(argv, "3. 패키징" + (" + 리허설" if a.rehearse else "")):
         return 1
+    out = ROOT / "SUBMISSION"
     name = "KB_Previl_service.zip" if a.split else "KB_Previl_all.zip"
-    check = ["tools.audit", "--zip", str(ROOT / "SUBMISSION" / name)]
-    if not a.split:
+    check = ["tools.audit", "--zip", str(out / name)]
+    if a.split:
+        # DB zip 도 검사한다. 구조가 달라 코드 zip 게이트로는 안 보인다.
+        check += ["--db-zip", str(out / "KB_Previl_db.zip")]
+    else:
         check.append("--allow-db")
     return run(check, "4. zip 내용 검사")
 
