@@ -204,7 +204,17 @@ def run_holdout(con, cols, tag, train_years, test_years, winner, best_params):
     point, lo, hi = paired_bootstrap_decile(yte, p_ens, fitted[INCUMBENT])
     print(f"  짝지은 부트스트랩 Δ상위10% {point*100:+.2f}%p  "
           f"95% CI [{lo*100:+.2f}, {hi*100:+.2f}]%p")
-    return {"point": point, "lo": lo, "hi": hi, "ens": r_ens, "inc": r_inc}
+    # 같은 부트스트랩 폭에서 최소검출효과를 역산한다(2.49 = z.80 + z.95, round4
+    # 와 같은 규약). 새 가설을 세우는 것이 아니라 이미 나온 판정을 읽는 데
+    # 필요한 값이다 — MDE 가 임계보다 크면 «효과가 없다» 가 아니라 «있어도 이
+    # 설계로는 못 본다» 이고, 둘을 같은 «판별 불가» 로 적으면 안 된다.
+    mde = 2.49 * (hi - lo) / (2 * 1.96)
+    verdict = ("임계를 검출할 수 있는 설계" if mde <= DECILE_MIN_GAIN
+               else "임계를 검출할 수 없는 설계")
+    print(f"  최소검출효과(80% power) {mde*100:+.2f}%p  "
+          f"vs 등록 임계 +{DECILE_MIN_GAIN*100:.1f}%p -> {verdict}")
+    return {"point": point, "lo": lo, "hi": hi, "mde": mde,
+            "ens": r_ens, "inc": r_inc}
 
 
 def main():
@@ -246,6 +256,11 @@ def main():
           f"{'O' if B['ens']['mono'] else 'X'} / 현행 {'O' if B['inc']['mono'] else 'X'}")
     print(f"[등록 밖] 확인 B 는 배포 계보다. 여기 CI 는 "
           f"[{B['lo']*100:+.2f}, {B['hi']*100:+.2f}]%p 로 0 을 품는다.")
+    print(f"[등록 밖] 검정력  A MDE {A['mde']*100:+.2f}%p · B MDE {B['mde']*100:+.2f}%p "
+          f"(임계 +{DECILE_MIN_GAIN*100:.1f}%p). "
+          + ("B 는 임계를 검출할 수 없다 — 「효과가 없다」가 아니라 「이 표본으로는 못 본다」다."
+             if B["mde"] > DECILE_MIN_GAIN
+             else "B 도 임계를 검출할 수 있다 — 음성이 검정력 부족 때문이 아니다."))
     print("\n기록된 판정 -> 기각(현행 단일 gbm 유지). 등록 게이트는 통과했으나 "
           "배포 계보에서 크기가 0 이고 단조가 깨진다 — docs/model-findings.md §30.")
     print("=" * 78)

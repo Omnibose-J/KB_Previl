@@ -394,6 +394,10 @@ def _pilot_report(records, n_trdar, empty):
 # 서빙에 내보내지 않는다 — 재검정 때 다시 수집하지 않기 위해서다.
 APPROVED_CLASSES = ("family", "work")
 FULL_PATH = OUT / "full.jsonl"
+# 1 차(60 글) 코퍼스. 100 글 재수집이 도중에 멈추면 아직 못 올린 상권은 여기
+# 라벨을 그대로 쓴다 — 같은 추출기가 붙인 라벨이라 정밀도 계약이 유지되고,
+# posts_scanned 가 행마다 실려 화면이 «60 개 중»/«100 개 중»을 정확히 말한다.
+FULL60_PATH = OUT / "full-60.jsonl"
 _write_lock = __import__("threading").Lock()
 
 
@@ -537,6 +541,23 @@ def load(verbose=True):
                 f"{FULL_PATH.name} {lineno}행이 깨졌다: {exc}. "
                 f"DB 는 건드리지 않았다 — 그 줄을 지우고 다시 실행할 것"
             ) from exc
+
+    # 아직 100 글로 못 올린 상권은 1 차 코퍼스로 메운다. 상권 단위로만 고르므로
+    # 한 상권 안에서 두 수집분이 섞이지 않는다 — 섞으면 posts_scanned 가 어느
+    # 쪽 분모인지 말할 수 없게 된다.
+    upgraded = {r["trdar_cd"] for r in parsed}
+    if FULL60_PATH.is_file():
+        filled = 0
+        for line in FULL60_PATH.open(encoding="utf-8"):
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if r["trdar_cd"] not in upgraded:
+                parsed.append(r)
+                filled += 1
+        if verbose and filled:
+            print(f"  1차 코퍼스로 보충: {filled:,}행 "
+                  f"(100글 {len(upgraded):,}상권 밖)")
 
     scanned, counts = {}, {}
     for r in parsed:
