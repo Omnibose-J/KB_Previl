@@ -33,6 +33,11 @@
         `SIZE_EXEMPT` 에 사유와 함께 남겼다 — 문턱을 올리지 않았으므로 새 갓파일은 계속 걸린다.
 - [x] 주석 제거가 동작을 바꾸지 않았다 — 벗겨낸 트리에서 기존 서빙 계약이 그대로 통과
       → `python -m tools.audit --behaviour` exit 0 · `121 passed`
+- [x] 주석 제거가 프론트 소스도 망가뜨리지 않았다
+      → `python -m tools.audit --frontend` exit 0 · 벗겨낸 `src` 로 `tsc --noEmit`
+      → 파이썬은 제거 후 `ast.parse` 로 확인되지만 TS 는 확인할 파서가 없었다.
+        줄 첫 글자가 `*` 인 연산자 연속행처럼 주석이 아닌 줄이 지워져도 zip 은
+        조용히 나간다 — 그 구멍을 게이트로 막았다.
 - [x] `run.py` 하나로 셋업 + 기동
       → `python build.py --rehearse` · 빈 폴더에 3종을 풀고 새 venv 로 부팅:
         `/api/meta` 200 · `/api/recommend` 200 (24건) · UI 200 · `/api/grids` 200 (45칸) · 지도 워커 2개

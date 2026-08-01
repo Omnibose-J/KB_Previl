@@ -263,8 +263,67 @@ def gate_behaviour(v):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def gate_frontend(v):
+    """벗겨낸 프론트 소스가 그대로 타입 검사를 통과하는지.
+
+    파이썬은 제거 후 파싱을 확인하지만 TS 는 확인할 파서가 없다. 줄 첫 글자가
+    `*` 인 연산자 연속행처럼 주석이 아닌 줄이 지워져도 zip 은 조용히 나간다.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+    app = ROOT / "frontend" / "app"
+    if not (app / "node_modules").is_dir():
+        print("[frontend] node_modules 없음 — 건너뜀")
+        return 0
+    npx = shutil.which("npx.cmd") or shutil.which("npx")
+    if not npx:
+        print("[frontend] npx 없음 — 건너뜀")
+        return 0
+
+    tmp = Path(tempfile.mkdtemp(prefix="kb-ts-"))
+    link = tmp / "node_modules"
+    try:
+        for name in ("package.json", "tsconfig.json", "vite.config.ts",
+                     "index.html"):
+            if (app / name).is_file():
+                shutil.copy2(app / name, tmp / name)
+        for p in sorted((app / "src").rglob("*")):
+            if not p.is_file():
+                continue
+            dst = tmp / "src" / p.relative_to(app / "src")
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if p.suffix in (".ts", ".tsx"):
+                dst.write_text(shipped_text(p), encoding="utf-8")
+            else:
+                shutil.copy2(p, dst)
+        if os.name == "nt":
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(link),
+                            str(app / "node_modules")], capture_output=True)
+        else:
+            link.symlink_to(app / "node_modules")
+        if not link.exists():
+            print("[frontend] node_modules 연결 실패 — 건너뜀")
+            return 0
+        proc = subprocess.run([npx, "tsc", "--noEmit", "-p", "tsconfig.json"],
+                              cwd=tmp, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=900)
+        print(f"[frontend] 벗겨낸 소스 tsc --noEmit — exit {proc.returncode}")
+        if proc.returncode:
+            for ln in ((proc.stdout or "") + (proc.stderr or "")).splitlines()[:20]:
+                if ln.strip():
+                    print(f"    {ln}")
+        return 1 if proc.returncode else 0
+    finally:
+        if os.name == "nt":
+            subprocess.run(["cmd", "/c", "rmdir", str(link)], capture_output=True)
+        elif link.is_symlink():
+            link.unlink()
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 GATES = {"closure": gate_closure, "comments": gate_comments, "size": gate_size,
-         "behaviour": gate_behaviour}
+         "behaviour": gate_behaviour, "frontend": gate_frontend}
 
 
 def main():
