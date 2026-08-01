@@ -21,6 +21,12 @@ SHIP_PKGS = ("service", "model", "pipeline")
 # 이 폴더 «안에» 풀어야 한다 — README 가 그렇게 안내한다.
 ZIP_ROOT = "previl"
 
+# 합본 zip 과 DB zip 이 담는 유일한 데이터 파일.
+DB_NAME = "kb-demo.db"
+
+# 서빙이 이 두 표를 읽는다. 비어 있으면 화면은 뜨지만 추천이 나오지 않는다.
+DB_TABLES = ("grid_score", "score_meta")
+
 # Non-Python payload. (source, arcname)
 SHIP_FILES = (
     ("tools/submission-README.md", "README.md"),

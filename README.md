@@ -4,7 +4,7 @@
 
 ```
 verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 PASS
-서빙 계약 121 PASS · 제출물 3종 (코드 20.9MB · DB 69.1MB · .env) · 리허설 통과
+서빙 계약 124 PASS · 제출물 2종 (합본 zip · .env) · 리허설 통과
 ```
 
 `verify` 의 `counts` 는 라이브 API 총건수와 대조하는 검사라, 캐시로 재구축한 DB
@@ -112,7 +112,7 @@ legacy 벤치(학습 2005~2018 / 검증 2019~2022)에서 잰 것이라 위 표�
 | `model/dataset·evaluate·train` | 라벨 · 평가 하니스 · 후보 6종 |
 | `model/cache.py` | 스플릿 디스크 캐시 (피처 코드 해시로 자동 무효화) |
 | `model/backtest·robustness·stratified` | 실효성 검증 |
-| `service/api.py` | 조회 계층. 점수는 감추고 등급과 실측치만 낸다 |
+| `service/api/` | 조회 계층. 점수는 감추고 등급과 실측치만 낸다 |
 | `service/economics·goodwill·estimation` | 손익 시나리오 · 권리금 참고가 · 실질 점유비용 |
 | `service/demo_db.py` | 제출용 경량 DB 추출 (테이블 목록을 코드에서 재도출) |
 
@@ -221,27 +221,31 @@ python -m model.ablation_run      # 피처군 절제표
 
 ### 제출물 만들기
 
-산출물은 **3종**입니다 — 코드 zip(`previl/` 하나로 풀림) · DB zip · `.env`.
-서비스가 바뀌면 이 명령 하나만 다시 돌리면 됩니다.
+기본 산출물은 **2종**입니다 — 합본 zip(코드 + DB, `previl/` 하나로 풀림) · `.env`.
+`--split` 을 주면 코드 zip 과 DB zip 을 나눠 3종이 됩니다. 서비스가 바뀌면 이
+명령 하나만 다시 돌리면 됩니다.
 
 ```bash
 python -m service.demo_db --out kb-demo.db   # 서빙 의존 16개 테이블만 추출
-python build.py --rehearse                   # 게이트 → 프론트 확인 → 3종 빌드 → 리허설
+python build.py --rehearse                   # 화면 빌드 → 게이트 → 패키징 → 리허설
 ```
 
 `build.py` 는 네 단계입니다.
 
-1. **게이트** (`tools/audit.py`) — 진입점에서 도달하지 않는 모듈이 섞이지 않았는지,
+1. **화면 빌드** — `vite build` 를 무조건 다시 돌립니다. «입력이 `dist` 보다
+   새로운가» 로 판단하던 것을 버렸습니다. mtime 은 파일을 되돌리거나 보존 복사하면
+   그대로이고, 빌드 입력 하나를 목록에서 빠뜨리면 낡은 화면이 조용히 실립니다.
+2. **게이트** (`tools/audit.py`) — 진입점에서 도달하지 않는 모듈이 섞이지 않았는지,
    출하 소스에서 주석·독스트링이 남김없이 걷혔는지, 사유 없이 400줄을 넘는 파일이
-   없는지, 그리고 **벗겨낸 트리에서 서빙 계약 121종이 그대로 통과하는지**.
-2. **프론트 확인** — `src` 가 `dist` 보다 새로우면 다시 빌드합니다. 낡은 화면이
-   나가는 것을 막습니다.
-3. **빌드** (`tools/package.py`) — `SUBMISSION/` 에 3종을 만듭니다. 포함 목록은
+   없는지, **벗겨낸 트리에서 서빙 계약 124종이 그대로 통과하는지**, 그리고 **zip 에
+   들어갈 바로 그 프론트 소스가 `tsc` 와 `vite build` 를 통과하는지**.
+3. **패키징** (`tools/package.py`) — `SUBMISSION/` 에 산출물을 만듭니다. 포함 목록은
    allowlist 입니다. denylist 는 패턴 하나를 빠뜨리면 `.env` 가 나가지만,
    allowlist 는 빠뜨리면 빌드가 실패합니다. 둘 중 복구 가능한 실패만 택했습니다.
-4. **리허설** — 빈 임시 폴더에 코드 zip 과 DB zip 을 풀고, **새 가상환경을 만들어
+4. **리허설 + zip 검사** — 빈 임시 폴더에 zip 을 풀고 **새 가상환경을 만들어
    `run.py` 로 실제 기동**합니다. 작업 트리에만 있고 zip 에는 없는 파일이 실행을
-   구제하지 못하게 하려는 것입니다.
+   구제하지 못하게 하려는 것입니다. 이어서 zip 항목을 출하 목록과 **바이트까지**
+   대조합니다 — 이름만 맞추면 빈 껍데기도 통과하기 때문입니다.
 
 출하 소스의 주석은 `tools/strip.py` 가 **빌드 시점에** 걷어냅니다. 저장소 소스는
 그대로입니다 — 이유는 `docs/decisions/2026-08-01-strip-comments-at-packaging.md`.

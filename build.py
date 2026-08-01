@@ -2,11 +2,10 @@
 
 기본은 합본이다 — `KB_Previl_all.zip`(코드 + DB) 과 `.env` 두 개.
 
-    python build.py              게이트 -> 프론트 확인 -> 빌드
+    python build.py              게이트 -> 화면 빌드 -> 패키징
     python build.py --rehearse   위에 더해 빈 폴더에서 실제로 띄워 본다
     python build.py --split      코드 zip 과 DB zip 을 나누어 낸다
     python build.py --check      게이트만
-    python build.py --web        프론트를 무조건 다시 빌드
 """
 import argparse
 import shutil
@@ -16,36 +15,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 APP = ROOT / "frontend" / "app"
-SRC = APP / "src"
-DIST = APP / "dist"
-
-# 화면 빌드에 들어가는 입력 전부. src 만 보면 토큰 CSS·설정·index.html·public
-# 을 고쳐도 낡은 dist 가 그대로 나간다.
-WEB_INPUTS = (SRC, APP / "public", APP / "index.html", APP / "vite.config.ts",
-              APP / "tsconfig.json", APP / "package.json",
-              ROOT / "frontend" / "design" / "tokens")
 
 
-def newest(*paths):
-    best = 0.0
-    for path in paths:
-        if path.is_file():
-            best = max(best, path.stat().st_mtime)
-        elif path.is_dir():
-            for p in path.rglob("*"):
-                if p.is_file():
-                    best = max(best, p.stat().st_mtime)
-    return best
+def build_web():
+    """화면을 무조건 다시 빌드한다.
 
-
-def build_web(force):
-    """입력이 dist 보다 새로우면 다시 빌드한다. 낡은 화면이 나가는 것을 막는다."""
-    index = DIST / "index.html"
-    stale = (force or not index.is_file()
-             or newest(*WEB_INPUTS) > index.stat().st_mtime)
-    if not stale:
-        print("[web] 최신 — 다시 빌드하지 않음")
-        return 0
+    «입력이 dist 보다 새로운가» 로 판단하던 것을 버렸다. mtime 은 파일을
+    되돌리거나 보존 복사하면 그대로이고, package-lock.json 처럼 빌드에 들어가는
+    입력을 목록에서 빠뜨리면 낡은 화면이 조용히 실린다. 제출물 빌드에서 20초를
+    아끼려고 그 위험을 질 이유가 없다.
+    """
     if not (APP / "node_modules").is_dir():
         print("[web] node_modules 없음 — `npm install` 후 다시 실행할 것")
         return 1
@@ -53,7 +32,6 @@ def build_web(force):
     if not npx:
         print("[web] npx 를 찾지 못함 — Node.js 가 필요하다")
         return 1
-    print("[web] 화면 다시 빌드")
     return subprocess.call([npx, "vite", "build"], cwd=APP)
 
 
@@ -69,31 +47,34 @@ def main():
     ap = argparse.ArgumentParser(description="제출물 재빌드")
     ap.add_argument("--rehearse", action="store_true")
     ap.add_argument("--check", action="store_true", help="게이트만 실행")
-    ap.add_argument("--web", action="store_true", help="프론트 강제 재빌드")
-    ap.add_argument("--skip-web", action="store_true")
     ap.add_argument("--split", action="store_true",
                     help="코드와 DB 를 나누어 낸다 (제출물 3종). 기본은 합본")
     a = ap.parse_args()
 
-    if run(["tools.audit"], "1. 게이트"):
+    # 화면을 먼저 빌드한다. 게이트와 패키징이 같은 `dist` 를 보게 하려면
+    # 순서가 이래야 한다 — 게이트가 낡은 화면을 통과시키고 그 다음에 새 화면이
+    # 실리면, 검사한 것과 낸 것이 다른 물건이 된다.
+    if not a.check:
+        print(f"\n{'=' * 60}\n1. 화면 빌드\n{'=' * 60}")
+        if build_web():
+            return 1
+    if run(["tools.audit"], "2. 게이트"):
         print("\n게이트 실패 — 빌드하지 않았다")
         return 1
     if a.check:
         return 0
-    if not a.skip_web and build_web(a.web):
-        return 1
     argv = ["tools.package"]
     if a.split:
         argv.append("--split")
     if a.rehearse:
         argv.append("--rehearse")
-    if run(argv, "2. 빌드" + (" + 리허설" if a.rehearse else "")):
+    if run(argv, "3. 패키징" + (" + 리허설" if a.rehearse else "")):
         return 1
     name = "KB_Previl_service.zip" if a.split else "KB_Previl_all.zip"
     check = ["tools.audit", "--zip", str(ROOT / "SUBMISSION" / name)]
     if not a.split:
         check.append("--allow-db")
-    return run(check, "3. zip 내용 검사")
+    return run(check, "4. zip 내용 검사")
 
 
 if __name__ == "__main__":

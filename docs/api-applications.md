@@ -34,7 +34,7 @@
 python -m model.tier2 --cache licence_rest      # 캐시에서 licence_rest 적재
 ```
 
-서빙은 까페에만 이 표를 쓴다(`service/api.py` REST_UPTAE) — 커피숍·다방·
+서빙은 까페에만 이 표를 쓴다(`service/api/context.py` REST_UPTAE) — 커피숍·다방·
 전통찻집·떡카페·키즈카페 합쳐 영업 중 15,559곳. 격자 배정 95.6%.
 
 **통닭(치킨)은 여기서 뺐다.** 처음엔 누락으로 봤는데(상가업소 5,206 vs

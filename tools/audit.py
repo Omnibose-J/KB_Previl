@@ -11,11 +11,11 @@ import sys
 import tokenize
 from pathlib import Path
 
-from .manifest import (ALLOWED_SUFFIXES, BANNED_COMMENT, ENTRY_CLI,
-                       ENTRY_IMPORT, FORBIDDEN_DIRS, FORBIDDEN_NAMES, HEADERS,
-                       MAX_LINES, ROOT, SHIP_FILES, SHIP_PKGS, SHIP_TREES,
-                       SIZE_EXEMPT, TREE_EXCLUDE, TREE_EXCLUDE_DIRS,
-                       TREE_EXCLUDE_FILES, ZIP_ROOT)
+from .manifest import (ALLOWED_SUFFIXES, BANNED_COMMENT, DB_NAME, DB_TABLES,
+                       ENTRY_CLI, ENTRY_IMPORT, FORBIDDEN_DIRS,
+                       FORBIDDEN_NAMES, HEADERS, MAX_LINES, ROOT, SHIP_FILES,
+                       SHIP_PKGS, SHIP_TREES, SIZE_EXEMPT, TREE_EXCLUDE,
+                       TREE_EXCLUDE_DIRS, TREE_EXCLUDE_FILES, ZIP_ROOT)
 from .strip import StripError, strip_python, strip_web_batch
 
 
@@ -69,6 +69,35 @@ def closure():
         seen.add(m)
         stack.extend(_imports(mods[m], known) - seen)
     return mods, seen
+
+
+# `importlib.import_module(name)` 류. 이름이 리터럴이 아니면 정적으로 못 푼다.
+DYNAMIC_CALLS = {"import_module", "run_module", "run_path", "__import__"}
+
+
+def _dynamic_refs(path, known):
+    """문자열로 지목하는 모듈과, 정적으로 풀 수 없는 동적 호출의 줄 번호.
+
+    `bootstrap` 이 `python -m pipeline.sgis` 를 부르는 것을 import 걷기는 보지
+    못한다. 실제로 그래서 출하 목록이 모자랐고, ENTRY_CLI 를 손으로 채워 막았다.
+    손 목록은 다음에 또 어긋나므로 문자열 자체를 근거로 삼는다.
+    """
+    tree = ast.parse(path.read_text("utf-8"))
+    named, unresolved = set(), []
+    for n in ast.walk(tree):
+        # 점이 있는 것만 — 최상위 패키지 이름(`"model"`)은 폴더명·라벨로도 쓰이고,
+        # `__init__.py` 는 어차피 전부 실린다.
+        if (isinstance(n, ast.Constant) and isinstance(n.value, str)
+                and "." in n.value and n.value in known):
+            named.add(n.value)
+        elif isinstance(n, ast.Call):
+            fn = n.func
+            name = fn.attr if isinstance(fn, ast.Attribute) else getattr(fn, "id", "")
+            arg = n.args[0] if n.args else None
+            if name in DYNAMIC_CALLS and not (
+                    isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+                unresolved.append(n.lineno)
+    return named, unresolved
 
 
 STRIPPED = {".py", ".ts", ".tsx", ".css"}
@@ -128,10 +157,16 @@ def gate_closure(v):
         for m in dead:
             print(f"    출하 제외  {m}")
     print(f"[closure] 출하 제외 {len(dead)}개 — 데드코드 아님(저장소 보관)")
-    missing = [m for m in (*ENTRY_IMPORT, *ENTRY_CLI) if m not in mods]
-    for m in missing:
-        print(f"    FAIL 진입점 없음: {m}")
-    return len(missing)
+    bad = [(m, "진입점 없음") for m in (*ENTRY_IMPORT, *ENTRY_CLI) if m not in mods]
+    known = set(mods)
+    for m in sorted(reach):
+        named, unresolved = _dynamic_refs(mods[m], known)
+        bad += [(m, f"{ln}행 동적 import 를 정적으로 풀 수 없다") for ln in unresolved]
+        bad += [(m, f"«{ref}» 를 문자열로 부르는데 출하 목록 밖이다")
+                for ref in sorted(named - reach)]
+    for m, why in bad:
+        print(f"    FAIL {m} — {why}")
+    return len(bad)
 
 
 def _comment_spans(src):
@@ -277,8 +312,42 @@ REQUIRED_IN_ZIP = ("README.md", "run.py", "requirements.txt",
                    "service/app.py", "web/index.html")
 
 
+def _sqlite_verdict(blob):
+    """진짜 SQLite 이고, 열리고, 서빙 표가 차 있는지. 아니면 이유를 돌려준다."""
+    import shutil
+    import sqlite3
+    import tempfile
+    if not blob.startswith(b"SQLite format 3\x00"):
+        return "SQLite 파일이 아니다"
+    tmp = Path(tempfile.mkdtemp(prefix="kb-db-"))
+    try:
+        p = tmp / DB_NAME
+        p.write_bytes(blob)
+        con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+        try:
+            verdict = con.execute("PRAGMA quick_check").fetchone()[0]
+            if verdict != "ok":
+                return f"quick_check — {verdict}"
+            for table in DB_TABLES:
+                n = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                if not n:
+                    return f"{table} 이 비어 있다"
+        finally:
+            con.close()
+    except sqlite3.Error as exc:
+        return f"열 수 없다 — {exc}"
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return None
+
+
 def gate_zip(v, zip_path, allow_db=False):
-    """zip 이 계약대로인지. 없는 zip 은 «검사할 것이 없음» 이 아니라 실패다."""
+    """zip 이 계약대로인지. 없는 zip 은 «검사할 것이 없음» 이 아니라 실패다.
+
+    이름만 맞추면 내용이 빈 껍데기도 통과한다 — 필수 7개와 DB 이름만 담은
+    8항목짜리 가짜 zip 이 실제로 통과했다. 그래서 출하 목록과 정확히 대조하고
+    바이트까지 맞춰 본다.
+    """
     import zipfile
     if not Path(zip_path).is_file():
         print(f"[zip] FAIL — {zip_path} 없음. 먼저 빌드할 것")
@@ -297,10 +366,34 @@ def gate_zip(v, zip_path, allow_db=False):
     for must in REQUIRED_IN_ZIP:
         if f"{ZIP_ROOT}/{must}" not in names:
             bad.append((must, "필수 항목 누락"))
+
+    db_arc = f"{ZIP_ROOT}/{DB_NAME}"
     db_entries = [n for n in names if n.endswith(".db")]
-    if allow_db and db_entries != [f"{ZIP_ROOT}/kb-demo.db"]:
+    if allow_db and db_entries != [db_arc]:
         bad.append((", ".join(db_entries) or "(없음)",
-                    f"합본에는 {ZIP_ROOT}/kb-demo.db 하나만 있어야 한다"))
+                    f"합본에는 {db_arc} 하나만 있어야 한다"))
+    elif allow_db:
+        why = _sqlite_verdict(archive.read(db_arc))
+        if why:
+            bad.append((db_arc, f"DB 가 쓸 수 없다 — {why}"))
+
+    expected = {arc: (src, is_stripped(src, arc)) for src, arc in ship_items()}
+    want = set(expected) | ({db_arc} if allow_db else set())
+    have = set(names)
+    bad += [(n, "출하 목록에 있는데 zip 에 없다") for n in sorted(want - have)]
+    bad += [(n, "출하 목록에 없는데 zip 에 있다") for n in sorted(have - want)]
+    stale = 0
+    for arc in sorted((want & have) - {db_arc}):
+        src, stripped = expected[arc]
+        try:
+            wanted = shipped_text(src).encode("utf-8") if stripped else src.read_bytes()
+        except (SyntaxError, StripError, UnicodeDecodeError) as exc:
+            bad.append((arc, f"지금 다시 만들 수 없다 — {exc}"))
+            continue
+        if archive.read(arc) != wanted:
+            stale += 1
+            bad.append((arc, "내용이 지금 만들 것과 다르다 — 낡은 zip"))
+
     forbidden = set(FORBIDDEN_NAMES)
     allowed_suffixes = set(ALLOWED_SUFFIXES)
     if allow_db:
@@ -323,9 +416,12 @@ def gate_zip(v, zip_path, allow_db=False):
         elif Path(name).suffix.lower() not in allowed_suffixes:
             # 블록리스트는 빠뜨린 패턴을 못 잡는다. 모르는 확장자는 일단 세운다.
             bad.append((n, f"허용 목록에 없는 확장자 {Path(name).suffix or '(없음)'}"))
-    print(f"[zip] {len(names):,}개 항목 · 위반 {len(bad)}건")
-    for n, why in bad[:20]:
+    print(f"[zip] {len(names):,}개 항목 · 위반 {len(bad)}건"
+          + (f" (내용 불일치 {stale}건)" if stale else ""))
+    for n, why in bad[:None if v else 20]:
         print(f"    {n}  — {why}")
+    if len(bad) > 20 and not v:
+        print(f"    … 외 {len(bad) - 20}건 (-v 로 전부)")
     return len(bad)
 
 
@@ -371,6 +467,28 @@ def gate_behaviour(v):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def stage_frontend(outer):
+    """zip 에 들어가는 바로 그 프론트 항목을 그대로 편다.
+
+    설정과 토큰 CSS 를 원본에서 복사하면 게이트가 빌드한 트리와 zip 의 바이트가
+    달라져, 그 두 파일의 변경만 검사를 빠져나간다.
+    """
+    import shutil
+    prefix = f"{ZIP_ROOT}/frontend/"
+    count = 0
+    for src, arc in ship_items():
+        if not arc.startswith(prefix):
+            continue
+        dst = outer / arc[len(prefix):]
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if is_stripped(src, arc):
+            dst.write_text(shipped_text(src), encoding="utf-8")
+        else:
+            shutil.copy2(src, dst)
+        count += 1
+    return count
+
+
 def gate_frontend(v):
     """벗겨낸 프론트 소스가 그대로 타입 검사와 빌드를 통과하는지.
 
@@ -397,24 +515,10 @@ def gate_frontend(v):
     tmp.mkdir()
     link = tmp / "node_modules"
     try:
-        tokens = ROOT / "frontend" / "design" / "tokens" / "tokens.css"
-        if tokens.is_file():
-            dst = outer / "design" / "tokens" / "tokens.css"
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(tokens, dst)
-        for name in ("package.json", "tsconfig.json", "vite.config.ts",
-                     "index.html"):
-            if (app / name).is_file():
-                shutil.copy2(app / name, tmp / name)
-        for p in sorted((app / "src").rglob("*")):
-            if not p.is_file():
-                continue
-            dst = tmp / "src" / p.relative_to(app / "src")
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            if p.suffix in (".ts", ".tsx", ".css"):
-                dst.write_text(shipped_text(p), encoding="utf-8")
-            else:
-                shutil.copy2(p, dst)
+        staged = stage_frontend(outer)
+        if not (tmp / "index.html").is_file():
+            print(f"[frontend] FAIL — 출하 목록에 프론트 소스가 없다 ({staged}개)")
+            return 1
         if os.name == "nt":
             subprocess.run(["cmd", "/c", "mklink", "/J", str(link),
                             str(app / "node_modules")], capture_output=True)

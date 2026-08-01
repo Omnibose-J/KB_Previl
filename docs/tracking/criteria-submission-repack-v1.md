@@ -25,28 +25,37 @@ README 는 zip 이 하나든 둘이든 같은 문서로 안내한다. 리허설�
 
 ## 완료 조건
 
-- [x] 코드 zip 에 제품 경로 밖 모듈이 0개 — probe·실험 58개, `pipeline/run.py` 미포함
-      → `python -m tools.audit --closure` exit 0 · 진입점 도달 48/106
-- [x] 코드 zip 에 설계 문서 0개 — `docs/` `lanes/` `frontend/design/` 미포함, 루트 `README.md` 1개만
+- [x] 코드 zip 에 제품 경로 밖 모듈이 0개 — probe·실험, `pipeline/run.py` 미포함
+      → `python -m tools.audit --closure` exit 0 · 진입점 도달 56/114
+      → 문자열로만 부르는 모듈(`python -m pipeline.sgis`)도 이제 게이트가 본다.
+        손으로 채운 `ENTRY_CLI` 는 다음에 또 어긋나므로 문자열 자체를 근거로 삼는다.
+- [x] 코드 zip 에 설계 문서 0개 — `docs/` `lanes/` 미포함, 루트 `README.md` 1개만
       → 출하 목록에 없음 + `--zip` 게이트가 `.md`(README 제외)·`docs`·`lanes` 를 거부
-- [x] 코드 zip 에 `.env` · `kb.db` · `kb-demo.db` · 캐시 0건
-      → `gate_zip` FORBIDDEN_NAMES/DIRS
+      → `frontend/design/tokens/tokens.css` 는 예외로 싣는다. 설계 문서가 아니라
+        `main.tsx` 가 직접 부르는 빌드 입력이고, 없으면 프론트 소스가 빌드되지 않는다.
+- [x] 코드 zip 에 `.env` · `kb.db` · 캐시 0건
+      → `gate_zip` FORBIDDEN_NAMES/DIRS + 확장자 allowlist
+      → `kb-demo.db` 는 기본 합본에 **의도적으로** 들어간다(`--allow-db`). 그때도
+        DB 항목은 정확히 하나여야 하고, SQLite 헤더·`quick_check`·서빙 표 비어있음을 본다.
 - [x] 출하 소스에 주석·독스트링 0건 — 패키징 때 기계적으로 제거하고 모듈당 영어 한 줄만 남긴다
-      → `python -m tools.audit --comments` exit 0 · 19,047줄 → 16,921줄 (2,126줄 제거)
+      → `python -m tools.audit --comments` exit 0 · 25,933줄 → 23,216줄 (2,717줄 제거)
 - [x] 갓파일 없음 — 출하 파일 중 400줄 초과가 **사유 없이는** 0개
       → `python -m tools.audit --size` · 면제 11 · 위반 0
       → 분해한 것은 둘뿐이다. `service/api.py` 1,165 → 6개 모듈(base·context·cells·meta·search·changes),
         `service/app.py` 839 → 379 + `schemas.py` 569. 나머지는 길지만 단일 책임이라
         `SIZE_EXEMPT` 에 사유와 함께 남겼다 — 문턱을 올리지 않았으므로 새 갓파일은 계속 걸린다.
 - [x] 주석 제거가 동작을 바꾸지 않았다 — 벗겨낸 트리에서 기존 서빙 계약이 그대로 통과
-      → `python -m tools.audit --behaviour` exit 0 · `121 passed`
+      → `python -m tools.audit --behaviour` exit 0 · `124 passed`
 - [x] 주석 제거가 프론트 소스도 망가뜨리지 않았다
-      → `python -m tools.audit --frontend` exit 0 · 벗겨낸 `src` 로 `tsc --noEmit`
+      → `python -m tools.audit --frontend` exit 0 · **zip 에 들어갈 바로 그 항목**으로
+        `tsc --noEmit` + `vite build`
       → 파이썬은 제거 후 `ast.parse` 로 확인되지만 TS 는 확인할 파서가 없었다.
         줄 첫 글자가 `*` 인 연산자 연속행처럼 주석이 아닌 줄이 지워져도 zip 은
         조용히 나간다 — 그 구멍을 게이트로 막았다.
+      → 2차: 게이트가 `vite.config.ts` 와 `tokens.css` 를 원본에서 복사해, 그 둘의
+        변경만 검사를 빠져나갔다. 이제 `ship_items()` 에서 그대로 편다.
 - [x] `run.py` 하나로 셋업 + 기동
-      → `python build.py --rehearse` · 빈 폴더에 3종을 풀고 새 venv 로 부팅:
+      → `python build.py --rehearse` · 빈 폴더에 합본을 풀고 새 venv 로 부팅:
         `/api/meta` 200 · `/api/recommend` 200 (24건) · UI 200 · `/api/grids` 200 (45칸) · 지도 워커 2개
 - [x] DB 가 없을 때 `run.py` 가 스스로 백필을 시작한다
       → `run.py:backfill()` 이 부르는 두 단계를 직접 확인:
@@ -58,7 +67,38 @@ README 는 zip 이 하나든 둘이든 같은 문서로 안내한다. 리허설�
 - [x] 최소 검증물 `verify.ipynb` 한 개가 위에서 아래로 전부 통과
       → `python -m nbconvert --to notebook --execute verify.ipynb` exit 0 · PASS 5종 · 그래프 4장 · 오류 0
 - [x] 리팩터가 서빙 동작을 바꾸지 않았다
-      → `python -m pytest service -q` **121 passed** · `python -m pipeline.consistency` **17/17 PASS**
+      → `python -m pytest service -q` **124 passed** · `python -m pipeline.consistency` **17/17 PASS**
+      → 분해로 생긴 monkeypatch 이음매를 `service/test_seam.py` 3종이 구조로 강제한다.
+        지금 코드는 옳지만 다음 편집에서 `from .base import readonly_connection` 을
+        쓰면 조용히 되돌아간다 — 검사가 그것을 막는다.
+
+## 코드 리뷰 3차 (codex, 2026-08-01) 지적과 처리
+
+3차는 **현재 zip 자체는 통과**시켰다 — 출하 목록과 일치하고 새 venv 실기동도
+된다. 승인을 막은 것은 **재패키징 도구** 였다: 특정 입력에서 초록을 내면서
+결과가 달라진다. 8건 전부 재현했고 전부 고쳤다.
+
+| 지적 | 재현 | 처리 |
+|---|---|---|
+| **의미 있는 TS 주석을 지워 런타임을 바꾼다** — `/* @__PURE__ */`·`/// <reference>` | 재현됨. tree-shaking 이 달라져 원본은 `END`, 변환본은 `SIDE\nEND` | 컴파일러·번들러·법적 표시를 **목록화해 발견 즉시 실패**. 추측해 지우지 않는다. 현 트리에는 하나도 없어 게이트는 초록 |
+| **백필 계획 단계 실패를 무시한다** — `--plan` 이 죽어도 수집을 시작하고, 마지막 프로세스가 성공하면 전체를 성공으로 반환 | 재현됨 (rc 0, 호출 3회) | `--preflight`·`--plan` 어느 쪽이든 실패하면 중단 (rc 7, 호출 2회) |
+| **바뀐 프론트인데 낡은 `dist` 를 출하할 수 있다** — mtime 판정, `package-lock.json` 이 입력 목록 밖 | 재현됨 (lock ∉ `WEB_INPUTS`) | 신선도 판정을 **버리고 항상 `vite build`**. `newest`·`WEB_INPUTS`·`--skip-web`·`--web` 삭제. 화면 빌드를 게이트보다 **앞**으로 옮겨 검사한 것과 낸 것을 같게 함 |
+| **`gate_zip` 이 내용 없는 가짜를 통과시킨다** — 필수 7개 + DB 이름만 담은 8항목 zip | 재현됨 (위반 0건, rc 0) | `ship_items()` 와 **이름을 정확히 대조**하고 **바이트까지 비교**. DB 는 SQLite 헤더·`quick_check`·서빙 표 비어있음 확인 |
+| **CSS 주석이 남아도 통과** — postcss 가 `raws` 에 숨기는 위치. 멱등성 검사는 같은 누락을 두 번 반복해 못 잡는다 | 재현됨 (`.a{color/**/:red}`, `@media/**/screen`) | 잔여 검사를 **완성된 텍스트에서 직접** 한다(문자열은 blank 처리) — stripper 재실행은 독립 oracle 이 아니다 |
+| **frontend 게이트가 실제 출하 프론트를 빌드하지 않는다** — `vite.config.ts`·`tokens.css` 를 원본 복사, `public/` 누락 | 재현됨 (해시 불일치 2건) | `ship_items()` 에서 `frontend/` 항목을 그대로 편다 |
+| **`run.py` 의 DB 확인과 실제 서비스의 DB 선택이 다르다** — `find_db()` 는 `KB_DB` 를 무시하는데 uvicorn 은 물려받는다 | 재현됨 (`kb-demo.db` 확인 / `other.db` 오픈) | 고르는 규칙을 서비스와 같게 맞추고, **고른 절대 경로를 자식에게 명시적으로 전달** |
+| **closure 가 동적 로컬 import 를 놓친다** | 확인 (현 트리 누락 0) | 출하 모듈의 **문자열 자체**를 근거로 검사. 리터럴이 아닌 동적 import 는 실패시킨다 |
+
+지적 4건 중 3건도 처리했다: `strip_web.mjs` 를 fatal UTF-8 디코딩으로(잘못된
+바이트를 `?` 로 바꾸지 않고 거부), 의존성 stamp 를 requirements 별로 분리,
+문서의 «3종»·`service/api.py`·낡은 수치를 현재 구조로 정정. 남은 1건은
+`model/party.py` 면제로, 사유가 이미 정직하다는 판정이라 손대지 않았다.
+
+**얻은 교훈:** 2차에서 잔여 주석 검사를 «재제거하면 같은가» 로 바꿨는데,
+**그것이 3차에 깨졌다.** 같은 제거기를 두 번 돌리면 같은 사각지대를 두 번
+반복할 뿐이라 스스로를 검증하지 못한다. 검사는 검사받는 것과 **다른 메커니즘**
+이어야 한다 — TS 는 「파서가 토큰 사이에서 본 텍스트」, CSS 는 「완성된 문자열」로
+바꿨다. 실제로 스캐너를 쓰는 안은 `` `a ${1/2} /* x */ b` `` 를 오탐해서 폐기했다.
 
 ## 코드 리뷰 2차 (codex, 2026-08-01) 지적과 처리
 
@@ -88,6 +128,7 @@ README 는 zip 이 하나든 둘이든 같은 문서로 안내한다. 리허설�
 두 번째뿐이었다. 차이는 **게이트를 믿었느냐 아니면 zip 바이트를 직접 열었느냐** 다.
 그래서 잔여 주석 검사도 모양 검사에서 **재제거 후 동일한가(멱등성)** 로 바꿨다 —
 하나라도 남아 있으면 두 번째 통과가 지워서 결과가 달라진다.
+*(3차에서 이 멱등성 판정 자체가 틀렸음이 드러났다. 위 3차 항목을 볼 것.)*
 
 ## 독립 감사 1차 (fable, 2026-08-01) 지적과 처리
 
