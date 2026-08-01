@@ -5,7 +5,7 @@
 
 서울 어느 지점이든 **100m 격자** 단위로 음식점 입지를 평가하고, **과거 데이터로
 검증된** 등급을 매긴다. 등급은 의견이 아니라 실측이다 — 1등급 자리의 3년 생존율은
-**80.1%**(75.4–84.1%), 9등급은 **10.1%**(n=317, 7.2–13.9%)였다
+**80.1%**(75.4–84.2%), 9등급은 **10.1%**(n=317, 7.2–13.9%)였다
 (2023년 개업 코호트, 홀드아웃).
 
 ---
@@ -48,10 +48,10 @@ API 문서는 서버를 띄운 뒤 http://localhost:8000/docs 에 있다.
 
 ```bash
 pip install -r requirements-full.txt
-KB_DB=kb-demo.db python -m pytest service -q      # 서빙 계약 96종
+KB_DB=kb-demo.db python -m pytest service -q      # 서빙 계약 118종
 ```
 
-모델·파이프라인 게이트는 **전체 DB 가 필요하다**(`kb-demo.db` 는 서빙용 14개
+모델·파이프라인 게이트는 **전체 DB 가 필요하다**(`kb-demo.db` 는 서빙용 16개
 테이블만 담는다). 전체를 만들려면:
 
 ```bash
@@ -111,7 +111,7 @@ python -m model.backtest --model gbm --features DEPLOY   # 9등급 실측 생존
 ## 동봉물
 
 ```
-kb-demo.db              서빙용 경량 DB (16개 테이블 · 원본 445MB 중 필요분만)
+kb-demo.db              서빙용 경량 DB (16개 테이블 · 원본 485MB 중 필요분만)
 requirements.txt        데모 실행용
 requirements-full.txt   파이프라인·모델 재현용
 .env.example            키 형식 (실제 키는 포함되지 않는다)

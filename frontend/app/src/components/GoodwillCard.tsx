@@ -63,7 +63,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
   });
 
   // sales.available 은 «상권 안이냐» 만 본다. 상권 «안» 이어도 그 업종의 매출이
-  // 공표되지 않은 조합이 31.1% 인데, 그걸 안 거르면 /goodwill 이 503 을 내고
+  // 공표되지 않은 조합이 33.6% 인데, 그걸 안 거르면 /goodwill 이 503 을 내고
   // 화면에 «데이터를 불러오지 못했어요 + 다시 시도» 가 떴다 — 다시 눌러도 없는
   // 통계는 생기지 않는다. 권리금은 산출 전체가 매출 파생이라 여기서 멈춘다.
   if (!d.sales.available || !d.sales.uptaePublished) {

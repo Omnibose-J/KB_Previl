@@ -460,7 +460,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </div>
               <PeriodTable meta={meta} grade={d.grade} />
               <p className={s.tableFoot}>
-                * 5년 숫자는 다른 시기({periodOf(meta, 5)?.cohort ?? "별도"})에 연 가게들 기준이라 1·3년과
+                * 5년 숫자는 다른 시기({periodOf(meta, 5)?.cohort ?? "별도"})에 연 가게들 기준이라 1·2·3년과
                 이어서 읽으면 안 돼요.
               </p>
             </section>

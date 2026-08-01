@@ -10,7 +10,7 @@
 
 | 문제 | 결정 |
 |---|---|
-| `kb.db` 445MB + `pipeline/cache/` 807MB는 gitignore — zip에 못 넣고, 넣어서도 안 됨 | **완료 (2026-07-30)** — `python -m service.demo_db --out kb-demo.db` 가 서빙 의존 16개 테이블만 추출한다. 실측 **267.6MB → zip 69.1MB**. `--audit` 이 `service/*.py` 를 스캔해 테이블 목록이 코드와 어긋나면 빌드를 거부하고, `--verify` 가 그 DB 로 API 를 띄워 meta·recommend·상세·건물 4경로를 확인한다(4/4 PASS). 제외된 큰 테이블은 `addr_tenancy`·`shop_concept`·`store` 로, 전부 파이프라인·모델 입력이며 서빙 리더가 없다 |
+| `kb.db` 485MB + `pipeline/cache/` 1,083MB는 gitignore — zip에 못 넣고, 넣어서도 안 됨 | **완료 (2026-07-30)** — `python -m service.demo_db --out kb-demo.db` 가 서빙 의존 16개 테이블만 추출한다. 실측 **267.7MB → zip 90.7MB**. `--audit` 이 `service/*.py` 를 스캔해 테이블 목록이 코드와 어긋나면 빌드를 거부하고, `--verify` 가 그 DB 로 API 를 띄워 meta·recommend·상세·건물 4경로를 확인한다(4/4 PASS). 제외된 큰 테이블은 `addr_tenancy`·`shop_concept`·`store` 로, 전부 파이프라인·모델 입력이며 서빙 리더가 없다 |
 | `.env` API 키 — 절대 포함 금지 | `.env.example`만 동봉. 데모는 키 없이 돌아야 함(경량 DB 조회 + economics 산식은 키 불요. 지도 JS 키만 발급키 별도 안내) |
 | 심사자가 파이프라인 전체를 재현할 수 없음 | README에 3단 구분: ① 데모 실행(경량 DB, 2분) ② 검증 재현(공개 API 키 필요, 캐시 없이 수 시간) ③ 전체 결과는 `docs/model-findings.md` 참조 |
 | 심사 환경에서 실행 실패 리스크 | **화면 녹화 데모 영상(2~3분)을 zip에 동봉** — 실행이 안 돼도 심사가 가능하게. 본선(9/2 오프라인, 이대 ECC)도 로컬 실행(FastAPI+SQLite)이라 인터넷 불안정에 강함 |

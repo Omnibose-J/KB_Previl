@@ -12,7 +12,7 @@ at 7,915 rows.
 **Why:** The refresh restores the mandatory `pipeline.verify` source-count
 gate and keeps every downstream table on one source lineage. The rebuilt
 holdout AUC is 0.638256. Grade 1 remains 80.1% (n=317,
-CI 75.4–84.1%); grade 9 becomes 10.1% (n=317, CI 7.2–13.9%); the endpoint
+CI 75.4–84.2%); grade 9 becomes 10.1% (n=317, CI 7.2–13.9%); the endpoint
 gap becomes 70.0 percentage points. Scored coverage remains 20,148 grids and
 `grid_score` remains 241,776 rows, while the full grid inventory increases by
 one to 23,573.

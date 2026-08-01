@@ -81,7 +81,7 @@ export interface Meta {
    * 마지막 해는 «올해»가 아니다 — 축 라벨을 서버 값 그대로 쓸 것.
    */
   seoulSurvivalTrend: SurvivalYear[];
-  /** mandatory caveat strings (AUC framing, ~26% failure line) — render, don't rewrite */
+  /** mandatory caveat strings (grade-1 ~20% failure line) — render, don't rewrite */
   caveats: string[];
   modelNote: string;
   resolutions: Resolutions;
@@ -265,7 +265,7 @@ export interface GridDetail extends GridCell {
   sales: Sales;
   signal: MarketSignal;
   /** 비어 있는 축. confidence 와 «독립»이다 — full 은 «상권 내» 라는 뜻이지
-   *  «전부 채워짐» 이 아니다. 상권 안 11,900격자 중 416곳은 그 상권의 그 분기
+   *  «전부 채워짐» 이 아니다. 상권 안 11,901격자 중 416곳은 그 상권의 그 분기
    *  매출 행이 없어 full 인 채로 sales 가 비어 있다. */
   missingAxes: string[];
   resolutions: Resolutions;

@@ -234,9 +234,9 @@ gradeArea: {
 
 ## 8. 지금 상태
 
-- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report` · `estimate` · `compare`
+- **구현 완료**(레인 B): `meta` · `recommend` · `grid_detail` · `at_point` · `grids` · `economics` · `goodwill` · `report` · `estimate` · `compare` · `areas` · `address` · `buildings` · `changes` (총 14경로)
 - ~~삭제 대상: `district_summary`~~ — **삭제 완료** (2026-07-27, goodwill 슬림다운 작업에 포함. 참조 0건 확인)
-- **배선 완료**(레인 A): `grid_score` 241,776행 · `score_meta` 37키 · API가 읽는 6키 정렬 확인
+- **배선 완료**(레인 A): `grid_score` 241,776행 · `score_meta` 41키 · API가 읽는 6키 정렬 확인
 - **노출 완료**: §2의 기간별 곡선·등급×면적 교차표는 `meta` 응답이 NULL을 보존해 제공
 - **TEO 예선 완료**: 실질 월 점유비용 · 단일 후보 계산 · 후보 비교 · 권리금 3분해. 상권 매출은 후보에 배분하지 않고 같은 상권×업종 후보가 공유한다
 
