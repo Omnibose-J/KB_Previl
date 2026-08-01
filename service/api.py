@@ -15,6 +15,7 @@ from pipeline.config import (
     CRS_GRID,
     CRS_WGS84,
     DB_PATH,
+    FOOD_INDUTY,
     GRID_SIZE_M,
     REST_EATERY_UPTAE,
     UPTAE_INDUTY,
@@ -68,6 +69,7 @@ RESOLUTION = {
     "sales.quarterlyCount": "상권 (중앙값 반경 151m)",
     "sales.footTraffic": "상권 (중앙값 반경 151m)",
     "visitorParty": "상권",
+    "salesMix": "상권 (중앙값 반경 151m)",
     "nearestStation": "지점 실측",
 }
 
@@ -642,12 +644,14 @@ def grid_detail(grid_id, uptae):
             return None
         mix = _concept_mix_batch(con, [grid_id])
         party = _party_batch(con, [grid_id])
+        smix = _sales_mix_batch(con, [grid_id])
         same = _same_uptae_batch(con, [grid_id], uptae)
         rest = _rest_food_batch(con, [grid_id])
         usales = _uptae_sales_batch(con, [grid_id], uptae)
     item = _grid_detail(row, uptae, same[grid_id], rest[grid_id], usales[grid_id])
     item["concept_mix"] = mix.get(grid_id)
     item["visitor_party"] = party.get(grid_id)
+    item["sales_mix"] = smix.get(grid_id)
     return item
 
 
@@ -996,6 +1000,70 @@ def _party_batch(con, grid_ids):
         out[gid] = {"available": True, "items": items, "posts_scanned": scanned,
                     "labelled": total, "unit": "상권",
                     "source": PARTY_SOURCE, "claim": PARTY_CLAIM}
+    return out
+
+
+def _sales_mix_batch(con, grid_ids):
+    """이 격자가 속한 상권의 업종별 결제 구성. 카드 결제 실측이지 추정이 아니다.
+
+    `concept_mix` 와 짝이다 — 저쪽은 상호명으로 «어떤 가게가 있나»를 세고,
+    이쪽은 «어디에 돈이 도나»를 센다. 둘은 실제로 다르다: 상권 1,185곳에서
+    커피는 가게 27.8% / 결제 24.7% 인데 한식은 가게 31.8% / 결제 55.1% 다.
+    가게 수로 업종 수요를 짐작하면 이만큼 틀린다.
+
+    `available=False` 는 낼 수 없는 상태다 — 상권 밖(격자의 49.5%)이거나 표가
+    아직 없다. 빈 `items` 는 상권 안인데 공표된 업종이 하나도 없는 경우다.
+    분기는 원천에 있는 가장 최근 것 하나로 통일한다 — 상권마다 다른 분기를
+    섞으면 구성비가 시점이 다른 값들의 합이 된다.
+    """
+    ids = list(dict.fromkeys(grid_ids))
+    if not ids:
+        return {}
+    blank = {"available": False, "items": [], "quarter": None,
+             "total_amount": None, "unit": "상권"}
+    if not con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'trdar_sales'"
+    ).fetchone():
+        return {gid: dict(blank) for gid in ids}
+    quarter = con.execute("SELECT MAX(quarter) FROM trdar_sales").fetchone()[0]
+    if quarter is None:
+        return {gid: dict(blank) for gid in ids}
+
+    holes = ",".join("?" * len(ids))
+    rows = con.execute(
+        f"SELECT f.grid_id, s.induty_cd, s.sales_amt, s.sales_cnt "
+        f"FROM grid_feature f "
+        f"JOIN trdar_sales s ON s.trdar_cd = f.trdar_cd AND s.quarter = ? "
+        f"WHERE f.grid_id IN ({holes}) AND s.sales_amt > 0",
+        [quarter, *ids],
+    ).fetchall()
+    # 상권 안이라도 요식업 행이 하나도 없을 수 있다. 상권 소속 자체는 따로
+    # 물어야 «상권 밖» 과 «상권 안인데 공표 없음» 이 구분된다.
+    inside = {
+        r["grid_id"]
+        for r in con.execute(
+            f"SELECT grid_id FROM grid_feature "
+            f"WHERE grid_id IN ({holes}) AND trdar_cd IS NOT NULL", ids)
+    }
+    per = {}
+    for r in rows:
+        label = FOOD_INDUTY.get(r["induty_cd"])
+        if label is None:
+            continue                      # 요식업 밖 업종은 이 카드의 대상이 아니다
+        per.setdefault(r["grid_id"], []).append(
+            {"induty": label, "amount": r["sales_amt"], "count": r["sales_cnt"]})
+
+    out = {}
+    for gid in ids:
+        if gid not in inside:
+            out[gid] = dict(blank)
+            continue
+        items = sorted(per.get(gid, []), key=lambda x: -x["amount"])
+        total = sum(x["amount"] for x in items)
+        for x in items:
+            x["share"] = (x["amount"] / total) if total else None
+        out[gid] = {"available": True, "items": items, "quarter": quarter,
+                    "total_amount": total or None, "unit": "상권"}
     return out
 
 

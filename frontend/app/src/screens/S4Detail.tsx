@@ -6,6 +6,7 @@ import type { GridDetail, Meta } from "../api/types";
 import AiSummaryCard from "../components/AiSummaryCard";
 import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
+import SalesMixCard from "../components/SalesMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
 import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
@@ -281,6 +282,11 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </section>
 
           <ConceptMixCard mix={d.conceptMix} />
+
+          {/* 가게 수 바로 뒤에 결제 구성을 둔다. 붙여 놓아야 «가게가 많은 업종
+              = 돈이 도는 업종» 이 아니라는 것이 읽힌다 — 상권 1,185곳에서
+              커피는 가게 27.8% / 결제 24.7%, 한식은 31.8% / 55.1% 였다. */}
+          <SalesMixCard mix={d.salesMix} />
 
           {/* «주변에 어떤 가게가 있나» 바로 뒤 — 둘 다 관측 집계라 나란히 둔다.
               등급·생존율 블록에서 떼어 놓아야 예측처럼 읽히지 않는다. */}

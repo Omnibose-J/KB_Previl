@@ -1,0 +1,107 @@
+/* 상권 업종별 결제 구성 — ConceptMixCard 와 나란히 읽히도록 같은 판을 쓴다.
+   막대 색만 다르다: 가게 수(브랜드 노랑)와 결제(중성 잉크)를 갈라 놓지 않으면
+   두 카드가 같은 값의 반복으로 읽힌다. 새 색상(초록·주황·빨강)은 쓰지 않는다
+   — 그 셋은 상태색이라 계열색으로 돌리면 「좋다/나쁘다」로 읽힌다. 색상 대
+   중성이라 명도 차가 커서 색각 이상에서도 갈린다. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.head h2 {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.head p {
+  font-size: 14px;
+  color: var(--fg-t6);
+}
+
+.unavailable {
+  padding: 18px;
+  border: 1px dashed var(--fg-line);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg-t6);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 96px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg-ink);
+}
+
+/* span 이라 display 를 지정하지 않으면 인라인이 되어 높이·너비가 먹지 않는다. */
+.track {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--fg-line);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--fg-blue);
+  transform-origin: left;
+  animation: var(--kf-bar-fill) 0.7s var(--ease-out) both;
+  transition: width 0.45s var(--ease-out);
+}
+
+/* 1위만 진하게 — 색만으로 구분하지 않도록 수치를 항상 함께 보여준다. */
+.fillTop {
+  background: var(--fg-blue-deep);
+}
+
+.count {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-t6);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 78px 1fr 40px;
+    gap: 8px;
+  }
+
+  .name {
+    font-size: 15px;
+  }
+}

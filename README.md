@@ -199,7 +199,7 @@ python -m pipeline.verify        # 적재 8종
 python -m pipeline.consistency   # 논리 정합성 17종
 python -m model.test_leakage     # 누수 가드 RED→GREEN
 python -m model.asof --selftest-cut     # 신규 피처: T 이후 행을 지워도 값 불변
-python -m pytest service/               # 서빙 118종
+python -m pytest service/               # 서빙 121종
 ```
 
 깊이 들어가려면:

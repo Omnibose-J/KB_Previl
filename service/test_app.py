@@ -14,6 +14,7 @@ from openai import OpenAIError, RateLimitError
 import pytest
 from fastapi.testclient import TestClient
 
+from pipeline.config import FOOD_INDUTY
 from pipeline.grade_bands import GRADE_COUNT
 from service import api
 from service import demo_db
@@ -2969,3 +2970,75 @@ def test_visitor_party_is_empty_not_zero_without_enough_posts(monkeypatch, tmp_p
     assert party["available"] is True
     assert party["items"] == []
     assert party["labelled"] == 0
+
+
+def _sample_grid_in_trade_area():
+    with api.readonly_connection() as connection:
+        return connection.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN trdar_sales s ON s.trdar_cd = f.trdar_cd "
+            "WHERE f.trdar_cd IS NOT NULL "
+            "GROUP BY f.grid_id ORDER BY SUM(s.sales_amt) DESC LIMIT 1"
+        ).fetchone()["grid_id"]
+
+
+def test_sales_mix_is_a_measured_composition_not_a_blend():
+    """업종별 결제 구성은 카드 실측이다. 가게 수와 섞은 합성 지수가 아니다 —
+    섞으면 무엇을 센 값도 아니게 된다."""
+    grid_id = _sample_grid_in_trade_area()
+
+    response = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"})
+
+    assert response.status_code == 200
+    mix = response.json()["salesMix"]
+    assert mix["available"] is True
+    assert mix["items"], "매출이 잡히는 격자에 구성이 있어야 한다"
+    assert mix["unit"] == "상권"
+    # 금액 내림차순이라 화면이 다시 정렬하지 않는다
+    amounts = [item["amount"] for item in mix["items"]]
+    assert amounts == sorted(amounts, reverse=True)
+    assert mix["totalAmount"] == sum(amounts)
+    # 점유율은 합이 1 이다. 상권마다 다른 분기를 섞으면 여기서 깨진다.
+    assert abs(sum(item["share"] for item in mix["items"]) - 1.0) < 1e-9
+    assert all(item["amount"] > 0 and item["count"] >= 0 for item in mix["items"])
+    # 요식업 10종 밖의 업종이 새어 들어오면 «음식점 구성»이 아니게 된다
+    assert set(item["induty"] for item in mix["items"]) <= set(FOOD_INDUTY.values())
+
+
+def test_sales_mix_quarter_is_one_snapshot_for_every_grid():
+    """상권마다 최신 분기가 다르면 구성비가 시점이 섞인 값들의 합이 된다."""
+    with api.readonly_connection() as connection:
+        rows = connection.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
+            "WHERE f.trdar_cd IS NOT NULL LIMIT 40").fetchall()
+        latest = connection.execute("SELECT MAX(quarter) FROM trdar_sales").fetchone()[0]
+
+    seen = set()
+    for row in rows:
+        mix = client.get(
+            f"/api/grid/{row['grid_id']}", params={"uptae": "한식"}
+        ).json()["salesMix"]
+        if mix["available"] and mix["items"]:
+            seen.add(mix["quarter"])
+    assert seen == {latest}, f"분기가 섞였다: {sorted(seen)}"
+
+
+def test_sales_mix_outside_trade_area_is_unavailable_not_zero():
+    """상권 밖(격자의 49.5%)에 0 을 넣으면 «이 동네는 아무도 안 쓴다»는 없는
+    사실이 만들어진다 (CLAUDE.md 규칙 1)."""
+    with api.readonly_connection() as connection:
+        row = connection.execute(
+            "SELECT f.grid_id FROM grid_feature f "
+            "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
+            "WHERE f.trdar_cd IS NULL LIMIT 1"
+        ).fetchone()
+    if row is None:
+        pytest.skip("상권 밖이면서 채점된 격자가 없다")
+
+    mix = client.get(
+        f"/api/grid/{row['grid_id']}", params={"uptae": "한식"}
+    ).json()["salesMix"]
+    assert mix["available"] is False
+    assert mix["items"] == []
+    assert mix["totalAmount"] is None

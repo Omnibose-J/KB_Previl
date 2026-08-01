@@ -9,6 +9,7 @@ kb-*.db
 kb-*.db-wal
 kb-*.db-shm
 pipeline/cache/
+backups/
 probe/results/
 __pycache__/
 *.pyc

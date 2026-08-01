@@ -239,6 +239,30 @@ class VisitorParty(ApiModel):
     claim: str | None
 
 
+class SalesMixCount(ApiModel):
+    induty: str
+    amount: int
+    count: int
+    share: float | None
+
+
+class SalesMix(ApiModel):
+    """상권의 업종별 결제 구성. 카드 결제 실측 집계이지 추정이 아니다.
+
+    `concept_mix`(상호명으로 센 «어떤 가게가 있나»)의 짝이고, 둘은 실제로
+    다르다 — 커피는 가게 27.8% / 결제 24.7%, 한식은 가게 31.8% / 결제 55.1%.
+
+    `available=False` 는 상권 밖(격자의 49.5%)이거나 표가 없는 상태이고, 빈
+    `items` 는 상권 안인데 공표된 요식 업종이 없는 경우다.
+    """
+
+    available: bool
+    items: list[SalesMixCount]
+    quarter: str | None
+    total_amount: int | None
+    unit: str
+
+
 class GridDetail(GridCell):
     adm_dong: str | None
     district: str | None
@@ -246,6 +270,7 @@ class GridDetail(GridCell):
     competition: Competition
     concept_mix: ConceptMix | None = None
     visitor_party: VisitorParty | None = None
+    sales_mix: SalesMix | None = None
     area_survival: AreaSurvival
     demand: Demand
     sales: Sales

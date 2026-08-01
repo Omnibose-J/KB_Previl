@@ -48,7 +48,7 @@ API 문서는 서버를 띄운 뒤 http://localhost:8000/docs 에 있다.
 
 ```bash
 pip install -r requirements-full.txt
-KB_DB=kb-demo.db python -m pytest service -q      # 서빙 계약 118종
+KB_DB=kb-demo.db python -m pytest service -q      # 서빙 계약 121종
 ```
 
 모델·파이프라인 게이트는 **전체 DB 가 필요하다**(`kb-demo.db` 는 서빙용 16개

@@ -205,6 +205,29 @@ export interface ConceptMix {
   claim: string | null;
 }
 
+export interface SalesMixCount {
+  induty: string;
+  amount: number;
+  count: number;
+  share: number | null;
+}
+
+/**
+ * 상권의 업종별 결제 구성. `ConceptMix` 의 짝이고 둘은 실제로 다르다 — 상권
+ * 1,185곳에서 커피는 가게 27.8% / 결제 24.7%, 한식은 가게 31.8% / 결제 55.1%.
+ * 가게 수로 업종 수요를 짐작하면 이만큼 틀린다.
+ *
+ * `available: false` = 상권 밖(격자의 49.5%)이거나 표가 없음, `items: []` =
+ * 상권 안인데 공표된 요식 업종이 없음.
+ */
+export interface SalesMix {
+  available: boolean;
+  items: SalesMixCount[];
+  quarter: string | null;
+  totalAmount: number | null;
+  unit: string;
+}
+
 export interface PartyCount {
   party: "family" | "work";
   label: string;
@@ -259,6 +282,7 @@ export interface GridDetail extends GridCell {
   nearestStation: StationAnchor | null;
   competition: Competition;
   conceptMix: ConceptMix | null;
+  salesMix: SalesMix | null;
   visitorParty: VisitorParty | null;
   areaSurvival: AreaSurvival;
   demand: Demand;
