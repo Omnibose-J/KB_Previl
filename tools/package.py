@@ -65,6 +65,19 @@ def _clear(path):
             "  압축 프로그램이나 탐색기 미리보기 창을 닫고 다시 실행할 것.")
 
 
+def _drop_stale(*paths):
+    """이번에 만들지 않는 형태의 산출물은 지운다. 낡은 zip 을 잘못 내지 않게."""
+    for path in paths:
+        if not path.exists():
+            continue
+        try:
+            path.unlink()
+            print(f"   낡은 산출물 삭제 — {path.name}")
+        except PermissionError:
+            print(f"   [경고] {path.name} 을 지우지 못했다 (열려 있음). "
+                  "이번에 만든 것이 아니므로 제출하지 말 것")
+
+
 def build_service():
     items = service_items()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -296,19 +309,21 @@ def main():
             s.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="제출물 빌드 + 리허설")
     ap.add_argument("--rehearse", action="store_true")
-    ap.add_argument("--bundle", action="store_true",
-                    help="코드와 DB 를 한 zip 으로 (제출물 2개: 합본 + .env)")
+    ap.add_argument("--split", action="store_true",
+                    help="코드와 DB 를 나누어 낸다 (제출물 3종). 기본은 합본")
     a = ap.parse_args()
     print(f"제출물 → {OUT}")
-    if a.bundle:
-        build_bundle()
-    else:
+    if a.split:
         build_service()
         build_db()
+        _drop_stale(BUNDLE_ZIP)
+    else:
+        build_bundle()
+        _drop_stale(SERVICE_ZIP, DB_ZIP)
     stage_env()
     if not a.rehearse:
         return 0
-    return rehearse(bundled=a.bundle)
+    return rehearse(bundled=not a.split)
 
 
 if __name__ == "__main__":

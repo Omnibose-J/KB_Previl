@@ -1,7 +1,10 @@
-"""제출물 3종을 다시 만든다. 서비스가 바뀌면 이것만 다시 돌리면 된다.
+"""제출물을 다시 만든다. 서비스가 바뀌면 이것만 다시 돌리면 된다.
+
+기본은 합본이다 — `KB_Previl_all.zip`(코드 + DB) 과 `.env` 두 개.
 
     python build.py              게이트 -> 프론트 확인 -> 빌드
     python build.py --rehearse   위에 더해 빈 폴더에서 실제로 띄워 본다
+    python build.py --split      코드 zip 과 DB zip 을 나누어 낸다
     python build.py --check      게이트만
     python build.py --web        프론트를 무조건 다시 빌드
 """
@@ -55,8 +58,8 @@ def main():
     ap.add_argument("--check", action="store_true", help="게이트만 실행")
     ap.add_argument("--web", action="store_true", help="프론트 강제 재빌드")
     ap.add_argument("--skip-web", action="store_true")
-    ap.add_argument("--bundle", action="store_true",
-                    help="코드와 DB 를 한 zip 으로 낸다 (제출물 2개)")
+    ap.add_argument("--split", action="store_true",
+                    help="코드와 DB 를 나누어 낸다 (제출물 3종). 기본은 합본")
     a = ap.parse_args()
 
     if run(["tools.audit"], "1. 게이트"):
@@ -67,15 +70,15 @@ def main():
     if not a.skip_web and build_web(a.web):
         return 1
     argv = ["tools.package"]
-    if a.bundle:
-        argv.append("--bundle")
+    if a.split:
+        argv.append("--split")
     if a.rehearse:
         argv.append("--rehearse")
     if run(argv, "2. 빌드" + (" + 리허설" if a.rehearse else "")):
         return 1
-    name = "KB_Previl_all.zip" if a.bundle else "KB_Previl_service.zip"
+    name = "KB_Previl_service.zip" if a.split else "KB_Previl_all.zip"
     check = ["tools.audit", "--zip", str(ROOT / "SUBMISSION" / name)]
-    if a.bundle:
+    if not a.split:
         check.append("--allow-db")
     return run(check, "3. zip 내용 검사")
 
