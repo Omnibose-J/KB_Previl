@@ -1,0 +1,113 @@
+"""Single source of truth for what ships. audit.py gates it, package.py builds it."""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# Entry points the shipped tree must be reachable from.
+ENTRY_IMPORT = ("service.app", "pipeline.bootstrap")
+
+# Modules bootstrap runs as `python -m X` — invisible to an import walk.
+ENTRY_CLI = (
+    "model.tier2", "model.concept", "model.concept_mix", "model.ui_curves",
+    "model.recovery", "model.party", "model.test_leakage", "model.asof",
+    "pipeline.sgis", "pipeline.sgis_match", "pipeline.access",
+    "pipeline.addr_history", "pipeline.verify", "pipeline.consistency",
+    "service.precompute", "service.demo_db",
+)
+
+SHIP_PKGS = ("service", "model", "pipeline")
+
+# 두 zip 모두 이 폴더 하나로 풀린다.
+ZIP_ROOT = "previl"
+
+# Non-Python payload. (source, arcname)
+SHIP_FILES = (
+    ("tools/submission-README.md", "README.md"),
+    ("run.py", "run.py"),
+    ("verify.ipynb", "verify.ipynb"),
+    ("requirements.txt", "requirements.txt"),
+    ("requirements-full.txt", "requirements-full.txt"),
+)
+
+# (source dir, arcname). web = 서버가 서빙하는 빌드본, frontend = 그 소스.
+SHIP_TREES = (
+    ("frontend/app/dist", "web"),
+    ("frontend/app", "frontend"),
+)
+
+TREE_EXCLUDE = {"node_modules", "dist", "__pycache__", ".vite", ".gitignore",
+                "README.md"}
+
+MAX_LINES = 400
+MAX_COMMENT_RUN = 2
+MAX_MODULE_DOC = 1
+MAX_DEF_DOC = 2
+
+# Comment content that is narrative, not function.
+BANNED_COMMENT = (
+    "§", "docs/", "CLAUDE.md", "model-findings", "findings.md", "lanes/",
+    "기각", "채택", "실험", "negative result", "커밋", "레인", "R14", "AUC",
+    "심사", "제출", "판정", "시행착오", "예전", "원래는", "이전에는", "옛날",
+    "했었", "바꿨", "고쳤", "이었다", "쟀다", "측정했", "probe/",
+)
+
+# The only thing that survives stripping: one functional line per module.
+HEADERS = {
+    "run.py": "Set up, check the database, backfill if needed, serve.",
+
+    "model/ablation.py": "Feature-group ablation comparison.",
+    "model/asof.py": "Reconstruct a grid cell as of a past point in time.",
+    "model/cache.py": "Disk cache for built training splits.",
+    "model/concept.py": "Shop-name concept clustering (char n-gram TF-IDF + KMeans).",
+    "model/concept_mix.py": "Concept composition over a 3x3 grid ring.",
+    "model/dataset.py": "Build (features at opening, survived N years) rows.",
+    "model/evaluate.py": "Model evaluation harness.",
+    "model/extend.py": "Candidate feature extension screening.",
+    "model/feature_gate.py": "Admission criteria for a candidate feature family.",
+    "model/osm.py": "OSM road adjacency and junction density features.",
+    "model/party.py": "Visitor party composition counted from reviews.",
+    "model/recommend.py": "Turn the survival model into a ranked recommendation.",
+    "model/recovery.py": "Succession probability model and calibration.",
+    "model/robustness.py": "Usefulness checks on the recommendation.",
+    "model/test_leakage.py": "Guard against future information leaking in.",
+    "model/tier2.py": "Load the second licensing source (rest-type eateries).",
+    "model/train.py": "Models fitted on the training years only.",
+    "model/ui_curves.py": "Survival curves by grade and the grade x area table.",
+
+    "pipeline/access.py": "Transit accessibility per grid cell.",
+    "pipeline/addr_history.py": "Address-level tenancy chains and succession labels.",
+    "pipeline/bootstrap.py": "Cold start: empty database to a serving one.",
+    "pipeline/cohort.py": "Cohort survival by opening year.",
+    "pipeline/collect.py": "Collect source APIs into the local cache.",
+    "pipeline/config.py": "Pipeline constants: coordinate systems, APIs, units.",
+    "pipeline/consistency.py": "Logical consistency checks over loaded data.",
+    "pipeline/db.py": "SQLite schema.",
+    "pipeline/features.py": "Build the grid and its features.",
+    "pipeline/geocode.py": "Reverse geocode grid centres to administrative dong.",
+    "pipeline/grade_bands.py": "Grade segmentation shared by serving and analysis.",
+    "pipeline/grid.py": "100m grid over Seoul in EPSG:5179.",
+    "pipeline/normalize.py": "Raw cache to normalized tables.",
+    "pipeline/seoul_api.py": "Seoul Open Data client with a hard call budget.",
+    "pipeline/sgis.py": "SGIS census demand features.",
+    "pipeline/sgis_match.py": "Match grid cells to dong polygons.",
+    "pipeline/verify.py": "Load verification.",
+
+    "service/alerts.py": "Classify grid changes between two scoring runs.",
+    "service/api.py": "Read-only query layer for the UI.",
+    "service/app.py": "FastAPI HTTP layer.",
+    "service/bands.py": "Percentile bands for publicly shown values.",
+    "service/buildings.py": "Building-level facts derived from licence records.",
+    "service/cost.py": "Occupancy cost calculations.",
+    "service/curve_contract.py": "Storage contract for grade survival curves.",
+    "service/demo_db.py": "Extract the serving subset into a lightweight database.",
+    "service/economics.py": "Wrapper around the measured-survival economics model.",
+    "service/estimation.py": "Occupancy cost estimation for a candidate site.",
+    "service/goodwill.py": "Goodwill reference valuation.",
+    "service/precompute.py": "Precompute location grades for every (uptae, cell).",
+    "service/reporting.py": "LLM sentences under a strict numeric whitelist.",
+}
+
+FORBIDDEN_NAMES = {".env", ".env.bak", ".env.example",
+                   "kb.db", "kb.db-shm", "kb.db-wal", "kb-demo.db"}
+FORBIDDEN_DIRS = {"cache", "node_modules", "__pycache__", ".git", ".venv",
+                  "docs", "lanes", "probe", "scripts", "tools"}

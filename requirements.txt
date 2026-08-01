@@ -1,23 +1,11 @@
-# 데모 실행에 필요한 전부. 심사자는 이것만 설치하면 된다.
-#
-# 모델 라이브러리(lightgbm·torch·catboost 등)는 여기 없다. 서빙 계층은
-# 사전계산된 grid_score 를 조회하고 산술만 하며, 모델을 적합하지도 호출하지도
-# 않기 때문이다(docs/serving-design.md). 파이프라인·모델을 직접 돌리려면
-# requirements-full.txt 를 쓴다.
-#
-# 오른쪽은 2026-07-30 데모가 실제로 돈 버전이다. 하한을 넉넉히 잡되 그 버전을
-# 기록해 둔다 — 심사 환경에서 설치가 되는 것이 정확한 재현보다 우선이다.
+# Runtime dependencies. run.py installs these automatically.
+# Right column = the version this build was verified with.
+# See README.md section 6 for what each one is used for.
 
-fastapi>=0.110          # 0.140.0
-uvicorn>=0.27           # 0.44.0
-pydantic>=2.6           # 2.12.5
-numpy>=1.26             # 2.2.6
-pyproj>=3.6             # 3.7.1   좌표 변환 (EPSG:5179/5174/5181)
-
-# service/reporting.py 가 최상위에서 import 하므로 «설치»는 필요하다.
-# 다만 OPENAI_API_KEY 가 없어도 앱은 뜬다 — /api/report 만 오류를 내고
-# 등급·추천·손익·권리금은 전부 정상 동작한다.
+fastapi>=0.110,<1       # 0.140.0
+uvicorn>=0.27,<1        # 0.44.0
+pydantic>=2.6,<3        # 2.12.5
+numpy>=1.26,<3          # 2.2.6
+pyproj>=3.6,<4          # 3.7.1
+httpx>=0.27,<1          # 0.27.2
 openai>=1.40,<2         # 1.59.7
-# 상한이 있는 것은 이 줄뿐이다. reporting.py 가 최상위에서 예외 클래스 4종과
-# beta.chat.completions.parse 를 쓰므로, 메이저 변경이 오면 리포트 카드가
-# 아니라 uvicorn 부팅 자체가 죽는다.

@@ -34,3 +34,4 @@ analyze_*.py
 # 저장소에 넣으면 clone 이 무거워지고, 무엇보다 «어느 zip 을 냈는지»가 파일이
 # 아니라 그 스크립트와 커밋으로 결정돼야 한다.
 submission/
+SUBMISSION/

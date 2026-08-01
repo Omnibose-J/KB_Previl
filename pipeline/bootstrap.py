@@ -357,6 +357,17 @@ def fingerprint():
         con.close()
 
 
+def plan():
+    """단계 목록과 각 단계가 이미 채워졌는지 출력한다."""
+    print(f"단계 {len(STEPS)}종")
+    for i, step in enumerate(STEPS, 1):
+        n = _rows(step.produces) if step.produces else None
+        state = "완료" if n else ("미실행" if step.produces else "매번 실행")
+        count = f"{n:,}행" if n else ""
+        print(f"  [{i:>2}] {step.name:<12} {state:<6} {count:<12} {step.note}")
+    return 0
+
+
 def prune(dry_run):
     present = []
     con = connect_ro()
@@ -419,6 +430,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="--prune 과 함께")
     ap.add_argument("--preflight", action="store_true",
                     help="긴 단계나 네트워크 호출 없이 콜드스타트 조건 점검")
+    ap.add_argument("--plan", action="store_true",
+                    help="단계 목록과 완료 여부만 출력")
     a = ap.parse_args()
 
     # 갱신은 새 실행 경로가 아니라 이름이다. --from + --force 가 이미 그 동작인데
@@ -431,6 +444,8 @@ def main():
 
     if a.preflight:
         return preflight()
+    if a.plan:
+        return plan()
     if a.fingerprint:
         fingerprint()
         return 0

@@ -1,26 +1,20 @@
-# 파이프라인·모델을 직접 돌릴 때. 데모만 볼 사람은 requirements.txt 로 충분하다.
-#
-# 오른쪽은 2026-07-30 에 모든 게이트가 통과한 버전이다.
+# Extra dependencies for rebuilding the database (`run.py --backfill`)
+# and for running verify.ipynb. Not needed just to serve.
+# See README.md section 6.
 
 -r requirements.txt
 
-# 수집·정규화
-requests>=2.31          # 2.33.1
-pandas>=2.1             # 2.3.3
-shapely>=2.0            # 2.1.2   상권 폴리곤 ↔ 격자
+# collect / load
+requests>=2.31,<3       # 2.33.1
+shapely>=2.0,<3         # 2.1.2
+scipy>=1.11,<2          # 1.15.3
+pandas>=2.0,<3          # 2.3.3
 
-# 모델
-lightgbm>=4.0           # 4.6.0   배포 모델
-scikit-learn>=1.4       # 1.7.2   베이스라인·인코더·후보군
-scipy>=1.11             # 1.15.3  Wilson 구간 · KD-tree(OSM 실험)
+# model
+scikit-learn>=1.4,<2    # 1.7.2
+lightgbm>=4.0,<5        # 4.6.0
 
-# 후보로만 쓰인 것 — 배포 경로에는 없다 (R12 에서 둘 다 기각)
-catboost>=1.2           # 1.2.10
-torch>=2.0              # 2.9.1+cpu
-
-# 기술설명서 그림
-matplotlib>=3.8         # 3.10.8
-
-# 게이트
-pytest>=8.0             # 9.0.3
-httpx>=0.27             # 0.27.2  fastapi TestClient
+# verify.ipynb
+matplotlib>=3.8,<4      # 3.10.8
+nbconvert>=7.0,<8       # 7.17.1
+ipykernel>=6.0,<8       # 7.1.0
