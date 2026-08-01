@@ -12,7 +12,7 @@ import requests
 from .config import (DEFAULT_QUARTER, SEMAS_BASE, SEMAS_FOOD_LCLS, SVC_LICENCE,
                      SVC_LICENCE_REST, SVC_LVPOP_DONG, SVC_TRDAR_AREA,
                      SVC_TRDAR_FLPOP, SVC_TRDAR_SALES, SVC_TRDAR_STORE,
-                     CACHE_DIR)
+                     CACHE_DIR, load_env)
 from .seoul_api import fetch_all, remaining
 from .db import init
 
@@ -59,32 +59,42 @@ def collect_semas(dry_run=False):
         print(f"  [cache] semas_seoul: {len(rows):,} rows")
         return rows
 
-    import io as _io
-    env = {}
-    for line in _io.open(CACHE_DIR.parent.parent / ".env", encoding="utf-8-sig"):
-        s = line.strip()
-        if s and not s.startswith("#") and "=" in s:
-            k, v = s.split("=", 1)
-            env[k.strip()] = v.strip()
+    env = load_env()
     svc_key = env.get("DATA_GO_KR_SERVICE_KEY") or env.get("DATA_GO_KR_API_KEY")
+    if not svc_key:
+        raise RuntimeError(
+            "DATA_GO_KR_SERVICE_KEY 가 .env 에 없다 — SEMAS 는 이 키로만 받는다")
+
+    def page(pageno, rows_per_page, timeout):
+        """한 페이지. 응답이 기대한 모양이 아니면 «0건» 이 아니라 실패다.
+
+        data.go.kr 은 키가 막혀도 200 과 함께 오류 payload 를 준다. 그것을
+        «items 없음» 으로 읽으면 빈 캐시가 만들어지고, 캐시가 있으니 다음
+        실행부터는 API 를 아예 부르지 않는다 — 한 번의 인증 오류가 영구
+        결손이 된다.
+        """
+        r = requests.get(
+            f"{SEMAS_BASE}/storeListInUpjong",
+            params={"serviceKey": svc_key, "type": "json", "pageNo": pageno,
+                    "numOfRows": rows_per_page, "divId": "indsLclsCd",
+                    "key": SEMAS_FOOD_LCLS}, timeout=timeout)
+        r.raise_for_status()
+        body = (r.json() or {}).get("body")
+        if not isinstance(body, dict) or "totalCount" not in body:
+            raise RuntimeError(
+                f"SEMAS 응답이 기대한 모양이 아니다 (page {pageno}): "
+                f"{r.text[:200]}")
+        return body
 
     if dry_run:
-        r = requests.get(f"{SEMAS_BASE}/storeListInUpjong",
-                         params={"serviceKey": svc_key, "type": "json", "pageNo": 1,
-                                 "numOfRows": 1, "divId": "indsLclsCd",
-                                 "key": SEMAS_FOOD_LCLS}, timeout=30)
-        tot = (r.json().get("body") or {}).get("totalCount")
+        tot = page(1, 1, 30)["totalCount"]
         print(f"  [dry-run] SEMAS nationwide food: {tot:,} -> ~{-(-tot // 1000)} calls "
               f"(data.go.kr quota, separate from Seoul)")
         return []
 
     rows, pageno = [], 1
     while True:
-        r = requests.get(f"{SEMAS_BASE}/storeListInUpjong",
-                         params={"serviceKey": svc_key, "type": "json", "pageNo": pageno,
-                                 "numOfRows": 1000, "divId": "indsLclsCd",
-                                 "key": SEMAS_FOOD_LCLS}, timeout=60)
-        body = r.json().get("body") or {}
+        body = page(pageno, 1000, 60)
         items = body.get("items") or []
         if not items:
             break
@@ -95,9 +105,17 @@ def collect_semas(dry_run=False):
             break
         pageno += 1
 
-    with open(cache, "w", encoding="utf-8") as f:
+    if not rows:
+        # 서울에 음식점이 0곳일 수는 없다. 빈 캐시를 남기면 재시도가 막힌다.
+        raise RuntimeError(
+            f"SEMAS 가 서울 행을 하나도 주지 않았다 ({pageno} 페이지). "
+            "캐시를 만들지 않았으므로 원인을 고친 뒤 그대로 다시 실행하면 된다")
+
+    tmp = cache.with_suffix(cache.suffix + ".part")
+    with open(tmp, "w", encoding="utf-8") as f:
         for x in rows:
             f.write(json.dumps(x, ensure_ascii=False) + "\n")
+    tmp.replace(cache)          # 완주한 것만 캐시가 된다
     print(f"  [fetched] semas_seoul: {len(rows):,} rows ({pageno} calls)")
     return rows
 

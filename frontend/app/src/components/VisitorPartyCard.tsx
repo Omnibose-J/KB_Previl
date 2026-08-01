@@ -43,8 +43,10 @@ export default function VisitorPartyCard({ party }: { party: VisitorParty | null
     <section className={s.card}>
       <div className={s.head}>
         <h2>여긴 누구와 오는 자리인가요</h2>
+        {/* «누구와 왔는지 적힌 N개»는 거짓이었다 — labelled 는 서빙하는 두
+            클래스의 합이고, 혼자·친구·연인으로 적힌 글은 분모 밖이다. */}
         <p>
-          이 상권 후기 {int(party.postsScanned)}개 중 누구와 왔는지 적힌{" "}
+          이 상권 후기 {int(party.postsScanned)}개에서 가족·회식 표현이 확인된{" "}
           {int(party.labelled)}개를 세어봤어요.
         </p>
       </div>

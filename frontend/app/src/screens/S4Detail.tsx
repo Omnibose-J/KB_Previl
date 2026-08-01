@@ -579,8 +579,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
  *  자리가 변함 / 우리가 기준을 바꿈. 마지막 것을 «등급이 내렸어요»로 뭉개면
  *  사용자 자리는 그대로인데 나빠졌다고 알리는 셈이 된다.
  *
- *  실패는 조용히 넘긴다 — 이건 사이드바의 부가 정보이고, 여기서 에러를 띄우면
- *  본문 리포트가 멀쩡한데도 화면이 고장난 것처럼 보인다. */
+ *  실패는 본문을 깨뜨리지 않는다 — 이건 사이드바의 부가 정보이고, 여기서
+ *  전면 에러를 띄우면 리포트가 멀쩡한데도 화면이 고장난 것처럼 보인다.
+ *  다만 «못 불러왔다»와 «변동이 없다»는 다른 사실이라 카드 안에서 구분해 말한다. */
 function ChangesCard({ gridId, uptae }: { gridId: string; uptae: string }) {
   const q = useQuery({
     queryKey: ["changes", gridId, uptae],
@@ -588,7 +589,20 @@ function ChangesCard({ gridId, uptae }: { gridId: string; uptae: string }) {
     staleTime: Infinity,
     retry: 0,
   });
-  if (q.isPending || q.isError) return null;
+  if (q.isPending) return null;
+  if (q.isError) {
+    return (
+      <div className={s.alarm}>
+        <strong>이 자리, 그새 달라졌나요?</strong>
+        <p>
+          변동 기록을 불러오지 못했어요.{" "}
+          <button type="button" className={s.alarmRetry} onClick={() => q.refetch()}>
+            다시 시도
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   const { available, event, sentence, baselineAsOf, currentAsOf, history } = q.data;
   return (

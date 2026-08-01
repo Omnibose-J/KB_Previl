@@ -185,14 +185,20 @@ def _rest_food_batch(con, grid_ids):
     }
 
 
-# 파일럿 실측 정밀도. 화면이 그대로 표기한다 — 라벨만 보이면 «측정했다»가
-# «맞다»로 읽힌다. 문턱을 못 넘은 셋(alone·couple·friend)은 여기 없어서 서빙도
-# 안 된다.
-PARTY_PRECISION = {"family": 0.633, "work": 0.700}
+# 서빙하는 두 클래스. 표기 문턱을 통과한 것이고, 못 넘은 셋(alone·couple·friend)
+# 은 여기 없어서 나가지 않는다.
+PARTY_SERVED = ("family", "work")
 PARTY_LABEL = {"family": "가족", "work": "회식·모임"}
 PARTY_SOURCE = "네이버 블로그 글 (방문객 작성) · 2026-07 수집"
+
+# §J-1 파일럿이 잰 값. 코퍼스가 단일 라벨러가 아니게 되면서(§J-1 재판정) 이 값은
+# 더 이상 전체를 설명하지 못한다 — 그래서 응답에 싣지 않고 None 을 내보낸다.
+# 되살리려면 전량 재라벨 + 판정자 2인 검정을 다시 받아야 한다. 문턱 판단의 근거로
+# 남겨 두는 것이지 지금 주장할 수 있는 정확도가 아니다.
+PARTY_PILOT_PRECISION = {"family": 0.633, "work": 0.700}
 PARTY_CLAIM = (
-    "방문객이 쓴 글에서 «누구와 왔는지»가 명시된 것만 센 참고 정보입니다. "
+    "방문객이 쓴 글에서 «가족» «회식·모임» 표현이 확인된 것만 센 참고 정보입니다. "
+    "정확도는 재검정 전이라 함께 싣지 않습니다. "
     "상권 단위라 같은 상권 안 자리는 같은 값이며, 등급·추천 순위에는 쓰이지 않습니다."
 )
 
@@ -235,7 +241,7 @@ def _party_batch(con, grid_ids):
             continue
         # 기각된 클래스는 합계를 내기 «전에» 뺀다. 분모에 남겨 두면 화면에 안
         # 나오면서 나오는 값의 비율을 정하게 된다.
-        served = {p: v for p, v in got.items() if p in PARTY_PRECISION}
+        served = {p: v for p, v in got.items() if p in PARTY_SERVED}
         if not served:
             out[gid] = {**empty, "available": True}
             continue
@@ -244,7 +250,7 @@ def _party_batch(con, grid_ids):
         items = [
             {"party": party, "label": PARTY_LABEL[party], "posts": n,
              "share": (n / total) if total else None,
-             "precision": PARTY_PRECISION[party]}
+             "precision": None}
             for party, (n, _) in sorted(served.items(), key=lambda kv: -kv[1][0])
         ]
         out[gid] = {"available": True, "items": items, "posts_scanned": scanned,

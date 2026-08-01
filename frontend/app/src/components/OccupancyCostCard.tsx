@@ -211,8 +211,21 @@ function Result({ data, sales, uptae }: {
  * 서울 어디도 같은 값이다. 그래서 constant일 때는 숫자를 죽이고 기본값임을
  * 먼저 말한다. 모델이 붙으면(`m2`) 그때 측정치로 승격된다.
  */
-function SuccessionRow({ prob, source }: { prob: number; source: RecoverySource }) {
+function SuccessionRow({ prob, source }: { prob: number | null; source: RecoverySource }) {
   const measured = source !== "constant";
+  // 서버 계약이 null 을 허용한다. pct1(null) 은 «0.0%» 를 내는데, 그것은
+  // «이어받을 사람이 없는 자리» 라는 다른 주장이다.
+  if (prob === null) {
+    return (
+      <div className={s.successionFlat}>
+        <span className={s.successionLabel}>나갈 때 다음 사람이 이어받을 가능성</span>
+        <strong className={s.successionValueDim}>정보 없음</strong>
+        <p className={s.successionNote}>
+          이 자리는 아직 승계를 계산할 기록이 모이지 않았어요.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className={measured ? s.succession : s.successionFlat}>
       <span className={s.successionLabel}>나갈 때 다음 사람이 이어받을 가능성</span>

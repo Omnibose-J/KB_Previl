@@ -190,7 +190,7 @@ class PartyCount(ApiModel):
     label: str
     posts: int
     share: float | None
-    precision: float
+    precision: float | None
 
 
 class VisitorParty(ApiModel):
@@ -198,8 +198,15 @@ class VisitorParty(ApiModel):
 
     검정은 `docs/unstructured-plan.md` §J-1. 표기 문턱을 통과한 두 클래스만
     나간다 — `alone`·`couple`·`friend` 는 정밀도 미달로 서빙되지 않는다.
-    `precision` 을 항목마다 싣는 것은 선택이 아니다: 정확도를 뺀 라벨은 화면에서
-    «측정했다»가 아니라 «맞다»로 읽힌다.
+
+    `precision` 은 지금 **항상 null** 이다. 파일럿이 잰 0.633·0.700 은 단일
+    라벨러 코퍼스의 값인데 §J-1 재판정에서 코퍼스가 섞였고, 그 수치가 전체를
+    설명하지 못하게 됐다. 검정되지 않은 정확도를 숫자로 실으면 «쟀다» 가
+    «맞다» 로 읽히므로, 되살리기 전까지는 값을 내지 않는다. 필드는 계약에
+    남겨 둔다 — 재검정이 끝나면 서버만 채우면 된다.
+
+    `labelled` 는 **서빙하는 두 클래스의 합**이다. «누구와 왔는지 적힌 글 수»
+    가 아니다 — 기각된 셋도 원문에는 있다.
 
     `available=False` 는 배치 미실행, 빈 `items` 는 글이 모자라 판단 불가다.
     """

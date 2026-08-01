@@ -26,7 +26,7 @@ from .base import (
 )
 from .cells import NOT_EVALUATED_DETAIL, RESOLUTION, location_names
 from .changes import grid_changes
-from .context import PARTY_PRECISION, REST_EATERY
+from .context import PARTY_SERVED, REST_EATERY
 from .meta import _grade_area, areas, meta
 from .search import at_point, grid_detail, grids, recommend
 
@@ -35,7 +35,7 @@ __all__ = [
     "DatabaseUnavailableError",
     "MAX_GRID_CELLS",
     "NOT_EVALUATED_DETAIL",
-    "PARTY_PRECISION",
+    "PARTY_SERVED",
     "RESOLUTION",
     "REST_EATERY",
     "ResourceNotFoundError",

@@ -233,9 +233,11 @@ export interface PartyCount {
   label: string;
   posts: number;
   share: number | null;
-  /** 이 라벨의 실측 정밀도(§J-1). 화면에 반드시 함께 나가야 한다 — 정확도를
-   *  빼고 라벨만 보이면 «측정했다» 가 «맞다» 로 읽힌다. */
-  precision: number;
+  /** 이 라벨의 정밀도. §J-1 재판정에서 코퍼스가 섞여 파일럿 값이 전체를 설명하지
+   *  못하게 됐고, 그래서 서버는 **지금 항상 null** 을 보낸다. 숫자가 다시 오면
+   *  그때는 화면에 반드시 함께 내야 한다 — 정확도를 빼고 라벨만 보이면
+   *  «측정했다» 가 «맞다» 로 읽힌다. */
+  precision: number | null;
 }
 
 /**
@@ -557,7 +559,7 @@ export interface EstimateResponse {
   areaM2: number;
   floor: number;
   /** `P(승계) × E[지불비율]` 중 앞항만. 지불비율 원천은 미확보다. */
-  successionProb: number;
+  successionProb: number | null;
   /** 서버가 실제로 선택한 승계 확률 원천. */
   recoverySource: RecoverySource;
   /** 대표값은 **회수율 0** 시나리오다 — 권리금을 한 푼도 못 건진다고 본 보수적

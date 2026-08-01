@@ -2945,7 +2945,10 @@ def test_visitor_party_serves_only_classes_that_passed_the_gate(monkeypatch, tmp
     top = party["items"][0]
     assert top["party"] == "family" and top["posts"] == 8
     assert abs(top["share"] - 0.8) < 1e-9
-    assert top["precision"] == api.PARTY_PRECISION["family"]
+    # 정확도는 재검정 전이라 숫자를 내지 않는다. 파일럿 값 0.633 을 다시 실으면
+    # 섞인 코퍼스를 설명하지 못하는 수치가 «검정된 값»처럼 읽힌다.
+    assert all(item["precision"] is None for item in party["items"])
+    assert "정확도는 재검정 전" in party["claim"]
     assert party["unit"] == "상권"
 
 

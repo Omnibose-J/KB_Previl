@@ -503,8 +503,9 @@ def full(workers=3, verbose=True):
 
 # -------------------------------------------------------------------- load
 
-# 실측 정밀도(§J-1)는 `service/api.py` 의 PARTY_PRECISION 한 곳에만 둔다. 여기에도
-# 같은 숫자를 두면 재검정 때 한쪽만 고쳐지고, 어느 쪽이 화면에 나가는지 알 수 없다.
+# 파일럿 정밀도(§J-1)는 `service/api/context.py` 의 PARTY_PILOT_PRECISION 한 곳에만
+# 둔다. 여기에도 같은 숫자를 두면 재검정 때 한쪽만 고쳐지고, 어느 쪽이 화면에
+# 나가는지 알 수 없다. 지금 서빙은 그 값을 싣지 않는다 — 코퍼스가 섞여서다.
 
 PARTY_SCHEMA = """
 CREATE TABLE IF NOT EXISTS trdar_party (

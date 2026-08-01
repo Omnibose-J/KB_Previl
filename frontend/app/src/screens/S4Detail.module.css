@@ -795,6 +795,17 @@
   color: var(--fg-t6);
 }
 
+.alarmRetry {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .alarmFoot {
   font-size: 13px;
   color: var(--fg-t6);

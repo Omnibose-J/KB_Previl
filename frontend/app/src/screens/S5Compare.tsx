@@ -124,24 +124,40 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     return (items.find((it) => it.salesAvailable) ?? items[0])?.center ?? null;
   }, [jump, slots, seed.data]);
 
+  // label을 실어 보내면 서버가 그대로 되싣는다. 순서에 기대지 않는 이유는
+  // 같은 격자에 후보가 둘일 수 있어서다(같은 건물 1층/2층) — gridId로는
+  // 후보를 구분할 수 없다.
+  const payload = {
+    uptae: uptae!,
+    costParams: { horizonMonths: leaseYears * 12 },
+    candidates: ready.map((sl) => ({
+      label: sl.label,
+      gridId: sl.cell!.gridId,
+      deposit: sl.deposit!,
+      monthlyRent: sl.rentMonthly!,
+      askingGoodwill: sl.goodwill!,
+      areaM2: sl.areaM2!,
+      floor: sl.floor!,
+    })),
+  };
+  // 결과가 어떤 조건에서 나왔는지 붙들어 둔다. 이게 없으면 업종·기간·금액을
+  // 바꾼 뒤에도 이전 결과가 그대로 붙어 있어, 사용자는 그것을 지금 조건의
+  // 답으로 읽는다. 보낸 것과 같은 것에서만 결과를 보여 준다.
+  const requestKey = JSON.stringify(payload);
+  const [ranKey, setRanKey] = useState<string | null>(null);
+
   const run = () => {
-    if (!uptae) return;
-    // label을 실어 보내면 서버가 그대로 되싣는다. 순서에 기대지 않는 이유는
-    // 같은 격자에 후보가 둘일 수 있어서다(같은 건물 1층/2층) — gridId로는
-    // 후보를 구분할 수 없다.
-    compare.mutate({
-      uptae,
-      costParams: { horizonMonths: leaseYears * 12 },
-      candidates: ready.map((sl) => ({
-        label: sl.label,
-        gridId: sl.cell!.gridId,
-        deposit: sl.deposit!,
-        monthlyRent: sl.rentMonthly!,
-        askingGoodwill: sl.goodwill!,
-        areaM2: sl.areaM2!,
-        floor: sl.floor!,
-      })),
-    });
+    if (!canCompare) return;
+    setRanKey(requestKey);
+    compare.mutate(payload);
+  };
+
+  // 업종이 바뀌면 찍어 둔 자리의 등급은 이전 업종의 값이다. 금액은 업종과
+  // 무관하니 남기고, 등급을 달고 있는 자리만 비운다.
+  const pickUptae = (next: string) => {
+    if (next === uptae) return;
+    setUptae(next);
+    setSlots((prev) => prev.map((sl) => (sl.cell ? { ...sl, cell: null } : sl)));
   };
 
   return (
@@ -183,7 +199,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                   <button
                     key={u}
                     className={u === uptae ? s.chipOn : s.chip}
-                    onClick={() => setUptae(u)}
+                    onClick={() => pickUptae(u)}
                   >
                     {u}
                   </button>
@@ -333,8 +349,15 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
         <div className={s.resultPad}>
           <ErrorState onRetry={run} detail={String(compare.error)} />
         </div>
-      ) : compare.data ? (
+      ) : compare.data && ranKey === requestKey ? (
         <Reversal r={compare.data} />
+      ) : compare.data ? (
+        <div className={s.resultPad}>
+          <p className={s.stale}>
+            조건이 바뀌었어요. 아래 결과는 바꾸기 전 것이라 지웠어요 — 다시
+            계산해 주세요.
+          </p>
+        </div>
       ) : null}
     </div>
   );
@@ -508,9 +531,14 @@ function Reversal({ r }: { r: CompareResponse }) {
               «권리금을 36% 돌려받는다»로 읽힌다 — 우리가 재지 않은 값이다. */}
           «승계 비율»은 그 자리에서 가게가 문을 닫은 뒤 다음 가게가 곧바로 들어온
           비율이에요. 인허가 이력으로 학습해 맞춰 본 값이고
-          {byTeo.some((it) => it.successionProb > 0)
-            ? ` (${byTeo.map((it) => `${it.label} ${pct0(it.successionProb)}`).join(" · ")})`
-            : ""}
+          {/* null 은 «계산할 기록이 없다»이지 0% 가 아니다. 걸러 내지 않으면
+              pct0(null) 이 «0%» 를 찍어 없는 값을 잰 값처럼 만든다. */}
+          {(() => {
+            const known = byTeo.filter((it) => it.successionProb !== null && it.successionProb > 0);
+            return known.length
+              ? ` (${known.map((it) => `${it.label} ${pct0(it.successionProb!)}`).join(" · ")})`
+              : "";
+          })()}
           , 권리금을 그만큼 돌려받는다는 뜻은 아니에요 — 얼마에 넘겼는지는 공개된
           기록이 없어요. 대표값은 <b>한 푼도 못 건진다</b>고 본 쪽입니다.
         </p>
