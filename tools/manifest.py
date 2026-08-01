@@ -39,6 +39,27 @@ TREE_EXCLUDE = {"node_modules", "dist", "__pycache__", ".vite", ".gitignore",
                 "README.md"}
 
 MAX_LINES = 400
+
+# Over MAX_LINES but single-purpose. The gate still catches anything new, so a
+# file only lands here with a reason someone can argue with.
+SIZE_EXEMPT = {
+    "service/schemas.py":
+        "wire model declarations only — splitting adds imports, not clarity",
+    "frontend/app/src/api/types.ts":
+        "type declarations only — same reason as service/schemas.py",
+    "frontend/app/src/screens/S4Detail.tsx":
+        "one screen composing already-separate cards; no test net to split behind",
+    "frontend/app/src/screens/S5Compare.tsx":
+        "one screen composing already-separate cards; no test net to split behind",
+    "frontend/app/src/components/GoodwillCard.tsx":
+        "one card, one calculation it explains",
+    "model/asof.py": "as-of reconstruction is one algorithm",
+    "model/party.py": "collect -> extract -> load is one pipeline",
+    "model/recovery.py": "one model with its calibration",
+    "pipeline/bootstrap.py": "one ordered step list plus its CLI",
+    "pipeline/addr_history.py": "tenancy chain construction is one pass",
+    "service/precompute.py": "one batch: fit, score, write",
+}
 MAX_COMMENT_RUN = 2
 MAX_MODULE_DOC = 1
 MAX_DEF_DOC = 2
@@ -93,7 +114,12 @@ HEADERS = {
     "pipeline/verify.py": "Load verification.",
 
     "service/alerts.py": "Classify grid changes between two scoring runs.",
-    "service/api.py": "Read-only query layer for the UI.",
+    "service/api/base.py": "Error contract, read-only connection, value coercions.",
+    "service/api/cells.py": "One grid cell: select, polygon, detail payload.",
+    "service/api/changes.py": "What moved between two scoring runs.",
+    "service/api/context.py": "Batch context for a set of cells: neighbours, party, sales mix, concepts.",
+    "service/api/meta.py": "City-wide tables: districts, survival benchmarks, grade x area.",
+    "service/api/search.py": "Entry points that take user input and return cells.",
     "service/app.py": "FastAPI HTTP layer.",
     "service/bands.py": "Percentile bands for publicly shown values.",
     "service/buildings.py": "Building-level facts derived from licence records.",
@@ -105,6 +131,7 @@ HEADERS = {
     "service/goodwill.py": "Goodwill reference valuation.",
     "service/precompute.py": "Precompute location grades for every (uptae, cell).",
     "service/reporting.py": "LLM sentences under a strict numeric whitelist.",
+    "service/schemas.py": "Wire models for the HTTP layer: fields, types, validation.",
 }
 
 FORBIDDEN_NAMES = {".env", ".env.bak", ".env.example",

@@ -43,7 +43,7 @@ def _server_owned_inputs(grid_id, uptae):
             f"서울 동일 업종 벤치마크 원천이 없는 업태입니다: {uptae}"
         )
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         quarter = con.execute(
             "SELECT MAX(s.quarter) "
             "FROM trdar_sales s "

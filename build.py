@@ -65,7 +65,10 @@ def main():
     if not a.skip_web and build_web(a.web):
         return 1
     argv = ["tools.package"] + (["--rehearse"] if a.rehearse else [])
-    return run(argv, "2. 빌드" + (" + 리허설" if a.rehearse else ""))
+    if run(argv, "2. 빌드" + (" + 리허설" if a.rehearse else "")):
+        return 1
+    zip_path = ROOT / "SUBMISSION" / "KB_Previl_service.zip"
+    return run(["tools.audit", "--zip", str(zip_path)], "3. zip 내용 검사")
 
 
 if __name__ == "__main__":

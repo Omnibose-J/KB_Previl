@@ -743,7 +743,7 @@ def compare(year=2022, sample=SAMPLE_PER_UPTAE, verbose=True):
     survey = {r["uptae"].replace(" ", ""): r
               for r in json.loads(path.read_text(encoding="utf-8"))["accepted"]}
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         grids = _sample_grids(con, sample, SAMPLE_SEED)
 
     rows = []

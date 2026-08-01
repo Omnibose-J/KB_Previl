@@ -39,7 +39,7 @@ def address_for_grid(grid_id):
     100m 칸은 여러 번지에 걸치므로 한 점을 특정할 수 없다. 부번을 떼고 본번까지만
     모아 가장 많은 것을 쓰고, 이름에 «일대»를 붙여 그 폭을 밝힌다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT gs.sgis_adm_nm FROM grid g "
             "LEFT JOIN grid_sgis gs ON gs.grid_id = g.grid_id "
@@ -92,7 +92,7 @@ def address_for_grid(grid_id):
 
 
 def for_grid(grid_id):
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         known = con.execute(
             "SELECT 1 FROM grid WHERE grid_id = ?",
             (grid_id,),

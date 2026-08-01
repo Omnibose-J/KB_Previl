@@ -12,29 +12,43 @@ import tokenize
 from pathlib import Path
 
 from .manifest import (BANNED_COMMENT, ENTRY_CLI, ENTRY_IMPORT, FORBIDDEN_DIRS,
-                       FORBIDDEN_NAMES, HEADERS, MAX_LINES, ROOT, SHIP_PKGS)
+                       FORBIDDEN_NAMES, HEADERS, MAX_LINES, ROOT, SHIP_PKGS,
+                       SIZE_EXEMPT)
 from .strip import strip_python, strip_ts
 
 
 def _modules():
+    """Dotted name -> path, walking subpackages. `x/y/__init__.py` is `x.y`."""
     out = {}
     for pkg in SHIP_PKGS:
-        for p in sorted((ROOT / pkg).glob("*.py")):
-            out[f"{pkg}.{p.stem}"] = p
+        for p in sorted((ROOT / pkg).rglob("*.py")):
+            if "__pycache__" in p.parts:
+                continue
+            parts = p.relative_to(ROOT).with_suffix("").parts
+            name = ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+            out[name] = p
     return out
 
 
-def _imports(path, pkg, known):
+def _package_of(path):
+    return ".".join(path.relative_to(ROOT).parent.parts)
+
+
+def _imports(path, known):
     tree = ast.parse(path.read_text("utf-8", errors="ignore"))
+    here = _package_of(path)
     found = set()
     for n in ast.walk(tree):
         if isinstance(n, ast.Import):
             found |= {a.name for a in n.names}
         elif isinstance(n, ast.ImportFrom):
+            parts = here.split(".")
+            base = ".".join(parts[:len(parts) - n.level + 1]) if n.level else ""
             if n.level and n.module:
-                found.add(f"{pkg}.{n.module}")
+                found.add(f"{base}.{n.module}" if base else n.module)
             elif n.level:
-                found |= {f"{pkg}.{a.name}" for a in n.names}
+                found |= {f"{base}.{a.name}" if base else a.name
+                          for a in n.names}
             elif n.module:
                 found.add(n.module)
                 found |= {f"{n.module}.{a.name}" for a in n.names}
@@ -51,7 +65,7 @@ def closure():
         if m in seen:
             continue
         seen.add(m)
-        stack.extend(_imports(mods[m], m.split(".")[0], known) - seen)
+        stack.extend(_imports(mods[m], known) - seen)
     return mods, seen
 
 
@@ -59,11 +73,13 @@ def ship_paths():
     """Every source file that goes into the code zip."""
     mods, reach = closure()
     files = [mods[m] for m in sorted(reach)]
-    files += [ROOT / p / "__init__.py" for p in SHIP_PKGS
-              if (ROOT / p / "__init__.py").is_file()]
+    for pkg in SHIP_PKGS:
+        files += [p for p in sorted((ROOT / pkg).rglob("__init__.py"))
+                  if "__pycache__" not in p.parts]
     for extra in ("run.py",):
         if (ROOT / extra).is_file():
             files.append(ROOT / extra)
+    files = list(dict.fromkeys(files))
     ts = sorted((ROOT / "frontend/app/src").rglob("*.ts")) + \
         sorted((ROOT / "frontend/app/src").rglob("*.tsx"))
     return files, ts
@@ -160,21 +176,31 @@ def gate_comments(v):
 
 
 def gate_size(v):
-    """출하되는 파일 기준 — 벗겨낸 뒤 줄 수."""
+    """출하되는 파일 기준 — 벗겨낸 뒤 줄 수. 면제는 사유와 함께 통과시킨다."""
     py, ts = ship_paths()
-    over = []
+    over, allowed = [], []
     for path in py + ts:
+        rel = path.relative_to(ROOT).as_posix()
         try:
             n = shipped_text(path).count("\n") + 1
         except SyntaxError:
             n = path.read_text("utf-8", errors="ignore").count("\n") + 1
-        if n > MAX_LINES:
-            over.append((n, path.relative_to(ROOT).as_posix()))
+        if n <= MAX_LINES:
+            continue
+        (allowed if rel in SIZE_EXEMPT else over).append((n, rel))
     over.sort(reverse=True)
-    print(f"[size] {MAX_LINES}줄 초과 {len(over)}개")
+    allowed.sort(reverse=True)
+    print(f"[size] {MAX_LINES}줄 초과 {len(over) + len(allowed)}개 "
+          f"— 면제 {len(allowed)} · 위반 {len(over)}")
     for n, rel in over:
-        print(f"    {n:>5}줄  {rel}")
-    return len(over)
+        print(f"    위반  {n:>5}줄  {rel}")
+    if v:
+        for n, rel in allowed:
+            print(f"    면제  {n:>5}줄  {rel} — {SIZE_EXEMPT[rel]}")
+    stale = sorted(set(SIZE_EXEMPT) - {r for _, r in allowed})
+    for rel in stale:
+        print(f"    면제 불필요  {rel} — 이미 {MAX_LINES}줄 이하다")
+    return len(over) + len(stale)
 
 
 def gate_zip(v, zip_path):

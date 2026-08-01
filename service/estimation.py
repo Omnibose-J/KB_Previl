@@ -45,7 +45,7 @@ def _succession_probability(detail, uptae):
     if source == "survival_curve_proxy":
         probability = detail["observed_survival"]
     else:
-        with api.readonly_connection() as con:
+        with api.base.readonly_connection() as con:
             table_exists = con.execute(
                 "SELECT 1 FROM sqlite_master "
                 "WHERE type='table' AND name='succession_score'"
@@ -87,7 +87,7 @@ def _succession_probability(detail, uptae):
 
 
 def _trade_area_revenue(grid_id, uptae, sales_available):
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         grid = con.execute(
             "SELECT trdar_cd FROM grid_feature WHERE grid_id = ?",
             (grid_id,),

@@ -23,7 +23,7 @@ def grade_survival_curves():
         "rank_train_years",
         "rank_test_years",
     )
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         raw = {
             row["k"]: row["v"]
             for row in con.execute(
@@ -74,7 +74,7 @@ def _scenario(monthly_sales, margin, upfront, monthly_rent, curve):
 def seoul_average_monthly_revenue():
     """Observed Seoul trade-area average per-store monthly revenue, in 만원."""
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         quarter = con.execute("SELECT MAX(quarter) FROM trdar_sales").fetchone()[0]
         if quarter is None:
             raise EconomicsUnavailableError("서울 상권 매출 기준 분기가 없습니다.")

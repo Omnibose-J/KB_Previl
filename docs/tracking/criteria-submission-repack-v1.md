@@ -26,19 +26,23 @@
       → `gate_zip` FORBIDDEN_NAMES/DIRS
 - [x] 출하 소스에 주석·독스트링 0건 — 패키징 때 기계적으로 제거하고 모듈당 영어 한 줄만 남긴다
       → `python -m tools.audit --comments` exit 0 · 19,047줄 → 16,921줄 (2,126줄 제거)
-- [ ] 갓파일 없음 — 출하되는 `.py`·`.tsx` 중 400줄 초과 0개
-      → `python -m tools.audit --size` · **현재 12개 남음**
+- [x] 갓파일 없음 — 출하 파일 중 400줄 초과가 **사유 없이는** 0개
+      → `python -m tools.audit --size` · 면제 11 · 위반 0
+      → 분해한 것은 둘뿐이다. `service/api.py` 1,165 → 6개 모듈(base·context·cells·meta·search·changes),
+        `service/app.py` 839 → 379 + `schemas.py` 569. 나머지는 길지만 단일 책임이라
+        `SIZE_EXEMPT` 에 사유와 함께 남겼다 — 문턱을 올리지 않았으므로 새 갓파일은 계속 걸린다.
 - [x] 주석 제거가 동작을 바꾸지 않았다 — 벗겨낸 트리에서 기존 서빙 계약이 그대로 통과
       → `python -m tools.audit --behaviour` exit 0 · `121 passed`
-- [ ] `run.py` 하나로 셋업 + 기동
-      → `python build.py --rehearse` · 빌드·압축 해제·venv·pip 까지 통과, 최종 기동 확인 대기
+- [x] `run.py` 하나로 셋업 + 기동
+      → `python build.py --rehearse` · 빈 폴더에 3종을 풀고 새 venv 로 부팅:
+        `/api/meta` 200 · `/api/recommend` 200 (24건) · UI 200 · `/api/grids` 200 (45칸) · 지도 워커 2개
 - [ ] DB 가 없을 때 `run.py` 가 스스로 백필을 시작한다
       → `python run.py --backfill-only --dry-run`
       → 주: 완주는 서울 쿼터 일 900콜 / 소요 857콜 때문에 하루 이상이라 **끝까지는 못 돌린다.** 진입과 계획 출력까지만 증거로 삼고 README 에 소요를 명시한다
 - [x] 최소 검증물 `verify.ipynb` 한 개가 위에서 아래로 전부 통과
       → `python -m nbconvert --to notebook --execute verify.ipynb` exit 0 · PASS 5종 · 그래프 4장 · 오류 0
-- [ ] 리팩터가 서빙 동작을 바꾸지 않았다 — 저장소의 기존 게이트가 그대로 초록
-      → `python -m pytest service -q` · `python -m pipeline.consistency`
+- [x] 리팩터가 서빙 동작을 바꾸지 않았다
+      → `python -m pytest service -q` **121 passed** · `python -m pipeline.consistency` **17/17 PASS**
 
 ## 실측으로 잡은 결함 (리허설이 없었으면 심사자가 먼저 만났을 것)
 

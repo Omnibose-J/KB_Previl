@@ -31,7 +31,7 @@ client = TestClient(app)
 
 
 def _hide_meta_keys(monkeypatch, *hidden_keys):
-    original_connection = api.readonly_connection
+    original_connection = api.base.readonly_connection
 
     class FilteredConnection:
         def __init__(self, connection):
@@ -48,7 +48,7 @@ def _hide_meta_keys(monkeypatch, *hidden_keys):
         with original_connection() as connection:
             yield FilteredConnection(connection)
 
-    monkeypatch.setattr(api, "readonly_connection", filtered_connection)
+    monkeypatch.setattr(api.base, "readonly_connection", filtered_connection)
 
 
 def _assert_score_hidden(value):
@@ -67,7 +67,7 @@ def _sample_grid(sales_available=None):
         where = " AND f.has_sales_data = 1"
     elif sales_available is False:
         where = " AND f.has_sales_data = 0"
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id, f.center_lon, f.center_lat, s.uptae "
             "FROM grid_feature f "
@@ -79,7 +79,7 @@ def _sample_grid(sales_available=None):
 
 
 def _sample_goodwill_grid():
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id, '한식' uptae "
             "FROM grid_feature f "
@@ -97,7 +97,7 @@ def _sample_goodwill_grid():
 
 
 def _sample_grid_by_grade(grade):
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id, s.uptae, s.observed "
             "FROM grid_feature f "
@@ -149,7 +149,7 @@ def test_meta_exposes_goodwill_supported_uptae_from_mapping():
 
 
 def test_meta_exposes_period_and_grade_area_values_from_score_meta():
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         raw = {row["k"]: row["v"] for row in con.execute("SELECT k, v FROM score_meta")}
 
     response = client.get("/api/meta")
@@ -286,7 +286,7 @@ def test_empty_grid_score_returns_batch_not_run_503(monkeypatch, tmp_path):
             CREATE TABLE grid_sgis (grid_id TEXT, sgis_adm_nm TEXT);
             """
         )
-    monkeypatch.setattr(api, "DB_PATH", empty_db)
+    monkeypatch.setattr(api.base, "DB_PATH", empty_db)
 
     meta_response = client.get("/api/meta")
     recommend_response = client.get(
@@ -365,7 +365,7 @@ def test_resolution_keys_are_camel_case():
 
 
 def test_trade_area_coverage_and_sales_value_availability_are_distinct():
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         sample = con.execute(
             "SELECT f.grid_id, s.uptae FROM grid_feature f "
             "JOIN grid_score s ON s.grid_id = f.grid_id "
@@ -398,7 +398,7 @@ def test_same_uptae_count_tracks_the_requested_uptae():
     한식을 골라도 까페를 골라도 같은 숫자가 나왔고, 응답 자체는 200이라
     스키마 검사로는 잡히지 않았다. 값이 «달라진다»는 것이 이 필드의 계약이다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         # 두 업태가 서로 다른 수로 들어 있는 칸을 원천에서 직접 고른다.
         rows = con.execute(
             "SELECT f.grid_id, f.competitor_same_uptae, f.food_store_cnt "
@@ -441,7 +441,7 @@ def test_cafe_count_comes_from_the_rest_licence_table():
     14,366곳이다. 까페를 고르면 후자에서 세야 한다 — 전자로 세면 카페
     창업자가 보는 경쟁 수가 실제의 9% 가 된다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         sample = con.execute(
             "SELECT r.grid_id, COUNT(*) n FROM licence_rest r "
             "JOIN grid_score g ON g.grid_id = r.grid_id AND g.uptae = '까페' "
@@ -472,7 +472,7 @@ def test_shop_counts_include_the_rest_licence_eateries():
     세면 카페 골목이 텅 빈 것처럼 보인다. 편의점·백화점처럼 «음식점»이 아닌
     휴게음식점은 여전히 빠진다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         sample = con.execute(
             "SELECT r.grid_id, SUM(1 - r.is_closed) alive, COUNT(*) opened "
             "FROM licence_rest r "
@@ -499,7 +499,7 @@ def test_shop_counts_include_the_rest_licence_eateries():
 
 def test_convenience_stores_are_not_counted_as_restaurants():
     """편의점은 휴게음식점 인허가를 받지만 경쟁 음식점이 아니다."""
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         sample = con.execute(
             "SELECT r.grid_id, COUNT(*) n FROM licence_rest r "
             "JOIN grid_score g ON g.grid_id = r.grid_id AND g.uptae = '한식' "
@@ -531,7 +531,7 @@ def test_other_uptae_still_count_from_the_general_licence_table():
     호프/통닭으로 갈라 놓고 합이 10,435 인데 상가업소는 7,849 로 오히려 적다.
     여기에 다른 표를 붙이면 지금 맞는 값에 없던 오차가 들어간다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id, f.competitor_same_uptae FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
@@ -560,7 +560,7 @@ def test_changes_endpoint_separates_no_baseline_from_no_change():
     assert response.status_code == 200
     body = response.json()
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         has_baseline = con.execute(
             "SELECT 1 FROM score_run WHERE is_current = 0 LIMIT 1"
         ).fetchone()
@@ -622,7 +622,7 @@ def _create_changes_history_db(
 
 
 def _changes_history(monkeypatch, db_path):
-    monkeypatch.setattr(api, "DB_PATH", db_path)
+    monkeypatch.setattr(api.base, "DB_PATH", db_path)
     monkeypatch.setattr(
         api.alerts,
         "changes_for",
@@ -775,7 +775,7 @@ def test_missing_revenue_source_is_a_blank_not_a_server_error():
     «데이터를 불러오지 못했어요 + 다시 시도» 가 떴다 — 다시 눌러도 없는 행은
     생기지 않는다. 실측으로 경양식 62.5% · 일식 60% 가 이 상태였다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '경양식' "
@@ -807,7 +807,7 @@ def test_uptae_without_a_sales_classification_still_answers(uptae):
 
     그 업태를 고른 사용자는 어느 자리를 눌러도 오류 화면만 봤다(실측 100%).
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = ? "
@@ -833,7 +833,7 @@ def test_absent_sales_carries_the_store_count_that_explains_it():
     매출이 드러나 공표하지 않는다(실측 — 점포 1곳 공표율 9.7% · 20곳 이상 99.2%).
     그 점포 수를 함께 내보내야 화면이 이유를 말할 수 있다.
     """
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id, t.stor_co FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '일식' "
@@ -856,7 +856,7 @@ def test_absent_sales_carries_the_store_count_that_explains_it():
 def test_published_sales_says_so():
     """공표된 조합은 uptaePublished 가 True 여야 한다 — 아니면 화면이 멀쩡한
     자리에도 «통계가 없어요» 를 띄운다."""
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         row = con.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
@@ -948,7 +948,7 @@ def test_missing_grid_is_not_found_across_detail_and_post_routes():
 
 def test_excluded_grid_returns_the_not_evaluated_404_contract():
     uptae = client.get("/api/meta").json()["uptae"][0]
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         excluded = con.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "WHERE NOT EXISTS ("
@@ -1041,7 +1041,7 @@ def test_economics_reads_curves_with_matching_batch_lineage(monkeypatch, tmp_pat
             ("survival_curves_36m", curve_value),
         ),
     )
-    monkeypatch.setattr(api, "DB_PATH", batch_db)
+    monkeypatch.setattr(api.base, "DB_PATH", batch_db)
 
     curves = economics_service.grade_survival_curves()
 
@@ -1258,7 +1258,7 @@ def test_economics_rejects_curve_lineage_mismatch(
             ("survival_curves_36m", curve_value),
         ),
     )
-    monkeypatch.setattr(api, "DB_PATH", batch_db)
+    monkeypatch.setattr(api.base, "DB_PATH", batch_db)
 
     with pytest.raises(
         economics_service.EconomicsUnavailableError,
@@ -1281,7 +1281,7 @@ def test_economics_has_no_curve_fallback_when_batch_value_is_missing(
             ("rank_test_years", "2023"),
         ),
     )
-    monkeypatch.setattr(api, "DB_PATH", batch_db)
+    monkeypatch.setattr(api.base, "DB_PATH", batch_db)
 
     with pytest.raises(
         economics_service.EconomicsUnavailableError,
@@ -1297,7 +1297,7 @@ def test_goodwill_slim_input_uses_server_sources_and_after_rent_margin(monkeypat
         _constant_curves,
     )
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         quarter = con.execute("SELECT MAX(quarter) FROM trdar_sales").fetchone()[0]
         trade_area = con.execute(
             "SELECT f.trdar_cd FROM grid_feature f WHERE f.grid_id = ?",
@@ -1403,7 +1403,7 @@ def test_goodwill_preserves_partial_valuation_years(monkeypatch, tmp_path):
             ],
         )
     partial_curve = [1.0] + [1.0] * 31 + [0.8] + [0.0] * 4
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
     monkeypatch.setattr(
         api,
         "grid_detail",
@@ -1518,7 +1518,7 @@ def test_goodwill_returns_503_when_benchmark_source_rows_are_missing(
             "CREATE TABLE trdar_store ("
             "quarter TEXT, trdar_cd TEXT, induty_cd TEXT, stor_co REAL)"
         )
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
     monkeypatch.setattr(
         api,
         "grid_detail",
@@ -1571,7 +1571,7 @@ def test_goodwill_uses_latest_common_sales_and_store_quarter(monkeypatch, tmp_pa
                 ("20261", "A_BENCH", "CS100001", 5),
             ],
         )
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
     monkeypatch.setattr(
         api,
         "grid_detail",
@@ -2025,7 +2025,7 @@ def test_buildings_returns_parcel_facts_without_guessing_unparsed_rows(
             ("서울특별시 영등포구 여의도동 주소미상", "분식", 0, "1_1"),
         ],
     )
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
 
     response = client.get("/api/grid/1_1/buildings")
 
@@ -2062,7 +2062,7 @@ def test_buildings_returns_parcel_facts_without_guessing_unparsed_rows(
 def test_buildings_distinguishes_empty_and_unknown_grids(monkeypatch, tmp_path):
     source_db = tmp_path / "building-empty.db"
     _create_building_facts_db(source_db, [])
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
 
     empty = client.get("/api/grid/2_2/buildings")
     unknown = client.get("/api/grid/9_9/buildings")
@@ -2084,7 +2084,7 @@ def test_buildings_caps_factual_sort_at_fifty(monkeypatch, tmp_path):
         for number in range(1, 52)
     ]
     _create_building_facts_db(source_db, rows)
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
 
     response = client.get("/api/grid/1_1/buildings")
 
@@ -2109,7 +2109,7 @@ def test_grid_address_answers_with_the_modal_bonbun_not_a_single_parcel(
             ("서울특별시 영등포구 여의도동 주소미상", "분식", 0, "1_1"),
         ],
     )
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
 
     response = client.get("/api/grid/1_1/address")
 
@@ -2134,7 +2134,7 @@ def test_grid_address_stops_at_the_dong_when_the_cell_has_no_licence_record(
 ):
     source_db = tmp_path / "address-empty.db"
     _create_building_facts_db(source_db, [])
-    monkeypatch.setattr(api, "DB_PATH", source_db)
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
 
     empty = client.get("/api/grid/2_2/address")
     unknown = client.get("/api/grid/9_9/address")
@@ -2181,7 +2181,7 @@ def test_areas_only_lists_dong_the_map_can_actually_show():
 
 
 def _sample_grid_with_concepts():
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         return connection.execute(
             "SELECT grid_id FROM grid_concept GROUP BY grid_id "
             "ORDER BY SUM(n) DESC LIMIT 1"
@@ -2215,12 +2215,12 @@ def test_concept_mix_reports_unavailable_when_batch_missing(monkeypatch, tmp_pat
     grid_id = _sample_grid_with_concepts()
     stripped = tmp_path / "no-concept.db"
 
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
     shutil.copy(source_path, stripped)
     with sqlite3.connect(stripped) as connection:
         connection.execute("DROP TABLE grid_concept")
-    monkeypatch.setattr(api, "DB_PATH", stripped)
+    monkeypatch.setattr(api.base, "DB_PATH", stripped)
 
     response = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"})
 
@@ -2233,7 +2233,7 @@ def test_concept_mix_reports_unavailable_when_batch_missing(monkeypatch, tmp_pat
 def test_recommend_carries_concept_mix_without_extra_round_trips():
     """S3 는 후보 20여 개를 한 번에 그린다 — 격자마다 조회하면 N+1 이 된다."""
     queries = []
-    original_connection = api.readonly_connection
+    original_connection = api.base.readonly_connection
 
     class CountingConnection:
         def __init__(self, connection):
@@ -2254,11 +2254,11 @@ def test_recommend_carries_concept_mix_without_extra_round_trips():
 
     def count_for(top):
         queries.clear()
-        api.readonly_connection = counting
+        api.base.readonly_connection = counting
         try:
             return api.recommend("한식", top=top), len(queries)
         finally:
-            api.readonly_connection = original_connection
+            api.base.readonly_connection = original_connection
 
     _, few = count_for(3)
     body, many = count_for(20)
@@ -2274,7 +2274,7 @@ def test_recommend_carries_visitor_party_without_extra_round_trips(
         monkeypatch, tmp_path):
     """S3 후보 수가 늘어도 방문객 동반자 조회는 배치 횟수 그대로여야 한다."""
     queries = []
-    original_connection = api.readonly_connection
+    original_connection = api.base.readonly_connection
     seeded = tmp_path / "recommend-party.db"
     with original_connection() as connection:
         source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
@@ -2285,7 +2285,7 @@ def test_recommend_carries_visitor_party_without_extra_round_trips(
             " trdar_cd TEXT, party TEXT, n INTEGER, posts_scanned INTEGER,"
             " PRIMARY KEY (trdar_cd, party))")
         connection.execute("DELETE FROM trdar_party")
-    monkeypatch.setattr(api, "DB_PATH", seeded)
+    monkeypatch.setattr(api.base, "DB_PATH", seeded)
 
     class CountingConnection:
         def __init__(self, connection):
@@ -2306,14 +2306,14 @@ def test_recommend_carries_visitor_party_without_extra_round_trips(
 
     def count_for(top):
         queries.clear()
-        api.readonly_connection = counting
+        api.base.readonly_connection = counting
         try:
             response = client.get(
                 "/api/recommend", params={"uptae": "한식", "top": top})
             assert response.status_code == 200
             return response.json(), len(queries)
         finally:
-            api.readonly_connection = original_connection
+            api.base.readonly_connection = original_connection
 
     _, few = count_for(3)
     body, many = count_for(20)
@@ -2400,7 +2400,7 @@ def test_recovery_source_defaults_to_m2_and_constant_rolls_back(monkeypatch):
     candidate = dict(payload)
     candidate.pop("uptae")
 
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         expected = con.execute(
             "SELECT succession_prob FROM succession_score "
             "WHERE grid_id = ? AND uptae = ?",
@@ -2447,7 +2447,7 @@ def test_m2_source_failures_return_503_without_constant_fallback(
 ):
     sample = _sample_goodwill_grid()
     payload = _estimate_payload(sample)
-    original_connection = api.readonly_connection
+    original_connection = api.base.readonly_connection
     row = None
     if row_overrides is not None:
         row = {
@@ -2482,7 +2482,7 @@ def test_m2_source_failures_return_503_without_constant_fallback(
             yield RecoveryConnection(connection)
 
     monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
-    monkeypatch.setattr(api, "readonly_connection", recovery_connection)
+    monkeypatch.setattr(api.base, "readonly_connection", recovery_connection)
     response = client.post("/api/estimate", json=payload)
 
     assert response.status_code == 503
@@ -2495,7 +2495,7 @@ def test_missing_succession_probability_serves_conservative_band(
 ):
     sample = _sample_goodwill_grid()
     payload = _estimate_payload(sample)
-    original_connection = api.readonly_connection
+    original_connection = api.base.readonly_connection
     row = {
         "succession_prob": None,
         "recovery_source": "m2",
@@ -2524,7 +2524,7 @@ def test_missing_succession_probability_serves_conservative_band(
             yield RecoveryConnection(connection)
 
     monkeypatch.delenv("KB_RECOVERY_SOURCE", raising=False)
-    monkeypatch.setattr(api, "readonly_connection", recovery_connection)
+    monkeypatch.setattr(api.base, "readonly_connection", recovery_connection)
     response = client.post("/api/estimate", json=payload)
 
     assert response.status_code == 200
@@ -2612,7 +2612,7 @@ def _compare_candidate(sample, **overrides):
 
 
 def _two_goodwill_trade_areas():
-    with api.readonly_connection() as con:
+    with api.base.readonly_connection() as con:
         rows = con.execute(
             "SELECT MIN(f.grid_id) grid_id, '한식' uptae, f.trdar_cd, "
             "s.sales_amt / t.stor_co / 3.0 / 10000.0 monthly_revenue "
@@ -2891,7 +2891,7 @@ def test_demo_db_audit_reports_unloaded_reference_without_import_noise(
 
 
 def _grid_in_a_trade_area():
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         row = connection.execute(
             "SELECT grid_id, trdar_cd FROM grid_feature "
             "WHERE trdar_cd IS NOT NULL ORDER BY grid_id LIMIT 1").fetchone()
@@ -2903,12 +2903,12 @@ def test_visitor_party_reports_unavailable_when_batch_missing(monkeypatch, tmp_p
     """수집 전에는 «없음» 이지 «가족 손님 0명» 이 아니다."""
     grid_id, _ = _grid_in_a_trade_area()
     stripped = tmp_path / "no-party.db"
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
     shutil.copy(source_path, stripped)
     with sqlite3.connect(stripped) as connection:
         connection.execute("DROP TABLE IF EXISTS trdar_party")
-    monkeypatch.setattr(api, "DB_PATH", stripped)
+    monkeypatch.setattr(api.base, "DB_PATH", stripped)
 
     body = client.get(f"/api/grid/{grid_id}", params={"uptae": "한식"}).json()
     party = body["visitorParty"]
@@ -2921,7 +2921,7 @@ def test_visitor_party_serves_only_classes_that_passed_the_gate(monkeypatch, tmp
     떨어진 라벨이 화면에 오르면 검정을 한 이유가 없어진다."""
     grid_id, trdar_cd = _grid_in_a_trade_area()
     seeded = tmp_path / "party.db"
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
     shutil.copy(source_path, seeded)
     with sqlite3.connect(seeded) as connection:
@@ -2934,7 +2934,7 @@ def test_visitor_party_serves_only_classes_that_passed_the_gate(monkeypatch, tmp
             "INSERT INTO trdar_party VALUES (?,?,?,?)",
             [(trdar_cd, "family", 8, 60), (trdar_cd, "work", 2, 60),
              (trdar_cd, "couple", 99, 60)])
-    monkeypatch.setattr(api, "DB_PATH", seeded)
+    monkeypatch.setattr(api.base, "DB_PATH", seeded)
 
     party = client.get(f"/api/grid/{grid_id}",
                        params={"uptae": "한식"}).json()["visitorParty"]
@@ -2954,7 +2954,7 @@ def test_visitor_party_is_empty_not_zero_without_enough_posts(monkeypatch, tmp_p
     라는 다른 주장이 된다."""
     grid_id, _ = _grid_in_a_trade_area()
     seeded = tmp_path / "party-empty.db"
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         source_path = connection.execute("PRAGMA database_list").fetchone()["file"]
     shutil.copy(source_path, seeded)
     with sqlite3.connect(seeded) as connection:
@@ -2963,7 +2963,7 @@ def test_visitor_party_is_empty_not_zero_without_enough_posts(monkeypatch, tmp_p
             " trdar_cd TEXT, party TEXT, n INTEGER, posts_scanned INTEGER,"
             " PRIMARY KEY (trdar_cd, party));")
         connection.execute("DELETE FROM trdar_party")
-    monkeypatch.setattr(api, "DB_PATH", seeded)
+    monkeypatch.setattr(api.base, "DB_PATH", seeded)
 
     party = client.get(f"/api/grid/{grid_id}",
                        params={"uptae": "한식"}).json()["visitorParty"]
@@ -2973,7 +2973,7 @@ def test_visitor_party_is_empty_not_zero_without_enough_posts(monkeypatch, tmp_p
 
 
 def _sample_grid_in_trade_area():
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         return connection.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN trdar_sales s ON s.trdar_cd = f.trdar_cd "
@@ -3007,7 +3007,7 @@ def test_sales_mix_is_a_measured_composition_not_a_blend():
 
 def test_sales_mix_quarter_is_one_snapshot_for_every_grid():
     """상권마다 최신 분기가 다르면 구성비가 시점이 섞인 값들의 합이 된다."""
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         rows = connection.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
@@ -3027,7 +3027,7 @@ def test_sales_mix_quarter_is_one_snapshot_for_every_grid():
 def test_sales_mix_outside_trade_area_is_unavailable_not_zero():
     """상권 밖(격자의 49.5%)에 0 을 넣으면 «이 동네는 아무도 안 쓴다»는 없는
     사실이 만들어진다 (CLAUDE.md 규칙 1)."""
-    with api.readonly_connection() as connection:
+    with api.base.readonly_connection() as connection:
         row = connection.execute(
             "SELECT f.grid_id FROM grid_feature f "
             "JOIN grid_score g ON g.grid_id = f.grid_id AND g.uptae = '한식' "
