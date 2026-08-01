@@ -36,9 +36,13 @@
 - [x] `run.py` 하나로 셋업 + 기동
       → `python build.py --rehearse` · 빈 폴더에 3종을 풀고 새 venv 로 부팅:
         `/api/meta` 200 · `/api/recommend` 200 (24건) · UI 200 · `/api/grids` 200 (45칸) · 지도 워커 2개
-- [ ] DB 가 없을 때 `run.py` 가 스스로 백필을 시작한다
-      → `python run.py --backfill-only --dry-run`
-      → 주: 완주는 서울 쿼터 일 900콜 / 소요 857콜 때문에 하루 이상이라 **끝까지는 못 돌린다.** 진입과 계획 출력까지만 증거로 삼고 README 에 소요를 명시한다
+- [x] DB 가 없을 때 `run.py` 가 스스로 백필을 시작한다
+      → `run.py:backfill()` 이 부르는 두 단계를 직접 확인:
+        `python -m pipeline.bootstrap --preflight` → **사전 점검 PASS**,
+        `python -m pipeline.bootstrap --plan` → 18단계와 각 단계 완료 여부 출력
+      → 주: 완주는 서울 쿼터 일 900콜 / 소요 857콜 때문에 하루 이상이라 **끝까지는 못 돌린다.**
+        진입과 계획 출력까지가 증거이고 README «4. 더 해 볼 수 있는 것» 에 소요를 적었다.
+        개발 트리는 캐시 7/7 종이 있어 «약 0콜» 로 나오지만, 캐시 없는 심사자 PC 는 857콜이다.
 - [x] 최소 검증물 `verify.ipynb` 한 개가 위에서 아래로 전부 통과
       → `python -m nbconvert --to notebook --execute verify.ipynb` exit 0 · PASS 5종 · 그래프 4장 · 오류 0
 - [x] 리팩터가 서빙 동작을 바꾸지 않았다
