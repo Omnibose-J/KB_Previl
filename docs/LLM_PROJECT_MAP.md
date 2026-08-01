@@ -83,7 +83,11 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
   `frontend/app/src/screens/`.
 - Reusable product cards and states: `frontend/app/src/components/`.
 - Formatting helpers and shared styling: `frontend/app/src/lib/` and local
-  CSS modules.
+  CSS modules. `lib/gridGeo.ts` turns scored cells into what the map draws: the
+  vector polygons used for hit-testing, and the raster field that carries the
+  colour. The field is painted on a canvas, blurred so neighbouring cells read
+  as one surface, then clipped to the exact footprint of the scored cells —
+  colour must never appear over a cell we did not score.
 
 ## Runtime and recovery data
 

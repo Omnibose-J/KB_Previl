@@ -4,12 +4,71 @@ import {
   Map as MlMap,
   Marker,
   NavigationControl,
+  type CanvasSource,
   type GeoJSONSource,
   type LngLatBoundsLike,
   type MapLayerMouseEvent,
   type StyleSpecification,
 } from "maplibre-gl";
-import type { FeatureCollection } from "geojson";
+import { emptyFc, makeColorOf, paintField, toFc } from "../lib/gridGeo";
+
+/** 지도 소스가 물고 있는 캔버스 하나. 갱신 때마다 여기에 다시 그린다. */
+let sharedField: HTMLCanvasElement | null = null;
+function fieldCanvas() {
+  if (!sharedField) {
+    sharedField = document.createElement("canvas");
+    sharedField.width = 1;
+    sharedField.height = 1;
+  }
+  return sharedField;
+}
+
+/**
+ * 등급 면 그림을 지도에 올리고 갱신한다.
+ *
+ * 소스를 «데이터가 생긴 뒤에» 붙인다. 빈 좌표(`0,0` 네 개)로 미리 만들어 두면
+ * 타일 좌표가 Infinity 가 되면서 지도 전체가 죽는다 — 실제로 그렇게 깨졌다.
+ */
+function ensureField(m: MlMap, cells: GridCell[]) {
+  const target = fieldCanvas();
+  const ctx = target.getContext("2d");
+  if (!ctx) return;
+  const source = m.getSource("grid-field") as CanvasSource | undefined;
+  const painted = cells.length ? paintField(cells, makeColorOf()) : null;
+  if (!painted) {
+    // 칸이 없으면 비운다. 낡은 그림이 남으면 다른 업종의 면이 그대로 보인다.
+    ctx.clearRect(0, 0, target.width, target.height);
+    source?.setCoordinates(source.coordinates);   // 캔버스를 다시 읽게 한다
+    return;
+  }
+  target.width = painted.canvas.width;
+  target.height = painted.canvas.height;
+  ctx.clearRect(0, 0, target.width, target.height);
+  ctx.drawImage(painted.canvas, 0, 0);
+  if (source) {
+    // 좌표를 다시 넣으면 소스가 캔버스를 다시 읽는다(animate: false).
+    source.setCoordinates(painted.coordinates);
+    return;
+  }
+  m.addSource("grid-field", {
+    type: "canvas",
+    canvas: target,
+    coordinates: painted.coordinates,
+    animate: false,
+  });
+  m.addLayer({
+    id: "grid-field",
+    type: "raster",
+    source: "grid-field",
+    // 램프 색이 자체 alpha 를 갖는다. 여기 opacity 는 1등급 밀집 구역에서
+    // 도로·라벨이 읽히게 하는 몫이다.
+    paint: {
+      "raster-opacity": 0.8,
+      "raster-resampling": "linear",
+      "raster-fade-duration": 0,
+    },
+  }, "grid-fill");                                 // 테두리 층들보다 아래로
+}
 import "maplibre-gl/dist/maplibre-gl.css";
 import { ApiError, api } from "../api/client";
 import type { GridCell, Grade, Point } from "../api/types";
@@ -130,34 +189,18 @@ export default function GridMap({
 
     m.on("load", () => {
       m.addSource("grids", { type: "geojson", data: emptyFc() });
-      // 색은 셀 안에서만 칠한다. 번지는 층(heatmap·circle-blur)을 두 번 만들어
-      // 봤는데 둘 다 색이 칸 밖으로 나갔다 — 점수 없는 칸까지 «평가됐다»로
-      // 칠하는 것이라 기각했다. 각져 보이던 진짜 원인은 셀마다 그어져 있던 흰
-      // 실선이었고, 그것을 빼니 같은 등급끼리 한 덩어리로 읽힌다.
+      // 등급 면은 벡터가 아니라 그림 한 장으로 낸다(`ensureField`). 칸마다
+      // 칠하고 전체를 번지게 해서 등고선처럼 잇되, 칸이 있는 자리 모양으로
+      // 오려낸다. 그래서 색이 구역 밖으로 나가지 않는다 — heatmap·circle-blur
+      // 로 두 번 시도해 봤을 때 실패한 지점이 정확히 그것이었다.
+      //
+      // 칸 자체는 투명하게 남긴다 — 보이는 것은 그 그림이고, 이 층은 클릭과
+      // 마우스 위치를 잡는 몫만 한다.
       m.addLayer({
         id: "grid-fill",
         type: "fill",
         source: "grids",
-        // 램프 색이 자체 alpha 를 갖는다. 여기 opacity 는 1등급 밀집 구역에서
-        // 도로·라벨이 읽히게 하는 몫이다.
-        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.8 },
-      });
-      // 바깥 가장자리만 안쪽으로 흐린다. 100m 칸이라 경계가 계단으로 읽히는데
-      // 그 계단은 데이터 해상도지 등급 차이가 아니다. 밖으로는 한 픽셀도 나가면
-      // 안 되므로 blur 를 중앙에 두지 않고 선 전체를 안쪽에 넣는다.
-      m.addSource("grid-edge", { type: "geojson", data: emptyFc() });
-      m.addLayer({
-        id: "grid-silhouette",
-        type: "line",
-        source: "grid-edge",
-        paint: {
-          "line-color": ["get", "color"],
-          "line-width": 4,
-          "line-blur": 5,
-          // 칸이 화면에서 충분히 커야 안쪽 여백(EDGE_INSET)이 선 두께를 담는다.
-          // 멀리서 보면 칸이 몇 px 이라 선이 밖으로 넘치므로 그냥 끈다.
-          "line-opacity": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, 0.5],
-        },
+        paint: { "fill-color": "#000", "fill-opacity": 0 },
       });
       // 순위에 든 칸을 표시한다. 램프가 브랜드 노랑이라 노란 선은 묻히므로
       // 어두운 선을 쓰되, **아래 선택 테두리보다 확실히 약해야 한다** —
@@ -216,12 +259,12 @@ export default function GridMap({
 
   // --- data ---------------------------------------------------------------
   useEffect(() => {
-    const src = map.current?.getSource("grids") as GeoJSONSource | undefined;
-    if (!src) return;
+    const m = map.current;
+    const src = m?.getSource("grids") as GeoJSONSource | undefined;
+    if (!m || !src) return;
     const cells = q.data ? q.data.items : [];
     src.setData(cells.length ? toFc(cells) : emptyFc());
-    const edge = map.current?.getSource("grid-edge") as GeoJSONSource | undefined;
-    edge?.setData(cells.length ? toEdgeFc(cells, makeColorOf()) : emptyFc());
+    ensureField(m, cells);
   }, [q.data, ready]);
 
   useEffect(() => {
@@ -335,103 +378,4 @@ function Legend() {
       <span className={s.legendNote}>1등급이 가장 좋은 자리</span>
     </div>
   );
-}
-
-// --- geojson ---------------------------------------------------------------
-
-const emptyFc = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
-
-/**
- * 평가 구역의 바깥 실루엣만 뽑는다. 변을 세어 한 번만 나오는 변(= 바깥과 접한
- * 변)만 남긴다. 격자 인덱스로 이웃을 찾으면 X 가 경도인지 위도인지에 코드가
- * 의존하지만, 좌표를 세면 그 가정이 필요 없다.
- *
- * 선은 `line-offset` 대신 좌표를 셀 중심 쪽으로 당겨 넣는다. offset 은 «진행
- * 방향의 오른쪽»이라 안쪽이 ring 감김과 y 반전에 동시에 걸리고, 부호를 틀리면
- * 색이 평가 구역 밖으로 나간다.
- */
-// 셀 한 변 대비. 실측(zoom 15, 100m 칸 ≈ 50px): 0.3 이면 여백 약 12m ≈ 6px 로
-// line-width 4 + blur 5 가 칸 안에 온전히 들어간다. 0.18 은 빠듯했다.
-const EDGE_INSET = 0.3;
-
-function toEdgeFc(cells: GridCell[], colorOf: (g: number) => string): FeatureCollection {
-  const seen = new Map<string, { count: number; a: number[]; b: number[]; grade: number; c: number[] }>();
-  const key = (a: number[], b: number[]) => {
-    // 소수점 흔들림으로 같은 변이 다른 변이 되지 않게 고정 자릿수로 맞춘다.
-    const p = (c: number[]) => `${c[0].toFixed(7)},${c[1].toFixed(7)}`;
-    const [x, y] = [p(a), p(b)];
-    return x < y ? `${x}|${y}` : `${y}|${x}`;   // 방향 무관하게 같은 변
-  };
-  for (const c of cells) {
-    const ring = closeRing(c.polygon);
-    const pts = ring.slice(0, -1);
-    const centroid = [
-      pts.reduce((s, p) => s + p[0], 0) / pts.length,
-      pts.reduce((s, p) => s + p[1], 0) / pts.length,
-    ];
-    for (let i = 0; i < ring.length - 1; i++) {
-      const k = key(ring[i], ring[i + 1]);
-      const hit = seen.get(k);
-      if (hit) hit.count += 1;
-      else seen.set(k, { count: 1, a: ring[i], b: ring[i + 1], grade: c.grade, c: centroid });
-    }
-  }
-  const pull = (p: number[], c: number[]) => [
-    p[0] + (c[0] - p[0]) * EDGE_INSET,
-    p[1] + (c[1] - p[1]) * EDGE_INSET,
-  ];
-  return {
-    type: "FeatureCollection",
-    features: [...seen.values()]
-      .filter((e) => e.count === 1)
-      .map((e) => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "LineString" as const,
-          coordinates: [pull(e.a, e.c), pull(e.b, e.c)],
-        },
-        properties: { color: colorOf(e.grade) },
-      })),
-  };
-}
-
-/** 갱신마다 스타일을 한 번만 읽는다. 채우기와 실루엣이 같은 램프를 봐야 두 층의
- *  색이 갈라지지 않는다. */
-function makeColorOf() {
-  const rootStyle = getComputedStyle(document.documentElement);
-  const ramp = new Map<number, string>();
-  return (g: number) => {
-    let c = ramp.get(g);
-    if (!c) {
-      c = rootStyle.getPropertyValue(`--color-heatmap-${g}`).trim();
-      ramp.set(g, c);
-    }
-    return c;
-  };
-}
-
-function toFc(cells: GridCell[]): FeatureCollection {
-  const colorOf = makeColorOf();
-  return {
-    type: "FeatureCollection",
-    features: cells.map((c) => ({
-      type: "Feature" as const,
-      geometry: { type: "Polygon" as const, coordinates: [closeRing(c.polygon)] },
-      properties: {
-        gridId: c.gridId,
-        grade: c.grade,
-        // Read straight off the token ramp so map and badges never drift.
-        color: colorOf(c.grade),
-        cell: JSON.stringify(c),
-      },
-    })),
-  };
-}
-
-/** GeoJSON rings must be closed; B sends four corners. */
-function closeRing(ring: [number, number][]): [number, number][] {
-  if (ring.length === 0) return ring;
-  const [first] = ring;
-  const last = ring[ring.length - 1];
-  return first[0] === last[0] && first[1] === last[1] ? ring : [...ring, first];
 }
