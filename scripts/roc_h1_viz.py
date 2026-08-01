@@ -47,9 +47,20 @@ MODELS = [
 ]
 
 
+PRED_CACHE = ROOT / "model" / ".cache"
+
+
 def metrics_row(kind, train, test, enc):
-    p_te, _ = fit_predict(kind, train, test, num=NUM2, seed=0, enc=enc)
-    p_tr, _ = fit_predict(kind, train, train, num=NUM2, seed=0, enc=enc)
+    # Fits are deterministic (seed=0), so predictions are cached on disk:
+    # relabeling or restyling the figure must not cost six refits.
+    cache = PRED_CACHE / f"roc_h1_2025_num2_{kind}.npz"
+    if cache.exists():
+        z = np.load(cache)
+        p_te, p_tr = z["p_te"], z["p_tr"]
+    else:
+        p_te, _ = fit_predict(kind, train, test, num=NUM2, seed=0, enc=enc)
+        p_tr, _ = fit_predict(kind, train, train, num=NUM2, seed=0, enc=enc)
+        np.savez_compressed(cache, p_te=p_te, p_tr=p_tr)
     y_te, y_tr = np.asarray(test[1]), np.asarray(train[1])
 
     t_f1 = best_f1_threshold(y_tr, p_tr)
@@ -100,12 +111,14 @@ def fig_roc_h1(rows, y, out):
     # Right panel: the comparison table. Text wears ink, never series color;
     # a swatch square beside each row carries identity instead.
     axR.set_axis_off()
-    cols = [("AUC", "auc"), ("생존 F1", "f1_surv"),
-            ("폐업 정밀도", "prec_close"), ("macro-F1", "macro")]
+    # Deck-facing header names; f1_surv is survive-class F1 and prec_close is
+    # closure-class precision - the slide footnote must carry that distinction.
+    cols = [("AUC", "auc"), ("F1 Score", "f1_surv"),
+            ("Precision", "prec_close"), ("Macro-F1", "macro")]
     x_model, x_vals = 0.02, [0.44, 0.62, 0.815, 0.99]
     y_top, dy = 0.86, 0.115
 
-    axR.text(x_model, y_top + dy * 0.9, "모델", fontsize=10, color=MUTED,
+    axR.text(x_model, y_top + dy * 0.9, "Model", fontsize=10, color=MUTED,
              fontweight="bold")
     for (name, _), xv in zip(cols, x_vals):
         axR.text(xv, y_top + dy * 0.9, name, fontsize=10, color=MUTED,
