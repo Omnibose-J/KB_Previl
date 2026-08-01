@@ -5,8 +5,9 @@ import s from "./VisitorPartyCard.module.css";
 // 후기에서 «누구와 왔는지»가 적힌 것만 센 관측이다. 비율도 서버가 계산한 share
 // 를 쓰고, 순위나 전망을 클라이언트에서 만들지 않는다.
 //
-// 정확도를 반드시 함께 낸다. 라벨만 보이면 «측정했다»가 «맞다»로 읽히는데,
-// 실측 정밀도는 0.633·0.700 이라 10건 중 3~4건은 틀린다.
+// 정확도 한 줄은 지우지 않는다(§J-1 표기 계약). 라벨만 보이면 «측정했다»가
+// «맞다»로 읽히는데, 실측 정밀도는 0.633·0.700 이라 10건 중 3~4건은 틀린다.
+// 상권 단위라는 것과 표본 크기는 머리말이 이미 말하므로 거기 기대고 뺐다.
 
 function accuracyLine(items: VisitorParty["items"]): string {
   const worst = Math.min(...items.map((i) => i.precision));
@@ -70,11 +71,7 @@ export default function VisitorPartyCard({ party }: { party: VisitorParty | null
         ))}
       </div>
 
-      <p className={s.note}>
-        {accuracyLine(party.items)} 손님이 쓴 후기 기준이고, 이 자리가 속한 상권
-        전체를 함께 본 값이라 같은 상권 안 다른 자리도 같게 나와요. 등급이나 추천
-        순서에는 쓰지 않았어요.
-      </p>
+      <p className={s.note}>{accuracyLine(party.items)}</p>
     </section>
   );
 }
