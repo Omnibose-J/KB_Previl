@@ -56,6 +56,13 @@ def collect_semas(dry_run=False):
     cache = CACHE_DIR / "semas_seoul.jsonl"
     if cache.exists():
         rows = [json.loads(line) for line in open(cache, encoding="utf-8")]
+        if not rows:
+            # 이제는 빈 캐시를 새로 만들지 않지만, 그 버그가 이미 남긴 0바이트
+            # 파일은 그대로 있다. 받아들이면 «받아 봤더니 없더라»가 되어 다음
+            # 단계가 조용히 빈 손으로 진행된다.
+            raise RuntimeError(
+                f"{cache} 가 비어 있다 — 예전 수집이 실패하고 남긴 껍데기다. "
+                "지우고 다시 실행하면 원천에서 다시 받는다")
         print(f"  [cache] semas_seoul: {len(rows):,} rows")
         return rows
 
