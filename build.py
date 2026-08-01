@@ -15,24 +15,34 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-SRC = ROOT / "frontend" / "app" / "src"
-DIST = ROOT / "frontend" / "app" / "dist"
 APP = ROOT / "frontend" / "app"
+SRC = APP / "src"
+DIST = APP / "dist"
+
+# 화면 빌드에 들어가는 입력 전부. src 만 보면 토큰 CSS·설정·index.html·public
+# 을 고쳐도 낡은 dist 가 그대로 나간다.
+WEB_INPUTS = (SRC, APP / "public", APP / "index.html", APP / "vite.config.ts",
+              APP / "tsconfig.json", APP / "package.json",
+              ROOT / "frontend" / "design" / "tokens")
 
 
-def newest(path, patterns=("*",)):
+def newest(*paths):
     best = 0.0
-    for pattern in patterns:
-        for p in path.rglob(pattern):
-            if p.is_file():
-                best = max(best, p.stat().st_mtime)
+    for path in paths:
+        if path.is_file():
+            best = max(best, path.stat().st_mtime)
+        elif path.is_dir():
+            for p in path.rglob("*"):
+                if p.is_file():
+                    best = max(best, p.stat().st_mtime)
     return best
 
 
 def build_web(force):
-    """src 가 dist 보다 새로우면 다시 빌드한다. 낡은 화면이 나가는 것을 막는다."""
+    """입력이 dist 보다 새로우면 다시 빌드한다. 낡은 화면이 나가는 것을 막는다."""
     index = DIST / "index.html"
-    stale = force or not index.is_file() or newest(SRC) > index.stat().st_mtime
+    stale = (force or not index.is_file()
+             or newest(*WEB_INPUTS) > index.stat().st_mtime)
     if not stale:
         print("[web] 최신 — 다시 빌드하지 않음")
         return 0
@@ -53,7 +63,10 @@ def run(argv, title):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="제출물 3종 재빌드")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+    ap = argparse.ArgumentParser(description="제출물 재빌드")
     ap.add_argument("--rehearse", action="store_true")
     ap.add_argument("--check", action="store_true", help="게이트만 실행")
     ap.add_argument("--web", action="store_true", help="프론트 강제 재빌드")

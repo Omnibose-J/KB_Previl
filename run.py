@@ -1,5 +1,6 @@
 """KB Previl 실행기 — 셋업, DB 확인, 백필, 서버 기동."""
 import argparse
+import hashlib
 import os
 import subprocess
 import sys
@@ -38,7 +39,10 @@ def ensure_venv(full=False):
         print("[1/4] 가상환경 있음")
 
     req = ROOT / ("requirements-full.txt" if full else "requirements.txt")
-    token = f"{req.name}:{req.stat().st_mtime_ns}"
+    # 내용 해시로 찍는다. mtime 은 내용이 바뀌어도 같을 수 있고, 두 모드를
+    # 오갈 때마다 헛되이 다시 설치하게 만든다.
+    digest = hashlib.sha256(req.read_bytes()).hexdigest()[:16]
+    token = f"{req.name}:{digest}"
     if STAMP.is_file() and STAMP.read_text(encoding="utf-8") == token:
         print(f"[2/4] 의존성 설치됨 — {req.name}")
         return py

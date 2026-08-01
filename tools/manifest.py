@@ -68,7 +68,10 @@ SIZE_EXEMPT = {
     "frontend/app/src/components/GoodwillCard.tsx":
         "one card, one calculation it explains",
     "model/asof.py": "as-of reconstruction is one algorithm",
-    "model/party.py": "collect -> extract -> load is one pipeline",
+    # 정직하게: 이것은 단일 책임이 아니다. 수집·LLM 추출·파일럿·적재·판정·kappa
+    # 검정이 한 파일에 있다. 서빙 경로에 없는 오프라인 일회성 도구라 마감 전
+    # 분해 위험을 지지 않기로 한 것이지, 구조가 옳아서가 아니다.
+    "model/party.py": "offline one-shot tool, not on the serving path; split deferred",
     "model/recovery.py": "one model with its calibration",
     "pipeline/bootstrap.py": "one ordered step list plus its CLI",
     "pipeline/addr_history.py": "tenancy chain construction is one pass",

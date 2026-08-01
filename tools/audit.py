@@ -13,9 +13,10 @@ from pathlib import Path
 
 from .manifest import (ALLOWED_SUFFIXES, BANNED_COMMENT, ENTRY_CLI,
                        ENTRY_IMPORT, FORBIDDEN_DIRS, FORBIDDEN_NAMES, HEADERS,
-                       MAX_LINES, ROOT, SHIP_PKGS, SIZE_EXEMPT,
-                       TREE_EXCLUDE_DIRS, TREE_EXCLUDE_FILES, ZIP_ROOT)
-from .strip import strip_css, strip_python, strip_ts
+                       MAX_LINES, ROOT, SHIP_FILES, SHIP_PKGS, SHIP_TREES,
+                       SIZE_EXEMPT, TREE_EXCLUDE, TREE_EXCLUDE_DIRS,
+                       TREE_EXCLUDE_FILES, ZIP_ROOT)
+from .strip import StripError, strip_python, strip_web_batch
 
 
 def _modules():
@@ -36,7 +37,7 @@ def _package_of(path):
 
 
 def _imports(path, known):
-    tree = ast.parse(path.read_text("utf-8", errors="ignore"))
+    tree = ast.parse(path.read_text("utf-8"))
     here = _package_of(path)
     found = set()
     for n in ast.walk(tree):
@@ -70,21 +71,53 @@ def closure():
     return mods, seen
 
 
-def ship_paths():
-    """Every source file that goes into the code zip."""
+STRIPPED = {".py", ".ts", ".tsx", ".css"}
+
+
+def ship_items():
+    """(원본 경로, zip 안 경로) 전부 — 게이트와 패키징의 유일한 출처.
+
+    둘이 각자 계산하면 한쪽만 보는 파일이 생긴다. 실제로 `vite.config.ts` 와
+    `tokens.css` 가 그렇게 빠져 있었다.
+    """
     mods, reach = closure()
     files = [mods[m] for m in sorted(reach)]
     for pkg in SHIP_PKGS:
         files += [p for p in sorted((ROOT / pkg).rglob("__init__.py"))
                   if "__pycache__" not in p.parts]
-    for extra in ("run.py",):
-        if (ROOT / extra).is_file():
-            files.append(ROOT / extra)
-    files = list(dict.fromkeys(files))
-    web = []
-    for pattern in ("*.ts", "*.tsx", "*.css"):
-        web += sorted((ROOT / "frontend/app/src").rglob(pattern))
-    return files, web
+    items = [(p, p.relative_to(ROOT).as_posix())
+             for p in dict.fromkeys(files)]
+    for src, arc in SHIP_FILES:
+        p = ROOT / src
+        if not p.is_file():
+            raise SystemExit(f"{src} 없음 — 빌드 중단")
+        items.append((p, arc))
+    for src, arc in SHIP_TREES:
+        base = ROOT / src
+        for p in sorted(base.rglob("*")):
+            rel = p.relative_to(base)
+            if not p.is_file() or TREE_EXCLUDE & set(rel.parts):
+                continue
+            items.append((p, f"{arc}/{rel.as_posix()}"))
+    seen, out = set(), []
+    for src, arc in items:
+        if arc not in seen:
+            seen.add(arc)
+            out.append((src, f"{ZIP_ROOT}/{arc}"))
+    return out
+
+
+def is_stripped(src, arc):
+    """빌드된 번들(`web/`)은 그대로 넣는다 — 소스가 아니다."""
+    return src.suffix in STRIPPED and not arc.startswith(f"{ZIP_ROOT}/web/")
+
+
+def ship_paths():
+    """게이트가 보는 파일 = 실제로 벗겨져 zip 에 들어가는 파일."""
+    items = [(s, a) for s, a in ship_items() if is_stripped(s, a)]
+    py = [s for s, _ in items if s.suffix == ".py"]
+    web = [s for s, _ in items if s.suffix != ".py"]
+    return py, web
 
 
 def gate_closure(v):
@@ -113,15 +146,20 @@ def _comment_spans(src):
     return out
 
 
+_WEB_CACHE = {}
+
+
 def shipped_text(path):
     """zip 에 실제로 들어가는 내용 — 주석과 독스트링을 걷어낸 것."""
+    path = Path(path)
     rel = path.relative_to(ROOT).as_posix()
-    src = path.read_text("utf-8", errors="ignore")
     if path.suffix == ".py":
-        return strip_python(src, HEADERS.get(rel))
-    if path.suffix == ".css":
-        return strip_css(src)
-    return strip_ts(src)
+        # errors="strict": 깨진 바이트를 조용히 버리면 다른 유효 코드가 된다.
+        return strip_python(path.read_text("utf-8"), HEADERS.get(rel), rel)
+    if path.resolve() not in _WEB_CACHE:
+        _, web = ship_paths()
+        _WEB_CACHE.update(strip_web_batch(web))
+    return _WEB_CACHE[path.resolve()]
 
 
 def _residual_docstrings(text):
@@ -135,39 +173,57 @@ def _residual_docstrings(text):
     return found
 
 
+def _web_residue(web, stripped):
+    """벗겨낸 결과를 한 번 더 벗겨 본다.
+
+    주석이 하나라도 남았으면 두 번째 통과가 그것을 지워 결과가 달라진다.
+    «줄이 // 로 시작하는가» 같은 모양 검사는 인라인 주석과 JSX `{/* */}` 를
+    통째로 놓쳤다 — 실제로 17파일 132줄이 그렇게 새어 나갔다.
+    """
+    import shutil
+    import tempfile
+    tmp = Path(tempfile.mkdtemp(prefix="kb-residue-"))
+    try:
+        mirror = {}
+        for i, path in enumerate(web):
+            copy = tmp / f"{i}{path.suffix}"
+            copy.write_text(stripped[path], encoding="utf-8")
+            mirror[copy.resolve()] = path
+        again = strip_web_batch(list(mirror))
+        return [mirror[c] for c, text in again.items()
+                if text != stripped[mirror[c]]]
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def gate_comments(v):
     """벗겨낸 결과에 주석·독스트링·서사 문구가 남지 않았는지."""
-    py, ts = ship_paths()
+    py, web = ship_paths()
     bad, before, after = [], 0, 0
-    for path in py + ts:
+    stripped = {}
+    for path in py + web:
         rel = path.relative_to(ROOT).as_posix()
-        src = path.read_text("utf-8", errors="ignore")
-        before += src.count("\n") + 1
+        before += path.read_text("utf-8").count("\n") + 1
         try:
             out = shipped_text(path)
-        except SyntaxError as exc:
-            bad.append((rel, f"제거 후 파싱 실패 — {exc}"))
+        except (SyntaxError, StripError, UnicodeDecodeError) as exc:
+            bad.append((rel, f"제거 실패 — {exc}"))
             continue
+        stripped[path] = out
         after += out.count("\n") + 1
-        if path.suffix == ".py":
-            for ln, txt in _comment_spans(out):
-                bad.append((rel, f"{ln}행 주석 남음 {txt[:40]}"))
-            docs = _residual_docstrings(out)
-            expected = 1 if HEADERS.get(rel) else 0
-            extra = [d for d in docs if d[0] != "module"]
-            if extra:
-                bad.append((rel, f"독스트링 {len(extra)}개 남음"))
-            if len([d for d in docs if d[0] == "module"]) != expected:
-                bad.append((rel, "모듈 한 줄 설명 누락"))
-        elif path.suffix == ".css":
-            for i, line in enumerate(out.splitlines(), 1):
-                if "/*" in line:
-                    bad.append((rel, f"{i}행 주석 남음 {line.strip()[:40]}"))
-        else:
-            for i, line in enumerate(out.splitlines(), 1):
-                s = line.strip()
-                if s.startswith("//") or s.startswith("/*"):
-                    bad.append((rel, f"{i}행 주석 남음 {s[:40]}"))
+        if path.suffix != ".py":
+            continue
+        for ln, txt in _comment_spans(out):
+            bad.append((rel, f"{ln}행 주석 남음 {txt[:40]}"))
+        docs = _residual_docstrings(out)
+        extra = [d for d in docs if d[0] != "module"]
+        if extra:
+            bad.append((rel, f"독스트링 {len(extra)}개 남음"))
+        if len([d for d in docs if d[0] == "module"]) != (1 if HEADERS.get(rel) else 0):
+            bad.append((rel, "모듈 한 줄 설명 누락"))
+
+    for path in py + web:
+        rel = path.relative_to(ROOT).as_posix()
         header = HEADERS.get(rel) or ""
         for token in BANNED_COMMENT:
             if token in header:
@@ -175,9 +231,14 @@ def gate_comments(v):
         if not header.isascii():
             bad.append((rel, "모듈 설명이 ASCII 가 아님 — 주석은 영어만"))
 
+    residue = _web_residue([p for p in web if p in stripped], stripped)
+    for path in residue:
+        bad.append((path.relative_to(ROOT).as_posix(),
+                    "재제거하면 또 달라진다 — 주석이 남아 있다"))
+
     saved = before - after
     print(f"[comments] 위반 {len(bad)}건 · "
-          f"{before:,}줄 → {after:,}줄 ({saved:,}줄 제거, {saved/before*100:.0f}%)")
+          f"{before:,}줄 → {after:,}줄 ({saved:,}줄 제거, {saved / before * 100:.0f}%)")
     for rel, why in bad[:None if v else 20]:
         print(f"    {rel}  {why}")
     return len(bad)
@@ -192,7 +253,7 @@ def gate_size(v):
         try:
             n = shipped_text(path).count("\n") + 1
         except SyntaxError:
-            n = path.read_text("utf-8", errors="ignore").count("\n") + 1
+            n = path.read_text("utf-8").count("\n") + 1
         if n <= MAX_LINES:
             continue
         (allowed if rel in SIZE_EXEMPT else over).append((n, rel))
@@ -211,21 +272,46 @@ def gate_size(v):
     return len(over) + len(stale)
 
 
+REQUIRED_IN_ZIP = ("README.md", "run.py", "requirements.txt",
+                   "requirements-full.txt", "verify.ipynb",
+                   "service/app.py", "web/index.html")
+
+
 def gate_zip(v, zip_path, allow_db=False):
+    """zip 이 계약대로인지. 없는 zip 은 «검사할 것이 없음» 이 아니라 실패다."""
     import zipfile
     if not Path(zip_path).is_file():
-        print(f"[zip] {zip_path} 없음 — 건너뜀")
-        return 0
-    names = zipfile.ZipFile(zip_path).namelist()
+        print(f"[zip] FAIL — {zip_path} 없음. 먼저 빌드할 것")
+        return 1
+    archive = zipfile.ZipFile(zip_path)
+    names = archive.namelist()
+    bad = []
+    if archive.testzip() is not None:
+        bad.append((archive.testzip(), "CRC 오류"))
+    if len(names) != len(set(names)):
+        seen = set()
+        bad += [(n, "중복 항목") for n in names if n in seen or seen.add(n)]
+    roots = {n.split("/")[0] for n in names}
+    if roots != {ZIP_ROOT}:
+        bad.append((", ".join(sorted(roots)), f"최상위가 {ZIP_ROOT} 하나가 아니다"))
+    for must in REQUIRED_IN_ZIP:
+        if f"{ZIP_ROOT}/{must}" not in names:
+            bad.append((must, "필수 항목 누락"))
+    db_entries = [n for n in names if n.endswith(".db")]
+    if allow_db and db_entries != [f"{ZIP_ROOT}/kb-demo.db"]:
+        bad.append((", ".join(db_entries) or "(없음)",
+                    f"합본에는 {ZIP_ROOT}/kb-demo.db 하나만 있어야 한다"))
     forbidden = set(FORBIDDEN_NAMES)
     allowed_suffixes = set(ALLOWED_SUFFIXES)
     if allow_db:
         forbidden.discard("kb-demo.db")
         allowed_suffixes.add(".db")
-    bad = []
     for n in names:
         parts = n.split("/")
         name = parts[-1]
+        if ".." in parts or n.startswith("/") or ":" in parts[0]:
+            bad.append((n, "경로 탈출"))
+            continue
         if n == f"{ZIP_ROOT}/README.md":
             continue                      # 유일하게 허용되는 문서
         if name in forbidden or FORBIDDEN_DIRS & set(parts[:-1]):
@@ -237,7 +323,7 @@ def gate_zip(v, zip_path, allow_db=False):
         elif Path(name).suffix.lower() not in allowed_suffixes:
             # 블록리스트는 빠뜨린 패턴을 못 잡는다. 모르는 확장자는 일단 세운다.
             bad.append((n, f"허용 목록에 없는 확장자 {Path(name).suffix or '(없음)'}"))
-    print(f"[zip] {len(names):,}개 항목 · 금지 {len(bad)}건")
+    print(f"[zip] {len(names):,}개 항목 · 위반 {len(bad)}건")
     for n, why in bad[:20]:
         print(f"    {n}  — {why}")
     return len(bad)
@@ -265,8 +351,9 @@ def gate_behaviour(v):
             shutil.copy2(t, tmp / "service" / t.name)
         db = ROOT / "kb-demo.db"
         if not db.is_file():
-            print("[behaviour] kb-demo.db 없음 — 건너뜀")
-            return 0
+            print("[behaviour] FAIL — kb-demo.db 없어 검사를 돌릴 수 없다. "
+                  "«검사 못 함» 을 통과로 세지 않는다")
+            return 1
         env = dict(os.environ, KB_DB=str(db), PYTHONIOENCODING="utf-8")
         proc = subprocess.run(
             [sys.executable, "-m", "pytest", "service", "-q", "--no-header",
@@ -296,12 +383,12 @@ def gate_frontend(v):
     import tempfile
     app = ROOT / "frontend" / "app"
     if not (app / "node_modules").is_dir():
-        print("[frontend] node_modules 없음 — 건너뜀")
-        return 0
+        print("[frontend] FAIL — node_modules 없음. `npm install` 후 다시 돌릴 것")
+        return 1
     npx = shutil.which("npx.cmd") or shutil.which("npx")
     if not npx:
-        print("[frontend] npx 없음 — 건너뜀")
-        return 0
+        print("[frontend] FAIL — npx 없음. Node.js 가 필요하다")
+        return 1
 
     # 저장소 레이아웃을 그대로 재현한다 — main.tsx 가 app 바깥의 토큰 CSS 를
     # 부르므로 app 만 떼어 놓으면 여기서만 깨지고 zip 에서는 안 깨진다.
@@ -334,8 +421,8 @@ def gate_frontend(v):
         else:
             link.symlink_to(app / "node_modules")
         if not link.exists():
-            print("[frontend] node_modules 연결 실패 — 건너뜀")
-            return 0
+            print("[frontend] FAIL — node_modules 연결 실패")
+            return 1
         steps = (("tsc --noEmit", [npx, "tsc", "--noEmit", "-p", "tsconfig.json"]),
                  ("vite build", [npx, "vite", "build", "--logLevel", "warn",
                                  "--outDir", str(tmp / "_out")]))

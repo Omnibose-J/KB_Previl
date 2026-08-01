@@ -16,10 +16,9 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from .audit import ship_paths, shipped_text
-from .manifest import ROOT, SHIP_FILES, SHIP_TREES, TREE_EXCLUDE, ZIP_ROOT
+from .audit import is_stripped, ship_items, ship_paths, shipped_text
+from .manifest import ROOT, ZIP_ROOT
 
-STRIPPED = {".py", ".ts", ".tsx", ".css"}
 ENV_KEY_WORDS = ("KEY", "SECRET", "TOKEN", "CLIENT_ID", "SERVICE")
 
 OUT = ROOT / "SUBMISSION"
@@ -31,29 +30,11 @@ REHEARSAL_PORT = 8123
 
 
 def service_items():
-    """(원본, zip 안 경로) 목록."""
-    py, _ = ship_paths()
-    items = [(p, p.relative_to(ROOT).as_posix()) for p in py]
-    for src, arc in SHIP_FILES:
-        p = ROOT / src
-        if not p.is_file():
-            raise SystemExit(f"{src} 없음 — 빌드 중단")
-        items.append((p, arc))
-    for src, arc in SHIP_TREES:
-        base = ROOT / src
-        for p in sorted(base.rglob("*")):
-            rel = p.relative_to(base)
-            if not p.is_file() or TREE_EXCLUDE & set(rel.parts):
-                continue
-            items.append((p, f"{arc}/{rel.as_posix()}"))
-    if not any(a == "web/index.html" for _, a in items):
+    """(원본, zip 안 경로) 목록. 게이트와 같은 함수를 쓴다."""
+    items = ship_items()
+    if not any(a == f"{ZIP_ROOT}/web/index.html" for _, a in items):
         raise SystemExit("web/index.html 없음 — `npx vite build` 를 먼저 돌릴 것")
-    seen, out = set(), []
-    for src, arc in items:
-        if arc not in seen:
-            seen.add(arc)
-            out.append((src, f"{ZIP_ROOT}/{arc}"))
-    return out
+    return items
 
 
 def _clear(path):
@@ -84,7 +65,7 @@ def build_service():
     _clear(SERVICE_ZIP)
     with zipfile.ZipFile(SERVICE_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for src, arc in items:
-            if src.suffix in STRIPPED and not arc.startswith(f"{ZIP_ROOT}/web/"):
+            if is_stripped(src, arc):
                 z.writestr(arc, shipped_text(src))
             else:
                 z.write(src, arc)
@@ -122,7 +103,7 @@ def build_bundle():
     _clear(BUNDLE_ZIP)
     with zipfile.ZipFile(BUNDLE_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for src, arc in items:
-            if src.suffix in STRIPPED and not arc.startswith(f"{ZIP_ROOT}/web/"):
+            if is_stripped(src, arc):
                 z.writestr(arc, shipped_text(src))
             else:
                 z.write(src, arc)
@@ -140,7 +121,7 @@ def needed_env_keys():
     pat = re.compile(r"""['"]([A-Z][A-Z0-9_]{4,})['"]""")
     found = set()
     for p in py:
-        for m in pat.finditer(p.read_text("utf-8", errors="ignore")):
+        for m in pat.finditer(p.read_text("utf-8")):
             if any(w in m.group(1) for w in ENV_KEY_WORDS):
                 found.add(m.group(1))
     return found
@@ -149,8 +130,11 @@ def needed_env_keys():
 def stage_env():
     """제품이 쓰는 키만 골라 낸다. 나머지는 낼 이유가 없는 남의 비밀이다."""
     src = ROOT / ".env"
+    dst = OUT / ".env"
     if not src.is_file():
-        print("③ .env                        없음 — 직접 넣어야 한다")
+        # 낡은 사본을 남겨 두면 «이번에 만든 것» 으로 오인해 옛 키를 제출한다.
+        _drop_stale(dst)
+        print(f"③ .env  FAIL — {src} 없음. 산출물이 완성되지 않았다")
         return None
     needed = needed_env_keys()
     kept, dropped = [], []
@@ -161,7 +145,6 @@ def stage_env():
         key = t.split("=", 1)[0].strip()
         (kept if key in needed else dropped).append((key, t))
 
-    dst = OUT / ".env"
     body = ["# KB Previl — 이 서비스가 읽는 키만 담았습니다.",
             "# run.py 가 이 파일을 이 위치에서 찾습니다.", ""]
     body += [line for _, line in sorted(kept)]
@@ -206,7 +189,11 @@ def _stop_tree(proc):
         subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
                        capture_output=True)
     else:
-        proc.terminate()
+        import signal
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            proc.terminate()
     try:
         proc.wait(timeout=20)
     except subprocess.TimeoutExpired:
@@ -243,7 +230,8 @@ def rehearse(bundled=False):
             [sys.executable, "run.py", "--no-browser",
              "--port", str(REHEARSAL_PORT)],
             cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, encoding="utf-8", errors="replace")
+            text=True, encoding="utf-8", errors="replace",
+            start_new_session=(os.name != "nt"))
         if not _wait(f"{base}/api/meta", proc):
             print("  [FAIL] 기동 실패")
             if proc.poll() is None:
@@ -254,7 +242,13 @@ def rehearse(bundled=False):
         status, _, body = _get(f"{base}/api/meta")
         import json
         meta = json.loads(body)
-        uptae = (meta.get("uptae") or ["한식"])[0]
+        # 기본값으로 때우지 않는다 — /api/meta 가 업종을 못 내는 것 자체가 파손이고,
+        # 대체값을 쓰면 그 파손이 아래 검사에서 초록으로 덮인다.
+        uptae_list = meta.get("uptae") or []
+        if not uptae_list:
+            print("  [FAIL] /api/meta 에 업종 목록이 없다")
+            return 1
+        uptae = uptae_list[0]
         uptae = uptae.get("name", uptae) if isinstance(uptae, dict) else uptae
         q = urllib.parse.quote(uptae)
         rec_s, _, rec_b = _get(f"{base}/api/recommend?uptae={q}&limit=3")
@@ -320,7 +314,8 @@ def main():
     else:
         build_bundle()
         _drop_stale(SERVICE_ZIP, DB_ZIP)
-    stage_env()
+    if stage_env() is None:
+        return 1
     if not a.rehearse:
         return 0
     return rehearse(bundled=not a.split)

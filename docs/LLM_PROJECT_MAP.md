@@ -57,7 +57,10 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
 
 - FastAPI models, routes, errors, and camelCase serialization:
   `service/app.py`.
-- Read-only grid and score lookup: `service/api.py`.
+- Read-only grid and score lookup: `service/api/` (package). Layering, outermost
+  last: `base` (errors, connection, coercions) and `context` (batch enrichment)
+  depend on nothing; `cells` on `base`; `meta` on both; `search` and `changes`
+  on top. HTTP wire models live in `service/schemas.py`.
 - Candidate estimate and comparison orchestration:
   `service/estimation.py`.
 - Pure effective-cost arithmetic: `service/cost.py`.
