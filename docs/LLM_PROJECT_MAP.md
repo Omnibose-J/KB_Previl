@@ -101,5 +101,10 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
   `python -m model.recovery --calibration`.
 - W7 public contract: `python scripts/verify_recovery_contract.py`.
 - API behavior: `python -m pytest service/ -q`.
-- Submission archive: `python scripts/package_submission.py --rehearse`, which
-  unpacks the zip and boots the API from inside it.
+- Submission artefacts: `python build.py --rehearse`. Runs the ship gates
+  (`tools/audit.py`), rebuilds the frontend when stale, writes the three
+  artefacts to `SUBMISSION/`, then unpacks them into a scratch folder and boots
+  the service there through `run.py` in a fresh virtualenv.
+- Ship set: `tools/manifest.py` is the single source of truth for what goes in
+  the code zip. Comments and docstrings are stripped at build time
+  (`tools/strip.py`); the repository sources keep theirs.

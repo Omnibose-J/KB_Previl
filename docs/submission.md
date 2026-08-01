@@ -5,44 +5,74 @@
 ## 제출 형식 (공모전 요구)
 
 참가신청서 + **기술설명서(PowerPoint)** + **프로토타입(구현코드)** 를 **하나의 zip**으로 www.kb-aichallenge.com 에 제출.
+(근거: `docs/공모전 상세 3a715ca0d89f80a3a626d81f7af480af.md:26`)
+
+> **미해결 — 확인 필요.** 위 요구는 «하나의 zip» 인데, 2026-08-01 소유자 결정은
+> 산출물 3종(코드 zip · DB zip · `.env`)을 각각 내는 것이다. 두 가지가 양립하려면
+> **바깥 zip 하나 안에 참가신청서 · 기술설명서 · 산출물 3종을 담는** 형태여야 한다.
+> 접수 화면에 업로드 칸이 몇 개인지 확인하지 않았다. 확인 전까지는 바깥 zip 으로
+> 감싸는 쪽이 안전하다 — 형식 미비는 내용과 무관하게 걸린다.
+> `build.py` 는 현재 바깥 zip 을 만들지 않는다(참가신청서 · PPT 를 보유하지 않음).
 
 ## 1. 프로토타입 zip 패키징 — 미리 설계 안 하면 마감날 사고
 
 | 문제 | 결정 |
 |---|---|
 | `kb.db` 485MB + `pipeline/cache/` 1,083MB는 gitignore — zip에 못 넣고, 넣어서도 안 됨 | **완료 (2026-07-30)** — `python -m service.demo_db --out kb-demo.db` 가 서빙 의존 16개 테이블만 추출한다. 실측 **267.7MB → zip 90.7MB**. `--audit` 이 `service/*.py` 를 스캔해 테이블 목록이 코드와 어긋나면 빌드를 거부하고, `--verify` 가 그 DB 로 API 를 띄워 meta·recommend·상세·건물 4경로를 확인한다(4/4 PASS). 제외된 큰 테이블은 `addr_tenancy`·`shop_concept`·`store` 로, 전부 파이프라인·모델 입력이며 서빙 리더가 없다 |
-| `.env` API 키 — 절대 포함 금지 | `.env.example`만 동봉. 데모는 키 없이 돌아야 함(경량 DB 조회 + economics 산식은 키 불요. 지도 JS 키만 발급키 별도 안내) |
+| `.env` API 키 | **2026-08-01 변경** — 소유자가 `.env` 를 세 번째 산출물로 함께 내기로 했다. 어느 zip 에도 들어가지 않고 별도 파일로 나간다(`tools/audit.py` 가 zip 에 섞이면 빌드를 거부). 키가 있으므로 심사자가 백필까지 돌릴 수 있다. 데모 자체는 여전히 키 없이 돈다 — `.env` 없으면 AI 요약 카드 하나만 오류를 낸다 |
 | 심사자가 파이프라인 전체를 재현할 수 없음 | README에 3단 구분: ① 데모 실행(경량 DB, 2분) ② 검증 재현(공개 API 키 필요, 캐시 없이 수 시간) ③ 전체 결과는 `docs/model-findings.md` 참조 |
 | 심사 환경에서 실행 실패 리스크 | **화면 녹화 데모 영상(2~3분)을 zip에 동봉** — 실행이 안 돼도 심사가 가능하게. 본선(9/2 오프라인, 이대 ECC)도 로컬 실행(FastAPI+SQLite)이라 인터넷 불안정에 강함 |
 
 **일정**: ~~8/1 패키징 리허설~~ **완료 (2026-07-30)** · 8/2 영상 녹화 + 최종 zip.
 
-### 패키징 — 완료 (2026-07-30)
+### 패키징 — 재구성 (2026-08-01)
+
+산출물이 **하나의 zip 에서 3종으로** 바뀌었다. 소유자 결정이다.
+
+| # | 이름 | 실측 | 푸는 위치 |
+|---|---|---|---|
+| 1 | `KB_Previl_service.zip` | 20.9MB · 1,135항목 | 아무 데나 → `previl/` 생성 |
+| 2 | `KB_Previl_db.zip` | 69.1MB (원본 268MB) | `previl/` **안에** |
+| 3 | `.env` | 1.3KB | `previl/` 안에 그대로 |
 
 ```bash
-python scripts/package_submission.py --rehearse
+python build.py --rehearse
 ```
 
-**실측: `submission/KB_Previl_prototype.zip` 90.5MB · 1,218파일.** 리허설은
-임시 폴더에 zip 을 풀고 **그 안에서** API 를 띄운다(`cwd` 를 옮기고 `PYTHONPATH`
-를 비운다) — 작업 트리에만 있고 zip 에는 없는 파일이 실행을 구제하지 못하게
-하려는 것이다. 결과: 필수 5파일 PASS · `/api/meta` 200 · `/api/recommend` 200
-(24건) · UI 200.
+**심사자는 `previl/` 에서 명령 하나면 된다**: `python run.py`. 가상환경 생성 →
+의존성 설치 → DB 확인 → (없으면) 백필 → 서버 기동 → 브라우저까지 자동이다.
+`service/app.py` 가 `web/`(빌드된 화면)을 같은 origin 에서 서빙한다(파일 맨 끝 —
+`/api` 라우트가 먼저 매칭돼야 한다). `npm install` 이 필요 없다.
 
-**심사자는 명령 하나면 된다**: `python -m uvicorn service.app:app --port 8000`
-→ http://localhost:8000. 이를 위해 `service/app.py` 가 `frontend/app/dist` 를
-같은 origin 에서 서빙하도록 마운트를 추가했다(파일 맨 끝 — `/api` 라우트가 먼저
-매칭돼야 한다). `npm install` 이 필요 없다.
+**`.env` 가 함께 제출되므로 백필이 심사자 손에서 실제로 돈다.** 다만 서울
+열린데이터가 일 900콜인데 한 번 완주에 857콜이라 하루 이상 걸린다. 정상 경로는
+DB zip 을 푸는 쪽이고, README 에 그렇게 적었다.
+
+**리허설이 실제로 무엇을 하는가**: 빈 임시 폴더에 zip 둘을 풀고, **새 가상환경을
+만들어** `run.py` 로 띄운 뒤 HTTP 로 검사한다. 작업 트리에만 있고 zip 에는 없는
+파일이 실행을 구제하지 못하게 하려는 것이다. 결과: 필수 7파일 PASS ·
+`/api/meta` 200 · `/api/recommend` 200 (24건) · UI 200 · `/api/grids` 200 (45칸)
+· 지도 워커 2개.
 
 **포함 목록은 allowlist 다.** denylist 는 패턴 하나를 빠뜨리면 `.env` 가 나가고,
 allowlist 는 빠뜨리면 빌드가 실패한다 — 둘 중 복구 가능한 실패만 택한다. 빌드
-후 `.env`·`kb.db`·캐시·`node_modules` 가 없는지 경로 구조로 재검사하며, 걸리면
-zip 을 지운다.
+후 `.env`·`kb.db`·캐시·`docs`·`lanes` 가 없는지 경로 구조로 재검사한다.
 
-의존성은 두 단계로 나눴다: `requirements.txt`(데모 전용 — fastapi·uvicorn·
-pydantic·numpy·pyproj·openai) / `requirements-full.txt`(파이프라인·모델 재현 —
-lightgbm·sklearn·scipy·pandas·shapely·catboost·torch·matplotlib). 서빙 계층은
-모델을 적합하지도 호출하지도 않으므로 심사자가 lightgbm 을 깔 이유가 없다.
+**출하 집합은 계산한다.** `tools/manifest.py` 가 진입점을 선언하고
+`tools/audit.py` 가 거기서 도달 가능한 모듈만 골라낸다 — 실험·probe 57개는
+저장소에만 남는다. 손으로 유지하는 목록이 아니라서, 새 모듈을 넣고 아무도
+목록을 갱신하지 않아 빠지는 일이 없다.
+
+**주석은 빌드 시점에 걷어낸다**(`tools/strip.py`). 저장소 소스는 그대로다.
+벗겨낸 트리에서 서빙 계약 121종을 돌려 동작 불변을 확인한다 —
+`docs/decisions/2026-08-01-strip-comments-at-packaging.md`.
+
+의존성은 두 단계다: `requirements.txt`(서빙 — fastapi·uvicorn·pydantic·numpy·
+pyproj·httpx·openai) / `requirements-full.txt`(백필·검증 노트북 — requests·
+shapely·scipy·pandas·sklearn·lightgbm·matplotlib·nbconvert·ipykernel).
+`run.py` 는 백필이 필요할 때만 후자를 설치한다. **두 파일 모두 ASCII 다** —
+한국어 윈도의 pip 가 BOM 없는 UTF-8 을 cp949 로 디코딩해 첫 설치가 죽는다
+(리허설에서 실측). 한국어 설명은 README 가 맡는다.
 
 **남은 크기 문제**: 90.5MB 중 `kb-demo.db` 가 69MB 다. 영상을 같은 zip 에 넣으면
 총량이 커지므로, 영상 화질·길이 예산을 정하거나 `licence`(535,715행, 서빙은

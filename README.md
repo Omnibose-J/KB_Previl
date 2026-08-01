@@ -4,7 +4,7 @@
 
 ```
 verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 PASS
-제출 zip 90.7MB / 1,251파일 · 리허설 통과
+서빙 계약 121 PASS · 제출물 3종 (코드 20.9MB · DB 69.1MB · .env) · 리허설 통과
 ```
 
 `verify` 의 `counts` 는 라이브 API 총건수와 대조하는 검사라, 캐시로 재구축한 DB
@@ -35,17 +35,20 @@ verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 P
 
 ## 빠른 시작
 
-제출 zip 을 받은 경우, 명령 하나면 됩니다. `npm install` 도 API 키도 필요
-없습니다.
+제출물을 받은 경우, `previl/` 폴더에서 명령 하나면 됩니다. `pip install` 도
+`npm install` 도 API 키도 직접 할 필요가 없습니다.
 
 ```bash
-pip install -r requirements.txt
-python -m uvicorn service.app:app --port 8000
-# http://localhost:8000
+python run.py
+# http://127.0.0.1:8000 이 저절로 열립니다
 ```
 
-FastAPI 가 `frontend/app/dist` 를 같은 origin 에서 서빙하고, 데이터는 동봉된
-경량 DB(`kb-demo.db`, 267MB)에서 읽습니다. 인터넷 연결 없이 동작합니다.
+`run.py` 가 전용 가상환경을 만들고 의존성을 설치한 뒤, DB 가 있으면 바로 띄우고
+**없으면 `.env` 를 읽어 백필을 시작**합니다. FastAPI 가 `web/`(빌드된 화면)을
+같은 origin 에서 서빙하고, 데이터는 동봉된 경량 DB(`kb-demo.db`, 255MB)에서
+읽습니다. 인터넷 없이 동작합니다(지도 배경 타일만 예외).
+
+저장소에서 바로 띄울 때도 같습니다 — `run.py` 가 `kb.db` 를 먼저 찾습니다.
 
 개발할 때는 프런트를 따로 띄웁니다.
 
@@ -218,16 +221,30 @@ python -m model.ablation_run      # 피처군 절제표
 
 ### 제출물 만들기
 
+산출물은 **3종**입니다 — 코드 zip(`previl/` 하나로 풀림) · DB zip · `.env`.
+서비스가 바뀌면 이 명령 하나만 다시 돌리면 됩니다.
+
 ```bash
-python -m service.demo_db --out kb-demo.db      # 서빙 의존 16개 테이블만 추출
-python scripts/package_submission.py --rehearse # zip 빌드 + 리허설
+python -m service.demo_db --out kb-demo.db   # 서빙 의존 16개 테이블만 추출
+python build.py --rehearse                   # 게이트 → 프론트 확인 → 3종 빌드 → 리허설
 ```
 
-리허설은 임시 폴더에 zip 을 풀고 **그 안에서** API 를 띄웁니다(`cwd` 를 옮기고
-`PYTHONPATH` 를 비웁니다). 작업 트리에만 있고 zip 에는 없는 파일이 실행을
-구제하지 못하게 하려는 것입니다. 포함 목록은 allowlist 입니다. denylist 는 패턴
-하나를 빠뜨리면 `.env` 가 나가지만, allowlist 는 빠뜨리면 빌드가 실패합니다.
-둘 중 복구 가능한 실패만 택했습니다.
+`build.py` 는 네 단계입니다.
+
+1. **게이트** (`tools/audit.py`) — 진입점에서 도달하지 않는 모듈이 섞이지 않았는지,
+   출하 소스에서 주석·독스트링이 남김없이 걷혔는지, 사유 없이 400줄을 넘는 파일이
+   없는지, 그리고 **벗겨낸 트리에서 서빙 계약 121종이 그대로 통과하는지**.
+2. **프론트 확인** — `src` 가 `dist` 보다 새로우면 다시 빌드합니다. 낡은 화면이
+   나가는 것을 막습니다.
+3. **빌드** (`tools/package.py`) — `SUBMISSION/` 에 3종을 만듭니다. 포함 목록은
+   allowlist 입니다. denylist 는 패턴 하나를 빠뜨리면 `.env` 가 나가지만,
+   allowlist 는 빠뜨리면 빌드가 실패합니다. 둘 중 복구 가능한 실패만 택했습니다.
+4. **리허설** — 빈 임시 폴더에 코드 zip 과 DB zip 을 풀고, **새 가상환경을 만들어
+   `run.py` 로 실제 기동**합니다. 작업 트리에만 있고 zip 에는 없는 파일이 실행을
+   구제하지 못하게 하려는 것입니다.
+
+출하 소스의 주석은 `tools/strip.py` 가 **빌드 시점에** 걷어냅니다. 저장소 소스는
+그대로입니다 — 이유는 `docs/decisions/2026-08-01-strip-comments-at-packaging.md`.
 
 <br>
 
