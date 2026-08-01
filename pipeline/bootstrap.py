@@ -34,6 +34,11 @@ REQUIRED_ENV_KEYS = (
     ("KAKAO_REST_API_KEY", "격자 중심을 행정동으로 역지오코딩할 때 필요합니다."),
     ("SGIS_CONSUMER_KEY", "SGIS 센서스 자료 인증에 필요합니다."),
     ("SGIS_CONSUMER_SECRET", "SGIS 센서스 자료 인증 비밀키로 필요합니다."),
+    # 마지막 단계(party)에서만 쓰지만 여기서 함께 본다. 콜드 백필은 하루가
+    # 넘으므로, 17단계를 다 돌고 나서 키가 없다고 멈추면 그 하루가 날아간다.
+    ("NAVER_CLIENT_ID", "마지막 단계 party 의 후기 검색에 필요합니다."),
+    ("NAVER_CLIENT_SECRET", "마지막 단계 party 의 후기 검색 비밀키로 필요합니다."),
+    ("OPENAI_API_KEY", "마지막 단계 party 의 후기 분류에 필요합니다."),
 )
 OPTIONAL_ENV_KEY = "DATA_GO_KR_SERVICE_KEY"
 

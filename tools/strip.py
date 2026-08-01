@@ -76,6 +76,36 @@ def strip_python(src, header=None):
     return text + "\n"
 
 
+def strip_css(src):
+    """`/* */` 만 지운다. 문자열 안의 `/*` 는 건드리지 않는다."""
+    out, i, n, quote = [], 0, len(src), None
+    while i < n:
+        ch = src[i]
+        if quote:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(src[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch in "\"'":
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "/" and i + 1 < n and src[i + 1] == "*":
+            end = src.find("*/", i + 2)
+            i = n if end < 0 else end + 2
+            continue
+        out.append(ch)
+        i += 1
+    text = "\n".join(line.rstrip() for line in "".join(out).splitlines())
+    return re.sub(r"\n{3,}", "\n\n", text).strip("\n") + "\n"
+
+
 _TS_LINE = re.compile(r"^\s*(//|/\*|\*/?)")
 
 

@@ -16,6 +16,13 @@ DB_NAMES = ("kb.db", "kb-demo.db")
 DEFAULT_PORT = 8000
 
 
+def use_utf8():
+    """한글 안내문이 리다이렉트나 비한글 로캘에서 죽지 않게 한다."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def venv_python():
     tail = "Scripts/python.exe" if os.name == "nt" else "bin/python"
     return VENV / tail
@@ -82,12 +89,14 @@ def serve(py, port, open_browser):
     print(f"[4/4] 서버 기동 — {url}  (멈추려면 Ctrl+C)")
     if open_browser:
         threading.Timer(2.0, webbrowser.open, args=(url,)).start()
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
     return subprocess.call(
         [str(py), "-m", "uvicorn", "service.app:app",
-         "--host", "127.0.0.1", "--port", str(port)], cwd=ROOT)
+         "--host", "127.0.0.1", "--port", str(port)], cwd=ROOT, env=env)
 
 
 def main():
+    use_utf8()
     ap = argparse.ArgumentParser(description="KB Previl — 셋업하고 서비스를 띄운다")
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--no-browser", action="store_true")

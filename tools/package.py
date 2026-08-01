@@ -19,7 +19,8 @@ from pathlib import Path
 from .audit import ship_paths, shipped_text
 from .manifest import ROOT, SHIP_FILES, SHIP_TREES, TREE_EXCLUDE, ZIP_ROOT
 
-STRIPPED = {".py", ".ts", ".tsx"}
+STRIPPED = {".py", ".ts", ".tsx", ".css"}
+ENV_KEY_WORDS = ("KEY", "SECRET", "TOKEN", "CLIENT_ID", "SERVICE")
 
 OUT = ROOT / "SUBMISSION"
 SERVICE_ZIP = OUT / "KB_Previl_service.zip"
@@ -98,14 +99,47 @@ def build_db():
     return DB_ZIP
 
 
+def needed_env_keys():
+    """출하 코드가 실제로 읽는 환경 키. 목록을 손으로 들고 있지 않는다."""
+    import re
+    py, _ = ship_paths()
+    pat = re.compile(r"""['"]([A-Z][A-Z0-9_]{4,})['"]""")
+    found = set()
+    for p in py:
+        for m in pat.finditer(p.read_text("utf-8", errors="ignore")):
+            if any(w in m.group(1) for w in ENV_KEY_WORDS):
+                found.add(m.group(1))
+    return found
+
+
 def stage_env():
+    """제품이 쓰는 키만 골라 낸다. 나머지는 낼 이유가 없는 남의 비밀이다."""
     src = ROOT / ".env"
     if not src.is_file():
         print("③ .env                        없음 — 직접 넣어야 한다")
         return None
+    needed = needed_env_keys()
+    kept, dropped = [], []
+    for line in src.read_text(encoding="utf-8-sig").splitlines():
+        t = line.strip()
+        if not t or t.startswith("#") or "=" not in t:
+            continue
+        key = t.split("=", 1)[0].strip()
+        (kept if key in needed else dropped).append((key, t))
+
     dst = OUT / ".env"
-    shutil.copy2(src, dst)
-    print(f"③ {dst.name:<26} {dst.stat().st_size:>6,} B  (키 파일 — zip 에 없음)")
+    body = ["# KB Previl — 이 서비스가 읽는 키만 담았습니다.",
+            "# run.py 가 이 파일을 이 위치에서 찾습니다.", ""]
+    body += [line for _, line in sorted(kept)]
+    dst.write_text("\n".join(body) + "\n", encoding="utf-8")
+    print(f"③ {dst.name:<26} {dst.stat().st_size:>6,} B  "
+          f"(키 {len(kept)}종 — zip 에 없음)")
+    if dropped:
+        print(f"     제외 {len(dropped)}종 — 이 제품이 안 쓰는 키: "
+              f"{', '.join(k for k, _ in sorted(dropped))}")
+    missing = sorted(needed - {k for k, _ in kept})
+    for key in missing:
+        print(f"     [경고] {key} 가 .env 에 없다 — 백필이 그 단계에서 멈춘다")
     return dst
 
 

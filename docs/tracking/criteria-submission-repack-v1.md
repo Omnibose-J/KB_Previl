@@ -53,6 +53,26 @@
 - [x] 리팩터가 서빙 동작을 바꾸지 않았다
       → `python -m pytest service -q` **121 passed** · `python -m pipeline.consistency` **17/17 PASS**
 
+## 독립 감사 (fable, 2026-08-01) 지적과 처리
+
+감사는 `e40d2ad`·`21aea0c` 를 대상으로 돌았고 7개 확인 항목 중 2건을 FAIL 로
+판정했다. 전부 재현해 확인한 뒤 고쳤다.
+
+| 지적 | 확인 | 처리 |
+|---|---|---|
+| **CSS 24개에 한글 서사 주석 255줄이 zip 에 실림.** `STRIPPED` 와 `ship_paths()` 가 py·ts 만 봐서 게이트가 CSS 를 아예 안 봤다 | 재현됨 (255줄) | `strip_css` 추가(문자열 안 `/*` 를 건드리지 않는 상태 기계), CSS 를 게이트·패키징 범위에 포함. **255 → 0** |
+| **캐시 2개 혼입** — `.ruff_cache/CACHEDIR.TAG`·`tsconfig.tsbuildinfo`. `gate_zip` 이 블록리스트라 못 잡았다 | 재현됨 | `TREE_EXCLUDE` 보강 + `gate_zip` 에 **확장자 허용 목록** 추가 — 모르는 확장자는 세운다 |
+| **`.env` 에 타 프로젝트 키 7종과 개인 경로 노출** | 재현됨 | `stage_env()` 가 출하 코드에서 읽는 키를 스캔해 그것만 남긴다. 9종 유지 · 7종 제외 (KRX·ECOS·YouTube·OpenDART·VWorld·Google Maps·Kakao JS) |
+| preflight 가 마지막 단계 party 의 키를 안 본다 — 하루 넘게 돌고 마지막에 죽을 수 있다 | 코드 확인 | `REQUIRED_ENV_KEYS` 에 NAVER 2종·OPENAI 추가 |
+| `run.py` 만 stdout 재구성이 없어 리다이렉트 시 죽을 수 있다 | 코드 확인 | `use_utf8()` 추가 + uvicorn 에 `PYTHONIOENCODING` 전달 |
+| `manifest.py` 주석이 «두 zip 모두 previl 로 풀린다» 라고 잘못 적음 | 확인 | 주석 정정 |
+
+**감사가 못 본 것을 새 게이트가 잡았다.** 프론트 게이트를 `tsc` 에서
+`tsc + vite build` 로 올리자 **`main.tsx:5` 가 `frontend/app` 바깥의
+`../../design/tokens/tokens.css` 를 부르는데 그 파일이 zip 에 없었다** —
+심사자가 프론트를 빌드하려 하면 실패했다. 출하 레이아웃을 저장소와 같게
+되돌리고(`frontend/app` → `frontend/app`) 토큰 CSS 를 동봉해 고쳤다.
+
 ## 실측으로 잡은 결함 (리허설이 없었으면 심사자가 먼저 만났을 것)
 
 1. **pip 가 한글 `requirements.txt` 를 읽지 못한다.** 한국어 윈도에서 pip 는 BOM 없는

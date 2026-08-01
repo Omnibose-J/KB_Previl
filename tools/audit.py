@@ -11,10 +11,11 @@ import sys
 import tokenize
 from pathlib import Path
 
-from .manifest import (BANNED_COMMENT, ENTRY_CLI, ENTRY_IMPORT, FORBIDDEN_DIRS,
-                       FORBIDDEN_NAMES, HEADERS, MAX_LINES, ROOT, SHIP_PKGS,
-                       SIZE_EXEMPT)
-from .strip import strip_python, strip_ts
+from .manifest import (ALLOWED_SUFFIXES, BANNED_COMMENT, ENTRY_CLI,
+                       ENTRY_IMPORT, FORBIDDEN_DIRS, FORBIDDEN_NAMES, HEADERS,
+                       MAX_LINES, ROOT, SHIP_PKGS, SIZE_EXEMPT,
+                       TREE_EXCLUDE_DIRS, TREE_EXCLUDE_FILES, ZIP_ROOT)
+from .strip import strip_css, strip_python, strip_ts
 
 
 def _modules():
@@ -80,9 +81,10 @@ def ship_paths():
         if (ROOT / extra).is_file():
             files.append(ROOT / extra)
     files = list(dict.fromkeys(files))
-    ts = sorted((ROOT / "frontend/app/src").rglob("*.ts")) + \
-        sorted((ROOT / "frontend/app/src").rglob("*.tsx"))
-    return files, ts
+    web = []
+    for pattern in ("*.ts", "*.tsx", "*.css"):
+        web += sorted((ROOT / "frontend/app/src").rglob(pattern))
+    return files, web
 
 
 def gate_closure(v):
@@ -117,6 +119,8 @@ def shipped_text(path):
     src = path.read_text("utf-8", errors="ignore")
     if path.suffix == ".py":
         return strip_python(src, HEADERS.get(rel))
+    if path.suffix == ".css":
+        return strip_css(src)
     return strip_ts(src)
 
 
@@ -155,6 +159,10 @@ def gate_comments(v):
                 bad.append((rel, f"독스트링 {len(extra)}개 남음"))
             if len([d for d in docs if d[0] == "module"]) != expected:
                 bad.append((rel, "모듈 한 줄 설명 누락"))
+        elif path.suffix == ".css":
+            for i, line in enumerate(out.splitlines(), 1):
+                if "/*" in line:
+                    bad.append((rel, f"{i}행 주석 남음 {line.strip()[:40]}"))
         else:
             for i, line in enumerate(out.splitlines(), 1):
                 s = line.strip()
@@ -177,9 +185,9 @@ def gate_comments(v):
 
 def gate_size(v):
     """출하되는 파일 기준 — 벗겨낸 뒤 줄 수. 면제는 사유와 함께 통과시킨다."""
-    py, ts = ship_paths()
+    py, web = ship_paths()
     over, allowed = [], []
-    for path in py + ts:
+    for path in py + [p for p in web if p.suffix != ".css"]:
         rel = path.relative_to(ROOT).as_posix()
         try:
             n = shipped_text(path).count("\n") + 1
@@ -212,13 +220,21 @@ def gate_zip(v, zip_path):
     bad = []
     for n in names:
         parts = n.split("/")
-        if parts[-1] in FORBIDDEN_NAMES or FORBIDDEN_DIRS & set(parts[:-1]):
-            bad.append(n)
-        if parts[-1].endswith(".md") and parts[-1] != "README.md":
-            bad.append(n)
+        name = parts[-1]
+        if n == f"{ZIP_ROOT}/README.md":
+            continue                      # 유일하게 허용되는 문서
+        if name in FORBIDDEN_NAMES or FORBIDDEN_DIRS & set(parts[:-1]):
+            bad.append((n, "금지 이름·폴더"))
+        elif name.endswith(".md") and n != f"{ZIP_ROOT}/README.md":
+            bad.append((n, "문서 — 루트 README 하나만 허용"))
+        elif TREE_EXCLUDE_DIRS & set(parts[:-1]) or name in TREE_EXCLUDE_FILES:
+            bad.append((n, "캐시·빌드 산출물"))
+        elif Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
+            # 블록리스트는 빠뜨린 패턴을 못 잡는다. 모르는 확장자는 일단 세운다.
+            bad.append((n, f"허용 목록에 없는 확장자 {Path(name).suffix or '(없음)'}"))
     print(f"[zip] {len(names):,}개 항목 · 금지 {len(bad)}건")
-    for n in bad[:20]:
-        print(f"    {n}")
+    for n, why in bad[:20]:
+        print(f"    {n}  — {why}")
     return len(bad)
 
 
@@ -264,10 +280,11 @@ def gate_behaviour(v):
 
 
 def gate_frontend(v):
-    """벗겨낸 프론트 소스가 그대로 타입 검사를 통과하는지.
+    """벗겨낸 프론트 소스가 그대로 타입 검사와 빌드를 통과하는지.
 
-    파이썬은 제거 후 파싱을 확인하지만 TS 는 확인할 파서가 없다. 줄 첫 글자가
-    `*` 인 연산자 연속행처럼 주석이 아닌 줄이 지워져도 zip 은 조용히 나간다.
+    파이썬은 제거 후 `ast.parse` 로 확인되지만 TS·CSS 에는 그 확인이 없다.
+    `tsc` 가 타입을, `vite build` 가 CSS 까지 파싱한다. 서빙되는 `web/` 은
+    원본에서 빌드되므로, 이것이 깨져도 화면은 멀쩡하고 소스만 조용히 망가진다.
     """
     import shutil
     import subprocess
@@ -281,9 +298,18 @@ def gate_frontend(v):
         print("[frontend] npx 없음 — 건너뜀")
         return 0
 
-    tmp = Path(tempfile.mkdtemp(prefix="kb-ts-"))
+    # 저장소 레이아웃을 그대로 재현한다 — main.tsx 가 app 바깥의 토큰 CSS 를
+    # 부르므로 app 만 떼어 놓으면 여기서만 깨지고 zip 에서는 안 깨진다.
+    outer = Path(tempfile.mkdtemp(prefix="kb-ts-"))
+    tmp = outer / "app"
+    tmp.mkdir()
     link = tmp / "node_modules"
     try:
+        tokens = ROOT / "frontend" / "design" / "tokens" / "tokens.css"
+        if tokens.is_file():
+            dst = outer / "design" / "tokens" / "tokens.css"
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(tokens, dst)
         for name in ("package.json", "tsconfig.json", "vite.config.ts",
                      "index.html"):
             if (app / name).is_file():
@@ -293,7 +319,7 @@ def gate_frontend(v):
                 continue
             dst = tmp / "src" / p.relative_to(app / "src")
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if p.suffix in (".ts", ".tsx"):
+            if p.suffix in (".ts", ".tsx", ".css"):
                 dst.write_text(shipped_text(p), encoding="utf-8")
             else:
                 shutil.copy2(p, dst)
@@ -305,21 +331,27 @@ def gate_frontend(v):
         if not link.exists():
             print("[frontend] node_modules 연결 실패 — 건너뜀")
             return 0
-        proc = subprocess.run([npx, "tsc", "--noEmit", "-p", "tsconfig.json"],
-                              cwd=tmp, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=900)
-        print(f"[frontend] 벗겨낸 소스 tsc --noEmit — exit {proc.returncode}")
-        if proc.returncode:
-            for ln in ((proc.stdout or "") + (proc.stderr or "")).splitlines()[:20]:
-                if ln.strip():
+        steps = (("tsc --noEmit", [npx, "tsc", "--noEmit", "-p", "tsconfig.json"]),
+                 ("vite build", [npx, "vite", "build", "--logLevel", "warn",
+                                 "--outDir", str(tmp / "_out")]))
+        failed = 0
+        for label, cmd in steps:
+            proc = subprocess.run(cmd, cwd=tmp, capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace",
+                                  timeout=900)
+            print(f"[frontend] 벗겨낸 소스 {label} — exit {proc.returncode}")
+            if proc.returncode:
+                failed += 1
+                out = ((proc.stdout or "") + (proc.stderr or "")).splitlines()
+                for ln in [x for x in out if x.strip()][:20]:
                     print(f"    {ln}")
-        return 1 if proc.returncode else 0
+        return failed
     finally:
         if os.name == "nt":
             subprocess.run(["cmd", "/c", "rmdir", str(link)], capture_output=True)
         elif link.is_symlink():
             link.unlink()
-        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(outer, ignore_errors=True)
 
 
 GATES = {"closure": gate_closure, "comments": gate_comments, "size": gate_size,

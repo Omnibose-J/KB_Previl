@@ -17,7 +17,8 @@ ENTRY_CLI = (
 
 SHIP_PKGS = ("service", "model", "pipeline")
 
-# 두 zip 모두 이 폴더 하나로 풀린다.
+# 코드 zip 이 이 폴더 하나로 풀린다. DB zip 은 kb-demo.db 단일 항목이라
+# 이 폴더 «안에» 풀어야 한다 — README 가 그렇게 안내한다.
 ZIP_ROOT = "previl"
 
 # Non-Python payload. (source, arcname)
@@ -27,16 +28,29 @@ SHIP_FILES = (
     ("verify.ipynb", "verify.ipynb"),
     ("requirements.txt", "requirements.txt"),
     ("requirements-full.txt", "requirements-full.txt"),
+    # main.tsx 가 직접 부른다. 이것 없이는 프론트 소스가 빌드되지 않는다.
+    ("frontend/design/tokens/tokens.css", "frontend/design/tokens/tokens.css"),
 )
 
 # (source dir, arcname). web = 서버가 서빙하는 빌드본, frontend = 그 소스.
+#
+# 소스는 저장소 레이아웃 그대로 싣는다. `main.tsx` 가
+# `../../design/tokens/tokens.css` 를 부르므로 `frontend/app` 을 `frontend` 로
+# 옮기면 깊이가 한 칸 어긋나 빌드가 깨진다.
 SHIP_TREES = (
     ("frontend/app/dist", "web"),
-    ("frontend/app", "frontend"),
+    ("frontend/app", "frontend/app"),
 )
 
-TREE_EXCLUDE = {"node_modules", "dist", "__pycache__", ".vite", ".gitignore",
-                "README.md"}
+TREE_EXCLUDE_DIRS = {"node_modules", "dist", "__pycache__", ".vite",
+                     ".ruff_cache", ".pytest_cache", ".mypy_cache"}
+TREE_EXCLUDE_FILES = {".gitignore", "README.md", "tsconfig.tsbuildinfo"}
+TREE_EXCLUDE = TREE_EXCLUDE_DIRS | TREE_EXCLUDE_FILES
+
+# Anything else in the code zip is a mistake we have not thought of yet.
+ALLOWED_SUFFIXES = {".py", ".ts", ".tsx", ".css", ".json", ".html", ".md",
+                    ".txt", ".ipynb", ".js", ".mjs", ".map", ".png", ".webp",
+                    ".svg", ".ico", ".woff", ".woff2", ".ttf"}
 
 MAX_LINES = 400
 
