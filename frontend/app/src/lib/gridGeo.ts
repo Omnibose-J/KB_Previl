@@ -12,7 +12,12 @@ export const emptyFc = (): FeatureCollection => ({
 // 캔버스 해상도. 칸 하나를 몇 픽셀로 그릴지 — 번짐 반경이 이 안에서 결정된다.
 const CELL_PX = 14;
 // 칸 크기 대비 번짐 반경. 1 이면 이웃 중심까지 섞여 칸 모양이 사라진다.
-const FIELD_BLUR = 0.55;
+//
+// 매끄러움과 «등급이 읽히는가» 는 정면으로 맞선다. 40px 떨어진 두 점의 색차
+// 상위 10% 로 재면 각진 원본이 27, 0.55 에서 13, 0.30 에서 18, 여기서 22 다.
+// 평균 색차는 어느 값에서나 비슷하다 — 이웃은 대개 1등급 차라 원래 티가 안
+// 나고, 눌리는 것은 «확 다른 자리끼리» 의 대비뿐이라 그것만 보면 된다.
+const FIELD_BLUR = 0.2;
 // 캔버스 한 변 상한. 넓은 구역에서 해상도를 낮춰서라도 메모리를 지킨다.
 const FIELD_MAX = 2048;
 // 바깥 윤곽을 안쪽으로 얼마나 부드럽게 먹일지(칸 크기 대비). 100m 칸의 계단
@@ -79,41 +84,55 @@ export function paintField(
     };
   };
 
-  const raw = document.createElement("canvas");
-  raw.width = w;
-  raw.height = h;
-  const rc = raw.getContext("2d");
-  const out = document.createElement("canvas");
-  out.width = w;
-  out.height = h;
-  const oc = out.getContext("2d");
-  if (!rc || !oc) return null;
+  // 램프 색의 알파를 떼고 칠한다. 반투명끼리 번지면 옅은 등급이 바탕에 묻혀
+  // 등급 차가 사라진다(실측: 40px 상위10% 색차 27 -> 12). 투명도는 레이어
+  // 하나(`raster-opacity`)가 맡고, 여기서는 색만 섞는다.
+  const solid = (g: number) => {
+    const c = colorOf(g);
+    const fn = c.match(/rgba?\(([^)]+)\)/);
+    if (!fn) return c;
+    const [r, gg, b] = fn[1].split(",").map((s) => Number(s.trim()));
+    return `rgb(${r}, ${gg}, ${b})`;
+  };
 
-  for (const c of cells) {
-    const b = box(c);
-    rc.fillStyle = colorOf(c.grade);
-    rc.fillRect(b.x, b.y, b.w, b.h);
-  }
-  // 빈 자리에만 깔린다 — 이미 칠해진 칸은 그대로 둔다.
-  rc.globalCompositeOperation = "destination-over";
-  for (const c of cells) {
-    const b = box(c);
-    rc.fillStyle = colorOf(c.grade);
-    rc.fillRect(b.x - blur, b.y - blur, b.w + blur * 2, b.h + blur * 2);
-  }
+  const sheet = () => {
+    const cv = document.createElement("canvas");
+    cv.width = w;
+    cv.height = h;
+    return [cv, cv.getContext("2d")] as const;
+  };
+  const [raw, rc] = sheet();
+  const [out, oc] = sheet();
+  const [mask, mc] = sheet();
+  const [pad, pc] = sheet();
+  if (!rc || !oc || !mc || !pc) return null;
 
   // 오려낼 모양을 한 장에 먼저 모은다. `destination-in` 은 그릴 때마다 «그
   // 도형 바깥»을 통째로 지우므로, 칸마다 부르면 직전 칸까지 날아간다.
-  const mask = document.createElement("canvas");
-  mask.width = w;
-  mask.height = h;
-  const mc = mask.getContext("2d");
-  if (!mc) return null;
   mc.fillStyle = "#000";
   for (const c of cells) {
     const b = box(c);
     mc.fillRect(b.x, b.y, b.w, b.h);
   }
+
+  // 구역 «바깥»에 깔 여백. 이게 없으면 번질 때 투명과 섞여 테두리가 빛바랜다.
+  for (const c of cells) {
+    const b = box(c);
+    pc.fillStyle = solid(c.grade);
+    pc.fillRect(b.x - blur, b.y - blur, b.w + blur * 2, b.h + blur * 2);
+  }
+  // 구역 안쪽은 파낸다. 이 겹은 «바깥 여백»만 맡아야 하고, 안쪽까지 남으면
+  // 이웃 색이 칸 밑에 깔린다.
+  pc.globalCompositeOperation = "destination-out";
+  pc.drawImage(mask, 0, 0);
+
+  for (const c of cells) {
+    const b = box(c);
+    rc.fillStyle = solid(c.grade);
+    rc.fillRect(b.x, b.y, b.w, b.h);
+  }
+  rc.globalCompositeOperation = "destination-over";
+  rc.drawImage(pad, 0, 0);
   // 모양을 흐린 뒤 원래 모양으로 다시 잘라, 윤곽이 **안쪽으로만** 부드러워지게
   // 한다. 계단 모서리가 눕고, 바깥으로는 한 픽셀도 나가지 않는다.
   const feather = Math.max(1, span * scale * RIM_FEATHER);
