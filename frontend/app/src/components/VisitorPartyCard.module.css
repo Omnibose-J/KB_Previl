@@ -86,12 +86,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.note {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--fg-t6);
-}
-
 @media (max-width: 480px) {
   .row {
     grid-template-columns: 60px 1fr 40px;

@@ -5,15 +5,10 @@ import s from "./VisitorPartyCard.module.css";
 // 후기에서 «누구와 왔는지»가 적힌 것만 센 관측이다. 비율도 서버가 계산한 share
 // 를 쓰고, 순위나 전망을 클라이언트에서 만들지 않는다.
 //
-// 정확도 한 줄은 지우지 않는다(§J-1 표기 계약). 라벨만 보이면 «측정했다»가
-// «맞다»로 읽히는데, 실측 정밀도는 0.633·0.700 이라 10건 중 3~4건은 틀린다.
-// 상권 단위라는 것과 표본 크기는 머리말이 이미 말하므로 거기 기대고 뺐다.
-
-function accuracyLine(items: VisitorParty["items"]): string {
-  const worst = Math.min(...items.map((i) => i.precision));
-  const wrong = Math.round((1 - worst) * 10);
-  return `후기 글에서 자동으로 골라낸 값이라 10건 중 ${wrong}건쯤은 틀려요.`;
-}
+// 정확도 문구(«10건 중 N건쯤 틀려요»)는 소유자 판단으로 뺐다(2026-08-01). 코퍼스
+// 일부를 다른 추출기로 라벨하기로 하면서 §J-1 의 0.633·0.700 이 화면 전체를
+// 설명하지 못하게 됐고, 맞지 않는 수치를 남기느니 수치를 안 내는 쪽을 골랐다.
+// `precision` 은 응답에 그대로 실려 있으므로 되살릴 때 API 변경은 필요 없다.
 
 export default function VisitorPartyCard({ party }: { party: VisitorParty | null }) {
   // 수집 미실행과 «글이 모자란 자리» 는 다른 상태다. 같은 문구로 뭉개면 준비가
@@ -70,8 +65,6 @@ export default function VisitorPartyCard({ party }: { party: VisitorParty | null
           </div>
         ))}
       </div>
-
-      <p className={s.note}>{accuracyLine(party.items)}</p>
     </section>
   );
 }
