@@ -4,7 +4,7 @@
 
 ```
 verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 PASS
-제출 zip 90.7MB / 1,249파일 · 리허설 통과
+제출 zip 90.7MB / 1,251파일 · 리허설 통과
 ```
 
 `verify` 의 `counts` 는 라이브 API 총건수와 대조하는 검사라, 캐시로 재구축한 DB
