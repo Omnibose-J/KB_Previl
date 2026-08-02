@@ -25,6 +25,7 @@ from service import estimation as estimation_service
 from service import footprints as footprints_service
 from service import goodwill as goodwill_service
 from service import reporting
+from service import runway as runway_service
 
 from .schemas import (
     AreasResponse,
@@ -47,6 +48,8 @@ from .schemas import (
     RecommendResponse,
     ReportInput,
     ReportResponse,
+    RunwayInput,
+    RunwayResponse,
     ViewportErrorResponse,
 )
 
@@ -348,6 +351,15 @@ def compare(payload: CompareInput) -> dict:
         "params_used": cost_params,
         "items": estimation_service.rank_candidates(evaluated),
     }
+
+
+@app.post(
+    "/api/runway",
+    response_model=RunwayResponse,
+    responses=NOT_FOUND_DATABASE_ERRORS,
+)
+def runway(payload: RunwayInput) -> dict:
+    return runway_service.calculate(**payload.model_dump())
 
 
 @app.post(

@@ -591,3 +591,50 @@ class ReportResponse(ApiModel):
     grid_id: str
     uptae: UptaeName
     sentences: Annotated[list[str], Field(min_length=3, max_length=5)]
+
+
+class RunwayInput(ApiModel):
+    grid_id: Annotated[str, Field(pattern=r"^\d+_\d+$")]
+    uptae: UptaeName
+    budget: Annotated[float, Field(ge=0)]
+    upfront: Annotated[float, Field(ge=0)]
+    rent_monthly: Annotated[float, Field(ge=0)]
+    revenue_monthly: Annotated[float | None, Field(gt=0)] = None
+    margin: Annotated[float | None, Field(gt=0, le=1)] = None
+    ramp_months: Literal[3, 6, 9] = 6
+
+
+class RunwayMonth(ApiModel):
+    month: Annotated[int, Field(ge=1)]
+    revenue: float
+    net: float
+    cum: float
+
+
+class RunwayAssumption(ApiModel):
+    label: str
+    value: float
+    source: str
+
+
+class RunwayResponse(ApiModel):
+    grid_id: str
+    uptae: UptaeName
+    level: Literal["IMPOSSIBLE", "DANGER", "WARN", "OK"]
+    revenue_monthly: float
+    revenue_source: Literal[
+        "user_input", "trade_area_average", "seoul_trade_area_average"
+    ]
+    revenue_as_of_quarter: str | None
+    budget: float
+    upfront: float
+    reserve: float
+    working_capital_need: float
+    coverage: float | None
+    depletion_month: int | None
+    breakeven_month: int | None
+    trough_month: int
+    horizon_months: int
+    ramp_months: int
+    curve: list[RunwayMonth]
+    assumptions: list[RunwayAssumption]
