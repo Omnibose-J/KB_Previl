@@ -4,8 +4,6 @@ import type {
   ChangesResponse,
   CompareInput,
   CompareResponse,
-  EconomicsInput,
-  EconomicsResponse,
   EstimateInput,
   EstimateResponse,
   FootprintsResponse,
@@ -17,6 +15,8 @@ import type {
   Meta,
   RecommendResponse,
   ReportResponse,
+  RunwayInput,
+  RunwayResponse,
 } from "./types";
 
 /**
@@ -80,8 +80,9 @@ export const api = {
   /** No caller yet — reserved for the P1 diagnosis flow (S1 "이 자리 어때?"). */
   atPoint: (lon: number, lat: number, uptae: string) =>
     request<GridDetail>(`/at?lon=${lon}&lat=${lat}&uptae=${encodeURIComponent(uptae)}`),
-  economics: (input: EconomicsInput) =>
-    request<EconomicsResponse>("/economics", { method: "POST", body: JSON.stringify(input) }),
+  /** 예산 버티기 시뮬레이션 — 곡선까지 전부 서버 계산 (산식 복제 금지) */
+  runway: (input: RunwayInput) =>
+    request<RunwayResponse>("/runway", { method: "POST", body: JSON.stringify(input) }),
   goodwill: (input: GoodwillInput) =>
     request<GoodwillResponse>("/goodwill", { method: "POST", body: JSON.stringify(input) }),
 

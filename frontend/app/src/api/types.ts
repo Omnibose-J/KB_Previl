@@ -380,40 +380,58 @@ export interface FootprintsResponse {
   cached: boolean;
 }
 
-export interface EconomicsInput {
+export interface RunwayInput {
   gridId: string;
   uptae: string;
-  rentMonthly: number; // 만원, user input — never from data
+  budget: number; // 만원, user input — never from data
   upfront: number; // 만원
-  /** omit to use the contracted Seoul trade-area average (caption becomes mandatory) */
+  rentMonthly: number; // 만원
+  /** omit to use this grid's trade-area figure, else the Seoul average */
   revenueMonthly?: number;
-  /** pre-rent margin, default 0.25 server-side */
+  /** pre-rent margin, default 0.25 server-side (same concept as before) */
   margin?: number;
+  /** ramp-up preset — how fast revenue reaches steady state */
+  rampMonths?: 3 | 6 | 9;
 }
 
-export interface GradeComparison {
-  grade: Grade;
-  expectedProfit3y: number;
+export interface RunwayMonth {
+  month: number;
+  revenue: number;
+  net: number;
+  /** cumulative net cash flow since opening (만원) */
+  cum: number;
 }
 
-export interface EconomicsResponse {
+export interface RunwayAssumption {
+  label: string;
+  value: number;
+  source: string;
+}
+
+export interface RunwayResponse {
   gridId: string;
   uptae: string;
-  grade: Grade;
+  level: "IMPOSSIBLE" | "DANGER" | "WARN" | "OK";
   revenueMonthly: number;
-  revenueSource: "user_input" | "seoul_trade_area_average";
+  revenueSource: "user_input" | "trade_area_average" | "seoul_trade_area_average";
   revenueAsOfQuarter: string | null;
-  simplePaybackMonths: number | null;
-  /** null = not recovered within 36 months — a real answer, not a gap */
-  riskAdjustedPaybackMonths: number | null;
-  expectedProfit3y: number;
-  monthlyProfit: number;
-  survival36m: number;
-  usedSeoulAverageRevenue: boolean;
-  margin: number;
-  /** sign of the 3y result flips within the 20~30% margin band */
-  marginSensitive: boolean;
-  gradeComparison: GradeComparison[];
+  budget: number;
+  upfront: number;
+  /** budget − upfront: what is left after signing (만원) */
+  reserve: number;
+  /** |trough of the cumulative curve| — the money the ramp actually burns */
+  workingCapitalNeed: number;
+  /** reserve ÷ need; null when nothing to bridge or the signing itself fails */
+  coverage: number | null;
+  /** first month the remaining money goes below zero; null = survives 24m */
+  depletionMonth: number | null;
+  /** first month with a positive net — null = never within the horizon */
+  breakevenMonth: number | null;
+  troughMonth: number;
+  horizonMonths: number;
+  rampMonths: number;
+  curve: RunwayMonth[];
+  assumptions: RunwayAssumption[];
 }
 
 export interface ReportResponse {

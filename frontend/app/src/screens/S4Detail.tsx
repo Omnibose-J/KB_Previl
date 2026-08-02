@@ -8,7 +8,7 @@ import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
 import SalesMixCard from "../components/SalesMixCard";
 import VisitorPartyCard from "../components/VisitorPartyCard";
-import EconomicsCard from "../components/EconomicsCard";
+import RunwayCard from "../components/RunwayCard";
 import GoodwillCard from "../components/GoodwillCard";
 import OccupancyCostCard from "../components/OccupancyCostCard";
 import KbLinkCard from "../components/KbLinkCard";
@@ -307,11 +307,14 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.panel} hidden={tab !== "moneyTab"}>
-          {/* ── economics (centrepiece) ──────────────────────────── */}
-          <EconomicsCard
+          {/* ── runway (centrepiece) ─────────────────────────────
+              «내 예산으로 몇 개월 버티나». 2026-08-02 사용자 결정으로 손익
+              카드(회수 기간·등급 사다리)를 완전 대체했다 — 근거는 결정 로그
+              decision_kb_runway_replaces_economics_card_margin_unified. */}
+          <RunwayCard
             gridId={d.gridId}
             uptae={uptae}
-            grade={d.grade}
+            budget={search.budget}
             rentMonthly={search.rentMonthly}
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}

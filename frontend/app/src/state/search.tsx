@@ -13,6 +13,8 @@ export interface SearchState {
   rentMonthly: number | null;
   /** 만원, user input only */
   upfront: number | null;
+  /** 만원, 창업에 쓸 수 있는 총 예산 — user input only */
+  budget: number | null;
 }
 
 interface SearchApi extends SearchState {
@@ -28,6 +30,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     districts: [],
     rentMonthly: null,
     upfront: null,
+    budget: null,
   });
 
   const value = useMemo<SearchApi>(

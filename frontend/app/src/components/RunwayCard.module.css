@@ -1,0 +1,311 @@
+/* Runway card — S4 money-tab centrepiece. Field/stat styling carried over
+   from the economics card it replaced; adds the verdict banner, ramp presets,
+   and the remaining-money chart. */
+
+/* Lives inside the S4 report sheet — flat section, no card chrome. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px 0 28px;
+  border-top: 1px solid var(--fg-line);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.lead {
+  font-size: 14px;
+  color: var(--fg-t6);
+}
+
+/* inputs */
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+  border: 1px solid var(--fg-line2);
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.req {
+  font-style: normal;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--fg-y);
+  color: var(--fg-ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.fieldInput {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fieldInput input {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg-ink);
+  outline: none;
+  padding: 0;
+}
+
+.fieldInput input::placeholder {
+  color: var(--fg-t8);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--fg-t7);
+  flex: none;
+}
+
+/* ramp presets — one choice the user owns, so it looks like a control */
+.presets {
+  display: flex;
+  gap: 6px;
+}
+
+.preset,
+.presetOn {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 7px;
+  border: 1px solid var(--fg-line2);
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-t5);
+  cursor: pointer;
+}
+
+.preset i,
+.presetOn i {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--fg-t7);
+}
+
+.presetOn {
+  border-color: var(--fg-ink);
+  background: var(--fg-ink);
+  color: #fff;
+}
+
+.presetOn i {
+  color: #d9d9d9;
+}
+
+.prompt {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--fg-y-bg);
+  color: var(--fg-y-text);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* verdict banner — one loud sentence, status-colored */
+.verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 18px;
+  border-radius: 12px;
+}
+
+.verdict strong {
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 27px;
+}
+
+.verdict span {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.vGreen {
+  background: var(--fg-green-bg);
+  color: var(--fg-green);
+}
+
+.vOrange {
+  background: var(--fg-orange-bg);
+  color: var(--fg-orange-deep);
+}
+
+.vRed {
+  background: #fdeae4;
+  color: var(--fg-red);
+}
+
+/* stats — open columns split by hairlines */
+.results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 6px 0 2px;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.result + .result {
+  border-left: 1px solid var(--fg-line3);
+  padding-left: 20px;
+}
+
+.resultLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-t6);
+}
+
+.resultValue {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 36px;
+  color: var(--fg-ink);
+}
+
+.resultNote {
+  font-size: 13px;
+  color: var(--fg-t7);
+}
+
+/* chart */
+.fig {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+}
+
+.zero {
+  stroke: var(--fg-t7);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.zeroLabel,
+.axis {
+  font-size: 12px;
+  fill: var(--fg-t7);
+}
+
+.line {
+  fill: none;
+  stroke: var(--fg-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.dot {
+  fill: var(--fg-ink);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.dotBad {
+  fill: var(--fg-red);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.mark {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--fg-t4);
+}
+
+.markBad {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--fg-red);
+}
+
+.cap {
+  font-size: 13px;
+  color: var(--fg-t7);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* mandatory captions */
+.caption {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--fg-wash);
+  font-size: 14px;
+  color: var(--fg-t4);
+}
+
+.assumptions {
+  font-size: 13px;
+  color: var(--fg-t7);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1024px) {
+  .inputs { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 680px) {
+  .inputs { grid-template-columns: 1fr; }
+  .results { grid-template-columns: 1fr; gap: 12px; }
+  .result + .result { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); padding-top: 12px; }
+}
