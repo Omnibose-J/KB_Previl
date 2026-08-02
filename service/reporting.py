@@ -158,9 +158,9 @@ def _risk_caveat(observed_survival):
         raise ReportGenerationError("격자 실측 생존율이 유효하지 않습니다.")
     closure_percent = round((1 - observed_survival) * 100)
     return (
-        "이 등급 자리의 실측 3년 내 폐업률은 "
-        f"약 {closure_percent}%입니다. "
-        "등급은 입지의 확률이지 성패의 보증이 아닙니다."
+        "이 등급 자리에서도 3년 안에 "
+        f"약 {closure_percent}%가 문을 닫았어요. "
+        "등급은 참고이지 잘된다는 보장은 아니에요."
     )
 
 
@@ -290,6 +290,10 @@ def _request_completion(client, evidence):
                         "content": (
                             "당신은 서울 요식업 입지 리포트 작성자입니다. "
                             "JSON 근거만 사용해 짧은 한국어 근거 문장을 작성하세요. "
+                            # 화면의 다른 문장은 전부 해요체다. 말투를 안 정해 주면
+                            # 보고서체("~로 보입니다")로 나와 카드 안에서 혼자 튄다.
+                            "가게를 열려는 사람에게 말하듯 '~해요', '~예요'체로 쓰고, "
+                            "한 문장을 40자 안쪽으로 짧게 끊으세요. "
                             "근거 값을 인용할 때는 JSON key를 {{grade}}처럼 "
                             "중괄호 2개의 placeholder로만 쓰세요. "
                             "숫자 글리프를 직접 쓰거나 계산하거나 반올림하지 마세요. "

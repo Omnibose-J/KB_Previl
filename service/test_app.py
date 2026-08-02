@@ -1950,7 +1950,7 @@ def test_report_appends_observed_grade_risk_after_whitelist(monkeypatch, grade):
     assert len(body["sentences"]) == 3
     expected_closure = round((1 - sample["observed"]) * 100)
     assert body["sentences"][-1].startswith(
-        f"이 등급 자리의 실측 3년 내 폐업률은 약 {expected_closure}%"
+        f"이 등급 자리에서도 3년 안에 약 {expected_closure}%가 문을 닫았어요"
     )
 
 
