@@ -843,3 +843,24 @@ the next model command rebuilds them, then later unchanged runs reuse them.
 on an operator remembering to archive either cache. The added licence scan
 runs once per split-cache request and is small relative to rebuilding a
 multi-year split.
+
+## F-S2. Three-feature logic audit leftovers (2026-08-02) — deferred, not dismissed
+
+Three fresh read-only audits (입지판별 · 권리금 · 매물비교) before the 08-03
+deadline. The two medium findings — S5Compare labeling teoRank (burden-primary,
+`service/estimation.py:254-265`, contract `lanes/B-backend.md:542`) as "실제로
+나가는 돈 기준", and outside-상권 candidates rank-demoted with a ▼ arrow — were
+FIXED same day in `S5Compare.tsx` (heading/caption now name the burden order;
+null-burden items get no demotion styling plus an honest note). Core logic of
+all three features verified clean: grade monotonicity zero inversions over
+grid_score, history>=20 rule zero exceptions, goodwill decomposition matches
+hand SQL recomputation to 1e-9, estimate/compare cost parity exact, validation
+4xx coverage. Remaining low-severity items:
+
+| what | where | why deferred |
+|---|---|---|
+| serving-design.md §4 describes compare/estimate as 실질 월 점유비용 only — never mentions the burden-primary teoRank key it ships, and advertises a 관리비 term the API cannot receive (`maintenance_fee` hardcoded 0, no input field) | `docs/serving-design.md:159-184` vs `service/estimation.py:254-265,171`, `service/schemas.py:387-395` | doc-only; B-lane contract (`lanes/B-backend.md:542`) already documents the real key |
+| goodwill lane-doc drift: operatingMargin 0.15 (code 0.0701), benchmark "평균" (code median), valuationYears "floor" (code keeps fractional years), "민감도 27행" (short leases dedupe to 18) | `lanes/B-backend.md:620-722` vs `service/goodwill.py:13,62-71,218-271` | C lane reads this contract; drift risks copy regressions |
+| GoodwillCard caption hardcodes "인테리어·집기 · 5년 감가" while the API honors per-asset `usefulLifeYears` | `frontend/app/src/components/GoodwillCard.tsx:331` | copy-only; server numbers correct |
+| recommend top-N tie boundary nondeterministic: `ORDER BY s.score DESC LIMIT ?` without tiebreaker; 442 (uptae, score) tie groups exist, earliest at rank 16 | `service/api/search.py:60` | cosmetic — tied scores share a grade; add `, s.grid_id` when touched next |
+| trade-area revenue outliers flow into burden ranking unflagged: 24/1,405 한식 상권 have per-store monthly revenue < 100만원 (min 1.4만원 → burdenRate 277 = 27,732%) and burden is the primary rank key | `service/estimation.py:129-136`; data `grid_feature.sales_amt`/`stor_co` | upstream source issue; a plausibility floor/flag is a product call |

@@ -383,6 +383,8 @@ function Reversal({ r }: { r: CompareResponse }) {
   const moved = items.some((it) => it.rankMoved !== 0);
   // 후보 전부의 매출이 동점이면 부담률로 줄 세울 수 없다 (같은 상권).
   const burdenComparable = items.length > 1 && items.some((it) => !it.revenueTied);
+  // 매출 없는 상권 후보는 서버 정렬 규칙상 맨 뒤로 간다 — 측정이 아니라 규칙이다.
+  const hasUnmeasured = items.some((it) => it.burdenRate === null);
   const height = Math.max(byRent.length, byTeo.length) * ROW_H;
   // 서버가 실제로 쓴 상각 기간. 화면 선택값이 아니라 응답을 되읽어야, 요청이
   // 무시되거나 서버 기본값으로 떨어진 경우에도 각주가 사실을 말한다.
@@ -420,6 +422,16 @@ function Reversal({ r }: { r: CompareResponse }) {
           {items.map((it) => {
             const y1 = (it.rentRank - 1) * ROW_H + ROW_H / 2;
             const y2 = (it.teoRank - 1) * ROW_H + ROW_H / 2;
+            // 매출 없는 상권의 하락은 잰 값이 아니라 정렬 규칙이므로
+            // 색으로 나쁨을 주장하지 않는다.
+            const lineClass =
+              it.burdenRate === null
+                ? s.lineFlat
+                : it.rankMoved > 0
+                  ? s.lineUp
+                  : it.rankMoved < 0
+                    ? s.lineDown
+                    : s.lineFlat;
             return (
               <line
                 key={it.label}
@@ -427,14 +439,18 @@ function Reversal({ r }: { r: CompareResponse }) {
                 y1={y1}
                 x2="100"
                 y2={y2}
-                className={it.rankMoved > 0 ? s.lineUp : it.rankMoved < 0 ? s.lineDown : s.lineFlat}
+                className={lineClass}
               />
             );
           })}
         </svg>
 
         <div className={s.slopeCol}>
-          <span className={s.slopeColH}>실제로 나가는 돈 기준</span>
+          {/* 교차 상권이면 오른쪽 순위는 비용이 아니라 부담률이 먼저다 —
+              비용 기준이라고 쓰면 비싼 후보가 1위인 화면이 거짓말이 된다 */}
+          <span className={s.slopeColH}>
+            {burdenComparable ? "매출 부담까지 반영한 순위" : "실제로 나가는 돈 기준"}
+          </span>
           {byTeo.map((it, i) => (
             <RankRow
               key={it.label}
@@ -466,7 +482,8 @@ function Reversal({ r }: { r: CompareResponse }) {
             <tr key={it.label}>
               <td>
                 <span className={s.tag}>{it.label}</span>
-                {it.rankMoved !== 0 ? (
+                {/* 매출 없는 상권의 ▼는 «실제로 더 나쁨»이라는, 재지 않은 주장이 된다 */}
+                {it.rankMoved !== 0 && it.burdenRate !== null ? (
                   <em className={it.rankMoved > 0 ? s.moveUp : s.moveDown}>
                     {it.rankMoved > 0 ? "▲" : "▼"}
                     {Math.abs(it.rankMoved)}
@@ -547,12 +564,21 @@ function Reversal({ r }: { r: CompareResponse }) {
       {/* 부담률로 줄 세울 수 있는지 — 같은 상권이면 매출이 동점이라 못 한다 */}
       <p className={burdenComparable ? s.burdenOk : s.burdenNo}>
         {burdenComparable
-          ? "후보들이 서로 다른 상권이라, 매출까지 반영한 부담률로도 순서가 달라질 수 있어요."
+          ? // 오른쪽 순위가 이미 부담률 순서라는 사실을 말한다 — "달라질 수
+            // 있어요"는 표시된 순서가 비용 순서라는 오독을 남긴다.
+            "후보들이 서로 다른 상권이라, 오른쪽 순위는 실질 비용에 그 상권 매출 부담까지 반영한 순서예요. 금액만 비교하려면 표의 «실질 월 점유비용»을 보세요."
           : // 부담률 값 자체는 나온다(비용이 다르니까). 다만 매출이 동점이라
             // 부담률 순위가 비용 순위와 같아져 «새로 뒤집히는» 일이 없다.
             // "부담률을 안 냈다"고 쓰면 표에 보이는 값과 어긋난다.
             "후보들의 예상 매출이 같은 값이에요. 매출은 상권 단위라 같은 상권 안에서는 구분되지 않아요. 그래서 부담률 순서는 위 비용 순서와 같고, 여기서 한 번 더 뒤집히지는 않아요."}
       </p>
+      {hasUnmeasured ? (
+        <p className={s.burdenNo}>
+          매출 정보가 없는 상권의 후보는 부담을 잴 수 없어서 순위 맨 뒤에 있어요.
+          자리가 나쁘다는 뜻이 아니라 잴 수 없다는 뜻이에요 — 금액은 표의 실질 월
+          점유비용으로 비교하세요.
+        </p>
+      ) : null}
       {items[0] ? <p className={s.notice}>{items[0].notice}</p> : null}
     </section>
   );
