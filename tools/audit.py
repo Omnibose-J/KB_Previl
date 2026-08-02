@@ -355,6 +355,32 @@ def gate_size(v):
     return len(over) + len(stale)
 
 
+def gate_lint(v):
+    """Run the repository's Python lint contract and fail closed."""
+    import shutil
+    import subprocess
+
+    ruff = shutil.which("ruff")
+    if ruff is None:
+        print("[lint] FAIL — ruff 없음. requirements-dev.txt 를 설치할 것")
+        return 1
+    proc = subprocess.run(
+        [ruff, "check", "--no-cache", "service", "run.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=300,
+    )
+    print(f"[lint] ruff check service run.py — exit {proc.returncode}")
+    if proc.returncode or v:
+        output = ((proc.stdout or "") + (proc.stderr or "")).splitlines()
+        for line in [item for item in output if item.strip()][:40]:
+            print(f"    {line}")
+    return 1 if proc.returncode else 0
+
+
 REQUIRED_IN_ZIP = ("README.md", "run.py", "requirements.txt",
                    "requirements-full.txt", "verify.ipynb",
                    "service/app.py", "web/index.html")
@@ -635,7 +661,8 @@ def gate_frontend(v):
 
 
 GATES = {"closure": gate_closure, "comments": gate_comments, "size": gate_size,
-         "behaviour": gate_behaviour, "frontend": gate_frontend}
+         "lint": gate_lint, "behaviour": gate_behaviour,
+         "frontend": gate_frontend}
 
 
 def main():

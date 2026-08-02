@@ -64,7 +64,7 @@ def find_db():
     """
     override = db_override()
     if override:
-        p = Path(override).expanduser()
+        p = Path(override).expanduser().resolve()
         return p if p.is_file() else None
     for name in DB_NAMES:
         p = ROOT / name
@@ -76,12 +76,13 @@ def find_db():
 def db_target():
     """백필이 만들 DB. 서비스가 그 다음에 열 파일과 같은 경로여야 한다."""
     override = db_override()
-    return Path(override).expanduser() if override else ROOT / DB_NAMES[0]
+    return Path(override).expanduser().resolve() if override else ROOT / DB_NAMES[0]
 
 
 def child_env(db):
     """고른 DB 를 자식에게 명시적으로 넘긴다. 물려받은 값에 맡기지 않는다."""
-    return dict(os.environ, PYTHONIOENCODING="utf-8", KB_DB=str(db))
+    resolved = Path(db).expanduser().resolve()
+    return dict(os.environ, PYTHONIOENCODING="utf-8", KB_DB=str(resolved))
 
 
 def explain_missing_db():

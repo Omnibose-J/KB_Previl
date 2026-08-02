@@ -1,9 +1,9 @@
-"""LLM evidence sentences with a strict numeric whitelist."""
+"""LLM-selected evidence rendered through server-owned sentences."""
 
 import json
 import re
 import time
-from typing import Annotated
+from typing import Literal
 
 import httpx
 from openai import AuthenticationError, OpenAI, OpenAIError, RateLimitError
@@ -38,22 +38,52 @@ _REPORT_OTHER_DETAIL = (
 )
 
 _PLACEHOLDER = re.compile(r"\{\{([A-Za-z][A-Za-z0-9]*)\}\}")
-# 한국어 문장에 한자는 섞이지 않는다. 추론 흔적이 새면 여기로 나타난다("重新").
-_HANJA = re.compile(r"[㐀-䶿一-鿿]")
-_HANGUL = re.compile(r"[가-힣]")
-# 라틴 문자는 통째로 막을 수 없다 — evidence 값이 맨 숫자라 단위(m, km)는
-# 모델이 붙여야 하고, 그건 정상 문장이다. 대신 «영어 낱말»의 길이로 가른다.
-# 단위·약어는 3자 이하(m, km, AI, LLM)이고, 새어 나온 영어는 그보다 길다
-# (Need, schema, Station, because). 총량도 함께 본다 — 짧은 낱말을 여러 개
-# 늘어놓는 경우가 있다.
-_LATIN_RUN = re.compile(r"[A-Za-z]+")
-_MAX_LATIN_RUN = 3
-_MAX_LATIN_TOTAL = 8
-_NUMBER_TOKEN = re.compile(
-    r"(?<![0-9A-Za-z.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
-    r"(?:[eE][+-]?\d+)?"
+
+GRADE_SURVIVAL_SENTENCE = (
+    "이 자리는 {{grade}}등급이고, 같은 등급의 {{horizonYears}}년 실측 생존율은 "
+    "{{observedSurvivalPercent}}%예요."
 )
-_NUMERIC_OPERATOR = re.compile(r"^[\s+\-−*/×÷^%∕⁄~～]+$")
+LOCAL_COMPETITION_SENTENCE = (
+    "이 격자에는 음식점 {{shopsHere}}곳, 주변 격자 범위에는 "
+    "{{shopsNeighbor}}곳이 있어요."
+)
+TURNOVER_SENTENCE = (
+    "누적 개업 기록은 {{openingsTotal}}곳, 폐업 기록은 {{closuresTotal}}곳이에요."
+)
+AREA_SURVIVAL_SENTENCE = (
+    "이 상권의 실측 생존율은 {{areaSurvivalPercent}}%이고, "
+    "표본은 {{areaSurvivalSample}}곳이에요."
+)
+STATION_ACCESS_SENTENCE = (
+    "가장 가까운 역은 {{stationName}}이고, 거리는 약 "
+    "{{stationDistanceMeters}}m예요."
+)
+LOCATION_SENTENCE = "{{district}} {{administrativeDong}}에 있는 자리예요."
+
+ReportSentence = Literal[
+    GRADE_SURVIVAL_SENTENCE,
+    LOCAL_COMPETITION_SENTENCE,
+    TURNOVER_SENTENCE,
+    AREA_SURVIVAL_SENTENCE,
+    STATION_ACCESS_SENTENCE,
+    LOCATION_SENTENCE,
+]
+
+_SENTENCE_REQUIREMENTS = {
+    GRADE_SURVIVAL_SENTENCE: (
+        "grade",
+        "horizonYears",
+        "observedSurvivalPercent",
+    ),
+    LOCAL_COMPETITION_SENTENCE: ("shopsHere", "shopsNeighbor"),
+    TURNOVER_SENTENCE: ("openingsTotal", "closuresTotal"),
+    AREA_SURVIVAL_SENTENCE: ("areaSurvivalPercent", "areaSurvivalSample"),
+    STATION_ACCESS_SENTENCE: ("stationName", "stationDistanceMeters"),
+    LOCATION_SENTENCE: ("district", "administrativeDong"),
+}
+_REPORT_EVIDENCE_KEYS = frozenset(
+    key for requirements in _SENTENCE_REQUIREMENTS.values() for key in requirements
+)
 
 
 class ReportUnavailableError(RuntimeError):
@@ -64,27 +94,8 @@ class ReportGenerationError(RuntimeError):
     """The LLM response did not satisfy the public report contract."""
 
 
-class NonKoreanSentenceError(ReportGenerationError):
-    def __init__(self, sentence):
-        self.sentence = sentence
-        super().__init__(
-            "LLM 응답이 한국어 근거 문장이 아닙니다: " + sentence[:80]
-        )
-
-
-class UnapprovedNumberError(ReportGenerationError):
-    def __init__(self, numbers):
-        self.numbers = sorted(numbers)
-        super().__init__(
-            "LLM 응답에 근거 payload에 없는 숫자가 포함됐습니다: "
-            + ", ".join(self.numbers)
-        )
-
-
 class GeneratedReport(BaseModel):
-    sentences: list[Annotated[str, Field(min_length=1, max_length=240)]] = Field(
-        min_length=2, max_length=4
-    )
+    sentences: list[ReportSentence] = Field(min_length=2, max_length=4)
 
 
 def _format(value, digits=None):
@@ -164,106 +175,50 @@ def _risk_caveat(observed_survival):
     )
 
 
-# 값이 내부 enum 이라 문장에 그대로 실리면 뜻이 통하지 않는 키. confidence 는
-# "full"/"partial" 로 오는데, 모델이 «분석 기준은 full 로 제시되었습니다» 처럼
-# 인용해 영어 낱말이 화면까지 나갔다. 화면은 이 값을 따로 자기 방식으로 쓴다.
-_NOT_QUOTABLE = frozenset({"confidence"})
-
-
 def quotable_evidence(evidence):
-    """placeholder 로 인용할 수 있는 항목만 남긴다.
-
-    인용은 문자열 값에만 성립하고, 모델에게 주는 payload 와 이 집합이 같아야
-    한다. 다르면 모델이 본 키를 정직하게 인용했는데 «알 수 없는 placeholder»
-    로 거부당한다(missingAxes 가 리스트라 실제로 502 가 났다).
-    """
+    """Return only scalar evidence used by a server-owned sentence."""
     return {
         key: value
         for key, value in evidence.items()
-        if isinstance(value, str) and key not in _NOT_QUOTABLE
+        if isinstance(value, str) and key in _REPORT_EVIDENCE_KEYS
     }
+
+
+def eligible_report_sentences(evidence):
+    scalar_evidence = quotable_evidence(evidence)
+    return [
+        sentence
+        for sentence, requirements in _SENTENCE_REQUIREMENTS.items()
+        if all(key in scalar_evidence for key in requirements)
+    ]
 
 
 def render_evidence_placeholders(sentences, evidence):
-    generated_text = "\n".join(sentences)
-    numeric_glyphs = {
-        character for character in generated_text if character.isnumeric()
-    }
-    if numeric_glyphs:
-        raise UnapprovedNumberError(numeric_glyphs)
+    if not 2 <= len(sentences) <= 4:
+        raise ReportGenerationError("보고서 근거 문장은 2~4개여야 합니다.")
+    if len(sentences) != len(set(sentences)):
+        raise ReportGenerationError("보고서 근거 문장은 중복될 수 없습니다.")
 
     scalar_evidence = quotable_evidence(evidence)
-    placeholders = set(_PLACEHOLDER.findall(generated_text))
-    unknown = placeholders - set(scalar_evidence)
-    if unknown:
-        raise ReportGenerationError(
-            "LLM 응답에 알 수 없는 evidence placeholder가 포함됐습니다: "
-            + ", ".join(sorted(unknown))
-        )
-
-    without_placeholders = _PLACEHOLDER.sub("", generated_text)
-    if "{{" in without_placeholders or "}}" in without_placeholders:
-        raise ReportGenerationError(
-            "LLM 응답의 evidence placeholder 형식이 잘못됐습니다."
-        )
-
-    matches = list(_PLACEHOLDER.finditer(generated_text))
-    for previous, current in zip(matches, matches[1:]):
-        previous_value = scalar_evidence[previous.group(1)]
-        current_value = scalar_evidence[current.group(1)]
-        if not (
-            _NUMBER_TOKEN.search(previous_value) and _NUMBER_TOKEN.search(current_value)
-        ):
-            continue
-        bridge = generated_text[previous.end() : current.start()]
-        if bridge == "" or _NUMERIC_OPERATOR.fullmatch(bridge):
+    for sentence in sentences:
+        requirements = _SENTENCE_REQUIREMENTS.get(sentence)
+        if requirements is None:
             raise ReportGenerationError(
-                "숫자 evidence placeholder를 결합하거나 계산할 수 없습니다."
+                "LLM 응답에 허용되지 않은 근거 문장이 포함됐습니다."
+            )
+        missing = [key for key in requirements if key not in scalar_evidence]
+        if missing:
+            raise ReportGenerationError(
+                "LLM 응답이 없는 근거를 선택했습니다: " + ", ".join(missing)
             )
 
-    rendered = [
+    return [
         _PLACEHOLDER.sub(
             lambda match: scalar_evidence[match.group(1)],
             sentence,
         )
         for sentence in sentences
     ]
-    allowed_numbers = {
-        match.group(0)
-        for value in scalar_evidence.values()
-        for match in _NUMBER_TOKEN.finditer(value)
-    }
-    rendered_numbers = {
-        match.group(0)
-        for sentence in rendered
-        for match in _NUMBER_TOKEN.finditer(sentence)
-    }
-    unapproved = rendered_numbers - allowed_numbers
-    if unapproved:
-        raise UnapprovedNumberError(unapproved)
-    return rendered
-
-
-def reject_non_korean(sentences):
-    """모델의 사고 흔적이 문장 칸으로 새는 것을 막는다.
-
-    Structured Outputs 는 JSON 의 모양만 보장한다. 숫자 화이트리스트도 숫자
-    없는 텍스트는 못 잡아서, 실제로 «Need final exact schema ... 重新» 이
-    화면까지 나갔다.
-
-    단위(m, km)는 모델이 붙이는 것이 맞으므로 라틴 문자를 통째로 막지 않고
-    낱말 길이와 총량으로 가른다.
-    """
-    for sentence in sentences:
-        body = _PLACEHOLDER.sub("", sentence)
-        runs = _LATIN_RUN.findall(body)
-        if (
-            not _HANGUL.search(body)
-            or _HANJA.search(body)
-            or any(len(run) > _MAX_LATIN_RUN for run in runs)
-            or sum(len(run) for run in runs) > _MAX_LATIN_TOTAL
-        ):
-            raise NonKoreanSentenceError(sentence)
 
 
 def _openai_error_codes(exc):
@@ -288,24 +243,18 @@ def _request_completion(client, evidence):
                     {
                         "role": "system",
                         "content": (
-                            "당신은 서울 요식업 입지 리포트 작성자입니다. "
-                            "JSON 근거만 사용해 짧은 한국어 근거 문장을 작성하세요. "
-                            # 화면의 다른 문장은 전부 해요체다. 말투를 안 정해 주면
-                            # 보고서체("~로 보입니다")로 나와 카드 안에서 혼자 튄다.
-                            "가게를 열려는 사람에게 말하듯 '~해요', '~예요'체로 쓰고, "
-                            "한 문장을 40자 안쪽으로 짧게 끊으세요. "
-                            "근거 값을 인용할 때는 JSON key를 {{grade}}처럼 "
-                            "중괄호 2개의 placeholder로만 쓰세요. "
-                            "숫자 글리프를 직접 쓰거나 계산하거나 반올림하지 마세요. "
-                            "인과관계나 성공 보장을 주장하지 마세요."
+                            "당신은 서울 요식업 입지 리포트의 근거 선택자입니다. "
+                            "eligibleSentences에서 서로 다른 문장 2~4개를 그대로 "
+                            "고르세요. 문장을 수정하거나 새로 작성하지 마세요."
                         ),
                     },
                     {
                         "role": "user",
-                        # 인용 가능한 항목만 보낸다. 인용 못 하는 키를 보여 주면
-                        # 모델은 그것도 근거로 알고 인용하고, 그 순간 거부당한다.
                         "content": json.dumps(
-                            quotable_evidence(evidence),
+                            {
+                                "evidence": quotable_evidence(evidence),
+                                "eligibleSentences": eligible_report_sentences(evidence),
+                            },
                             ensure_ascii=False,
                             sort_keys=True,
                         ),
@@ -333,6 +282,8 @@ def _request_completion(client, evidence):
 
 
 def _generate_sentences(evidence):
+    if len(eligible_report_sentences(evidence)) < 2:
+        raise ReportGenerationError("보고서를 구성할 근거가 2개보다 적습니다.")
     try:
         api_key = load_env().get("OPENAI_API_KEY")
     except (OSError, UnicodeError) as exc:
@@ -358,7 +309,6 @@ def _generate_sentences(evidence):
         raise ReportGenerationError("OpenAI가 보고서 생성을 거부했습니다.")
     if message.parsed is None:
         raise ReportGenerationError("구조화된 보고서 응답을 받지 못했습니다.")
-    reject_non_korean(message.parsed.sentences)
     return message.parsed.sentences
 
 
@@ -366,7 +316,7 @@ def _generate_verified(evidence):
     """Reject an invalid model response without asking the model to replace it.
 
     Retries belong only to transient call failures in `_request_completion`.
-    Numeric, placeholder, and language violations are contract failures, so a
+    Unsupported or unavailable sentence selections are contract failures, so a
     second generated answer must not hide the first rejected response.
     """
     generated = _generate_sentences(evidence)

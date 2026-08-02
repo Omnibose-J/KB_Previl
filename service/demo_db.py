@@ -5,7 +5,7 @@ zip 은 kb.db 도 pipeline/cache/ 도 못 담고, 담아서도 안 된다(둘 �
 심사자에게 필요한 것은 앱이 도는 것이지 아카이브에서 파이프라인을 재현하는
 것이 아니다.
 
-표 목록은 짐작이 아니라 도출된다. `--audit` 이 service/*.py 의 FROM/JOIN/
+표 목록은 짐작이 아니라 도출된다. `--audit` 이 service/**/*.py 의 FROM/JOIN/
 INTO/UPDATE 를 훑어 TABLES 와 어긋나면 빌드를 거부하므로, 서비스에 쿼리가
 하나 늘었는데 심사자 자리에서 404 가 나는 일이 생기지 않는다.
 
@@ -18,9 +18,12 @@ INTO/UPDATE 를 훑어 TABLES 와 어긋나면 빌드를 거부하므로, 서비
 """
 import argparse
 import ast
+from contextlib import closing
+import os
 import re
 import sqlite3
 import sys
+import tempfile
 from pathlib import Path
 
 from pipeline.config import DB_PATH, ROOT
@@ -65,8 +68,12 @@ def live_tables(con):
 def referenced_tables(con):
     """Tables that runtime service code queries, whether or not they exist."""
     strings = []
-    for path in sorted((ROOT / "service").glob("*.py")):
-        if path.name == "demo_db.py" or path.name.startswith("test_"):
+    for path in sorted((ROOT / "service").rglob("*.py")):
+        if (
+            "__pycache__" in path.parts
+            or path.name == "demo_db.py"
+            or path.name.startswith("test_")
+        ):
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         docstrings = {
@@ -110,51 +117,63 @@ def audit(src_path):
                 ("스키마 부재 (TABLES 에 있는데 DB 에 없다)", absent, "빌드가 실패한다")):
             print(f"  {label}: {', '.join(items) if items else '없음'}"
                   + (f"   -> {why}" if items else ""))
-        return 1 if (missing or unloaded or absent) else 0
+        return 1 if (missing or unloaded or extra or absent) else 0
     finally:
         con.close()
 
 
 def build(src_path, out_path, verbose=True):
-    out = Path(out_path)
-    if out.exists():
-        out.unlink()                     # VACUUM into a stale file would keep its pages
-    src = sqlite3.connect(_ro_uri(src_path), uri=True)
-    # uri=True on the DESTINATION too: SQLITE_OPEN_URI is a per-connection
-    # flag and ATTACH inherits it, so without this the URI below is taken
-    # as a literal filename.
-    dst = sqlite3.connect(str(out), uri=True)
+    source = Path(src_path).resolve()
+    out = Path(out_path).resolve()
+    if not source.is_file():
+        raise FileNotFoundError(f"원본 DB가 없습니다: {source}")
+    if not out.parent.is_dir():
+        raise FileNotFoundError(f"출력 폴더가 없습니다: {out.parent}")
+    if source == out or (
+        source.exists() and out.exists() and source.samefile(out)
+    ):
+        raise ValueError("원본 DB와 출력 DB는 같은 경로일 수 없습니다.")
+
+    handle, temporary_name = tempfile.mkstemp(
+        prefix=f".{out.name}.", suffix=".tmp", dir=out.parent
+    )
+    os.close(handle)
+    temporary = Path(temporary_name)
     try:
-        have = live_tables(src)
-        missing = [t for t in TABLES if t not in have]
-        if missing:
-            raise RuntimeError(f"원본에 없는 테이블: {', '.join(missing)} — "
-                               "파이프라인을 먼저 완주할 것")
-        dst.execute("PRAGMA journal_mode=OFF")
-        dst.execute("ATTACH DATABASE ? AS src", (_ro_uri(src_path),))
-        for t in TABLES:
-            ddl = src.execute(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
-                (t,)).fetchone()[0]
-            dst.execute(ddl)
-            dst.execute(f"INSERT INTO main.{t} SELECT * FROM src.{t}")
-            n = dst.execute(f"SELECT COUNT(*) FROM main.{t}").fetchone()[0]
-            if verbose:
-                print(f"  {t:<20} {n:>9,}행", flush=True)
-        # Indexes matter here: /grids scans a viewport and /recommend sorts a
-        # whole 업태, both of which fall off a cliff without them.
-        for (ddl,) in src.execute(
-                "SELECT sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL "
-                f"AND tbl_name IN ({','.join('?' * len(TABLES))})", TABLES):
-            dst.execute(ddl)
-        dst.commit()
-        dst.execute("DETACH DATABASE src")
-        dst.execute("VACUUM")
-        dst.commit()
+        with (
+            closing(sqlite3.connect(_ro_uri(source), uri=True)) as src,
+            closing(sqlite3.connect(temporary)) as dst,
+        ):
+            have = live_tables(src)
+            missing = [t for t in TABLES if t not in have]
+            if missing:
+                raise RuntimeError(f"원본에 없는 테이블: {', '.join(missing)} — "
+                                   "파이프라인을 먼저 완주할 것")
+            dst.execute("PRAGMA journal_mode=OFF")
+            dst.execute("ATTACH DATABASE ? AS src", (_ro_uri(source),))
+            for t in TABLES:
+                ddl = src.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                    (t,)).fetchone()[0]
+                dst.execute(ddl)
+                dst.execute(f"INSERT INTO main.{t} SELECT * FROM src.{t}")
+                n = dst.execute(f"SELECT COUNT(*) FROM main.{t}").fetchone()[0]
+                if verbose:
+                    print(f"  {t:<20} {n:>9,}행", flush=True)
+            # Indexes matter here: /grids scans a viewport and /recommend sorts a
+            # whole 업태, both of which fall off a cliff without them.
+            for (ddl,) in src.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL "
+                    f"AND tbl_name IN ({','.join('?' * len(TABLES))})", TABLES):
+                dst.execute(ddl)
+            dst.commit()
+            dst.execute("DETACH DATABASE src")
+            dst.execute("VACUUM")
+            dst.commit()
+        os.replace(temporary, out)
     finally:
-        src.close()
-        dst.close()
-    mb, orig = out.stat().st_size / 1e6, Path(src_path).stat().st_size / 1e6
+        temporary.unlink(missing_ok=True)
+    mb, orig = out.stat().st_size / 1e6, source.stat().st_size / 1e6
     print(f"\n{out}  {mb:.1f} MB  (원본 {orig:.0f} MB · {mb/orig*100:.1f}%)")
     return out
 

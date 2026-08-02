@@ -66,15 +66,17 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
 - Pure effective-cost arithmetic: `service/cost.py`.
 - Building-level factual rows and a grid's approximate address:
   `service/buildings.py`.
-- Goodwill, economics, and report adapters:
-  `service/goodwill.py`, `service/economics.py`, `service/reporting.py`.
+- Goodwill and economics adapters: `service/goodwill.py`,
+  `service/economics.py`. `service/reporting.py` lets the LLM select only
+  server-owned evidence sentences; it never accepts model-authored claims.
 - Batch-only score production: `service/precompute.py`; this is the sole
   service module allowed to import model code.
 - Grid change classification between two scoring runs: `service/alerts.py`
   (read-only; it never sends anything).
 - Submission database extraction: `service/demo_db.py`. Its `TABLES` list is
-  hand-maintained but gate-verified: `--audit` re-derives the tables `service/*.py`
-  actually queries and refuses to build when the two disagree.
+  hand-maintained but gate-verified: `--audit` recursively re-derives the tables
+  runtime modules under `service/` actually query and refuses to build when the
+  two disagree.
 
 ## Frontend ownership
 
@@ -108,6 +110,8 @@ on every commit. Keep it bounded to entry points and cross-module boundaries.
   `python -m model.recovery --calibration`.
 - W7 public contract: `python scripts/verify_recovery_contract.py`.
 - API behavior: `python -m pytest service/ -q`.
+- Python lint: `python -m tools.audit --lint`; this fails closed when Ruff is
+  unavailable and is part of the default submission audit.
 - Submission artefacts: `python build.py --rehearse`. Rebuilds the frontend
   unconditionally, runs the ship gates (`tools/audit.py`), writes the artefacts
   to `SUBMISSION/`, unpacks them into a scratch folder and boots the service

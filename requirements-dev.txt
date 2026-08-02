@@ -3,5 +3,6 @@
 -r requirements-full.txt
 
 pytest>=8.0             # 9.0.3
+ruff>=0.15,<1           # 0.15.15
 catboost>=1.2           # 1.2.10   candidate model, not on the deploy path
 torch>=2.0              # 2.9.1+cpu  candidate model, not on the deploy path

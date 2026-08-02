@@ -1649,45 +1649,43 @@ def test_goodwill_openapi_exposes_only_slim_input():
     }
 
 
-def test_report_renders_only_known_placeholders_and_rejects_numeric_glyphs():
-    evidence = {"grade": "1", "observedSurvivalPercent": "73.1"}
+def test_report_renders_only_server_owned_evidence_sentences():
+    evidence = {
+        "grade": "1",
+        "horizonYears": "3",
+        "observedSurvivalPercent": "73.1",
+        "shopsHere": "4",
+        "shopsNeighbor": "21",
+    }
     rendered = reporting.render_evidence_placeholders(
-        ["{{grade}}등급의 실측 생존율은 {{observedSurvivalPercent}}%입니다."],
+        [
+            reporting.GRADE_SURVIVAL_SENTENCE,
+            reporting.LOCAL_COMPETITION_SENTENCE,
+        ],
         evidence,
     )
-    assert rendered == ["1등급의 실측 생존율은 73.1%입니다."]
+    assert rendered == [
+        "이 자리는 1등급이고, 같은 등급의 3년 실측 생존율은 73.1%예요.",
+        "이 격자에는 음식점 4곳, 주변 격자 범위에는 21곳이 있어요.",
+    ]
 
-    for expression in (
-        "99",
-        "1/3",
-        "1e3",
-        "1-3",
-        "1.0",
-        "½",
-        "1−3",
-        "1∕3",
-        "1⁄3",
-    ):
-        with pytest.raises(reporting.UnapprovedNumberError):
-            reporting.render_evidence_placeholders(
-                [f"새 수치는 {expression}입니다."],
-                evidence,
-            )
     with pytest.raises(reporting.ReportGenerationError):
         reporting.render_evidence_placeholders(
-            ["{{unknown}} 값입니다."],
+            [reporting.GRADE_SURVIVAL_SENTENCE] * 2,
             evidence,
         )
-    for expression in (
-        "{{grade}}{{horizonYears}}",
-        "{{grade}}+{{horizonYears}}",
-        "{{grade}}e{{horizonYears}}",
-    ):
-        with pytest.raises(reporting.ReportGenerationError):
-            reporting.render_evidence_placeholders(
-                [expression],
-                {"grade": "1", "horizonYears": "3"},
-            )
+    with pytest.raises(reporting.ReportGenerationError):
+        reporting.render_evidence_placeholders(
+            [
+                reporting.GRADE_SURVIVAL_SENTENCE,
+                reporting.STATION_ACCESS_SENTENCE,
+            ],
+            evidence,
+        )
+    with pytest.raises(ValueError):
+        reporting.GeneratedReport(
+            sentences=["성공 가능성이 높아요.", "매출이 성장할 거예요."]
+        )
 
 
 def test_openapi_declares_runtime_error_contract():
@@ -1753,7 +1751,7 @@ class _StubReportCompletions:
             raise outcome
         message = SimpleNamespace(
             refusal=None,
-            parsed=reporting.GeneratedReport(sentences=outcome),
+            parsed=reporting.GeneratedReport.model_construct(sentences=outcome),
         )
         return SimpleNamespace(choices=[SimpleNamespace(message=message)])
 
@@ -1807,8 +1805,8 @@ def test_report_retries_transient_rate_limit_then_succeeds(monkeypatch):
         for _ in range(3)
     ]
     outcomes.append([
-        "{{grade}}등급 자리입니다.",
-        "실측 생존율은 {{observedSurvivalPercent}}%입니다.",
+        reporting.GRADE_SURVIVAL_SENTENCE,
+        reporting.LOCAL_COMPETITION_SENTENCE,
     ])
     completions, waits, client_options = _stub_report_openai(
         monkeypatch,
@@ -1904,7 +1902,7 @@ def test_report_distinguishes_other_openai_failures(monkeypatch):
     assert "서비스" in detail
 
 
-def test_report_does_not_retry_non_korean_generated_sentence(monkeypatch):
+def test_report_does_not_retry_an_unapproved_generated_sentence(monkeypatch):
     sample = _sample_grid()
     completions, waits, _options = _stub_report_openai(
         monkeypatch,
@@ -1927,8 +1925,8 @@ def test_report_appends_observed_grade_risk_after_whitelist(monkeypatch, grade):
 
     def generated(_evidence):
         return [
-            "{{grade}}등급 자리입니다.",
-            "이 등급의 실측 생존율은 {{observedSurvivalPercent}}%입니다.",
+            reporting.GRADE_SURVIVAL_SENTENCE,
+            reporting.LOCAL_COMPETITION_SENTENCE,
         ]
 
     monkeypatch.setattr(reporting, "_generate_sentences", generated)
@@ -1968,7 +1966,7 @@ def test_report_has_no_fallback_when_api_key_is_missing(monkeypatch):
     assert "잔액" in response.json()["detail"]
 
 
-def test_report_returns_bad_gateway_for_an_unapproved_generated_number(
+def test_report_returns_bad_gateway_for_unapproved_generated_text(
     monkeypatch,
 ):
     sample = _sample_grid()

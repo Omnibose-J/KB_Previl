@@ -10,7 +10,7 @@ coordinates are WGS84.
 import math
 import mimetypes
 import pathlib                    # not `from pathlib import Path` - fastapi.Path is taken
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.encoders import jsonable_encoder
@@ -18,8 +18,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import Field
-
 from service import api
 from service import buildings as buildings_service
 from service import economics as economics_service
@@ -28,66 +26,26 @@ from service import goodwill as goodwill_service
 from service import reporting
 
 from .schemas import (
-    ApiModel,
-    AreaItem,
-    AreaSurvival,
     AreasResponse,
-    BuildingFact,
     BuildingsResponse,
-    CandidateInput,
-    CandidateValues,
-    ChangeEvent,
-    ChangeHistory,
-    ChangeHistoryBucket,
-    ChangeHistoryRun,
     ChangesResponse,
     CompareInput,
-    CompareItemResponse,
     CompareResponse,
-    Competition,
-    ConceptCount,
-    ConceptMix,
-    CostBreakdownResponse,
-    CostParamsInput,
-    Demand,
     EconomicsInput,
     EconomicsResponse,
     ErrorResponse,
     EstimateInput,
     EstimateResponse,
-    GoodwillDecomposition,
     GoodwillInput,
     GoodwillResponse,
-    Grade,
-    GradeArea,
-    GradeComparison,
     GridAddressResponse,
-    GridCell,
     GridDetail,
     GridsResponse,
     MetaResponse,
-    ObservedGrade,
-    PartyCount,
-    Point,
     RecommendResponse,
-    RecoverySource,
     ReportInput,
     ReportResponse,
-    Sales,
-    SalesMix,
-    SalesMixCount,
-    SensitivityRow,
-    StationAnchor,
-    SurvivalBand,
-    SurvivalPeriod,
-    SurvivalYear,
-    TangibleAssetInput,
-    TangibleAssetResult,
-    UptaeMix,
-    UptaeName,
-    ValueBandResponse,
     ViewportErrorResponse,
-    VisitorParty,
 )
 
 
