@@ -33,7 +33,8 @@
 
 ```
 previl/
-  ├─ run.py            ← 실행 파일
+  ├─ run.bat           ← 실행 파일 (더블클릭)
+  ├─ run.py            ← 실제 실행 로직 (터미널용)
   ├─ README.md         ← 이 문서
   ├─ kb-demo.db        ← 데이터 (DB zip 에서 나온 것)
   ├─ .env              ← API 키
@@ -43,9 +44,12 @@ previl/
   └─ service/  model/  pipeline/  frontend/
 ```
 
-> **`run.py` 와 `kb-demo.db` 와 `.env` 가 나란히 같은 층**에 있으면 됩니다.
+> **`run.bat` 와 `kb-demo.db` 와 `.env` 가 나란히 같은 층**에 있으면 됩니다.
 
-**③** 터미널을 **`previl` 폴더에서** 열고 한 줄을 칩니다.
+**③** **`run.bat` 을 더블클릭**합니다. (Windows)
+
+터미널이 편하시면 `previl` 폴더에서 한 줄을 쳐도 같습니다 — macOS·리눅스는
+이쪽입니다.
 
 ```bash
 cd previl
@@ -65,7 +69,8 @@ python run.py
 ```
 
 멈추려면 터미널에서 **Ctrl+C** 를 누릅니다.
-다시 켤 때는 `python run.py` 를 다시 치면 되고, 두 번째부터는 몇 초면 뜹니다.
+다시 켤 때는 `run.bat` 을 다시 더블클릭(터미널이면 `python run.py`)하면 되고,
+두 번째부터는 몇 초면 뜹니다.
 
 ### 잘 안 될 때
 

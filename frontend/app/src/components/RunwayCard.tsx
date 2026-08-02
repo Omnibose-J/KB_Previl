@@ -281,15 +281,16 @@ function RunwayChart({ data }: { data: RunwayResponse }) {
     ? balances.find((b) => b.month === data.depletionMonth) ?? null
     : null;
 
-  // Keep point labels inside the plot: clamp the anchor near either edge and
-  // flip above the dot when below would collide with the month axis.
-  const labelPos = (month: number, balance: number) => {
-    const px = x(month);
-    const py = y(balance);
-    const anchor = px < PAD.left + 80 ? "start" : px > W - PAD.right - 80 ? "end" : "middle";
-    const below = py + 22 <= H - PAD.bottom;
-    return { lx: px, ly: below ? py + 20 : py - 12, anchor } as const;
-  };
+  // Keep the point label inside the plot: clamp the anchor near either edge
+  // and flip above the dot when below would collide with the month axis.
+  const mark = dry ?? trough;
+  const px = x(mark.month);
+  const py = y(mark.balance);
+  const markAt = {
+    lx: px,
+    ly: py + 22 <= H - PAD.bottom ? py + 20 : py - 12,
+    anchor: px < PAD.left + 80 ? "start" : px > W - PAD.right - 80 ? "end" : "middle",
+  } as const;
 
   return (
     <figure className={s.fig}>
@@ -311,31 +312,15 @@ function RunwayChart({ data }: { data: RunwayResponse }) {
         <path className={s.line} d={path} />
 
         {/* 골짜기 최저점 — 바닥나는 달이 따로 있으면 그 점을 우선한다 */}
-        {dry !== null ? (
-          <g>
-            <circle className={s.dotBad} cx={x(dry.month)} cy={y(dry.balance)} r={5} />
-            {(() => {
-              const p = labelPos(dry.month, dry.balance);
-              return (
-                <text className={s.markBad} x={p.lx} y={p.ly} textAnchor={p.anchor}>
-                  {dry.month}개월차에 바닥
-                </text>
-              );
-            })()}
-          </g>
-        ) : (
-          <g>
-            <circle className={s.dot} cx={x(trough.month)} cy={y(trough.balance)} r={5} />
-            {(() => {
-              const p = labelPos(trough.month, trough.balance);
-              return (
-                <text className={s.mark} x={p.lx} y={p.ly} textAnchor={p.anchor}>
-                  가장 얕을 때 {man(trough.balance)}
-                </text>
-              );
-            })()}
-          </g>
-        )}
+        <circle
+          className={dry ? s.dotBad : s.dot}
+          cx={x(mark.month)}
+          cy={y(mark.balance)}
+          r={5}
+        />
+        <text className={dry ? s.markBad : s.mark} x={markAt.lx} y={markAt.ly} textAnchor={markAt.anchor}>
+          {dry ? `${mark.month}개월차에 바닥` : `가장 얕을 때 ${man(mark.balance)}`}
+        </text>
 
         <text className={s.mark} x={x(last.month) - 4} y={y(last.balance) - 10} textAnchor="end">
           {data.horizonMonths}개월 뒤 {signedMan(last.balance)}

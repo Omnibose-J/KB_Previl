@@ -31,6 +31,8 @@ DB_TABLES = ("grid_score", "score_meta")
 SHIP_FILES = (
     ("tools/submission-README.md", "README.md"),
     ("run.py", "run.py"),
+    # 더블클릭 실행 입구 — run.py 를 감싸는 얇은 배치다. 로직은 전부 run.py 에.
+    ("run.bat", "run.bat"),
     ("verify.ipynb", "verify.ipynb"),
     ("requirements.txt", "requirements.txt"),
     ("requirements-full.txt", "requirements-full.txt"),
@@ -56,7 +58,7 @@ TREE_EXCLUDE = TREE_EXCLUDE_DIRS | TREE_EXCLUDE_FILES
 # Anything else in the code zip is a mistake we have not thought of yet.
 ALLOWED_SUFFIXES = {".py", ".ts", ".tsx", ".css", ".json", ".html", ".md",
                     ".txt", ".ipynb", ".js", ".mjs", ".map", ".png", ".webp",
-                    ".svg", ".ico", ".woff", ".woff2", ".ttf"}
+                    ".svg", ".ico", ".woff", ".woff2", ".ttf", ".bat"}
 
 MAX_LINES = 400
 

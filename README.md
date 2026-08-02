@@ -39,7 +39,7 @@ verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 P
 `npm install` 도 API 키도 직접 할 필요가 없습니다.
 
 ```bash
-python run.py
+python run.py          # Windows 는 run.bat 더블클릭도 같습니다
 # http://127.0.0.1:8000 이 저절로 열립니다
 ```
 

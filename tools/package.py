@@ -215,8 +215,9 @@ def rehearse(bundled=False):
                 f.extractall(outer)
             with zipfile.ZipFile(DB_ZIP) as f:
                 f.extractall(tmp)
-        for must in ("README.md", "run.py", "requirements.txt", "kb-demo.db",
-                     "service/app.py", "web/index.html", "verify.ipynb"):
+        for must in ("README.md", "run.py", "run.bat", "requirements.txt",
+                     "kb-demo.db", "service/app.py", "web/index.html",
+                     "verify.ipynb"):
             ok = (tmp / must).is_file()
             print(f"  [{'PASS' if ok else 'FAIL'}] {must}")
             if not ok:
@@ -226,10 +227,21 @@ def rehearse(bundled=False):
         env = dict(os.environ, PYTHONPATH="", PYTHONIOENCODING="utf-8")
         env.pop("KB_DB", None)
         print("  새 venv 생성 + 의존성 설치 — 몇 분 걸린다")
+        # 심사위원이 실제로 밟는 입구를 그대로 밟는다 — Windows 는 run.bat,
+        # 그 외는 run.py. stdin 을 닫아 실패 시 배치의 pause 가 매달리지 않게.
+        # 경로를 명시한다 — bare 이름은 cmd 가 CWD 를 안 뒤지는 환경에서 죽고,
+        # 더블클릭(탐색기)도 어차피 전체 경로로 실행한다.
+        launch = (
+            ["cmd", "/c", str(tmp / "run.bat"),
+             "--no-browser", "--port", str(REHEARSAL_PORT)]
+            if os.name == "nt"
+            else [sys.executable, "run.py", "--no-browser",
+                  "--port", str(REHEARSAL_PORT)]
+        )
         proc = subprocess.Popen(
-            [sys.executable, "run.py", "--no-browser",
-             "--port", str(REHEARSAL_PORT)],
-            cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            launch,
+            cwd=tmp, env=env, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace",
             start_new_session=(os.name != "nt"))
         if not _wait(f"{base}/api/meta", proc):
