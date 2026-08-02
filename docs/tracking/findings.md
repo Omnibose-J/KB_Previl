@@ -861,6 +861,31 @@ hand SQL recomputation to 1e-9, estimate/compare cost parity exact, validation
 |---|---|---|
 | serving-design.md §4 describes compare/estimate as 실질 월 점유비용 only — never mentions the burden-primary teoRank key it ships, and advertises a 관리비 term the API cannot receive (`maintenance_fee` hardcoded 0, no input field) | `docs/serving-design.md:159-184` vs `service/estimation.py:254-265,171`, `service/schemas.py:387-395` | doc-only; B-lane contract (`lanes/B-backend.md:542`) already documents the real key |
 | goodwill lane-doc drift: operatingMargin 0.15 (code 0.0701), benchmark "평균" (code median), valuationYears "floor" (code keeps fractional years), "민감도 27행" (short leases dedupe to 18) | `lanes/B-backend.md:620-722` vs `service/goodwill.py:13,62-71,218-271` | C lane reads this contract; drift risks copy regressions |
-| GoodwillCard caption hardcodes "인테리어·집기 · 5년 감가" while the API honors per-asset `usefulLifeYears` | `frontend/app/src/components/GoodwillCard.tsx:331` | copy-only; server numbers correct |
-| recommend top-N tie boundary nondeterministic: `ORDER BY s.score DESC LIMIT ?` without tiebreaker; 442 (uptae, score) tie groups exist, earliest at rank 16 | `service/api/search.py:60` | cosmetic — tied scores share a grade; add `, s.grid_id` when touched next |
+| ~~GoodwillCard caption hardcodes "인테리어·집기 · 5년 감가"~~ **RESOLVED 2026-08-02**: caption now reads "내용연수 정액 감가" | `frontend/app/src/components/GoodwillCard.tsx:331` | fixed in judge-nitpick round |
+| ~~recommend top-N tie boundary nondeterministic~~ **RESOLVED 2026-08-02**: `, s.grid_id` tiebreaker added; verified no ties in 한식 top-30 so demo output unchanged | `service/api/search.py:60` | fixed in judge-nitpick round |
 | trade-area revenue outliers flow into burden ranking unflagged: 24/1,405 한식 상권 have per-store monthly revenue < 100만원 (min 1.4만원 → burdenRate 277 = 27,732%) and burden is the primary rank key | `service/estimation.py:129-136`; data `grid_feature.sales_amt`/`stor_co` | upstream source issue; a plausibility floor/flag is a product call |
+
+## F-S3. Judge-perspective audit leftovers (2026-08-02) — deferred, not dismissed
+
+Three fresh hostile-judge audits (docs/claims · code/service · ML methodology)
+the day before the 08-03 deadline. Doc-side numeric inconsistencies (COVID gap
+lineage mixing, 16 vs 18 stages, verify 8/8 vs 7/8, "원천 8종" with 9 rows,
+seed-range hedge missing from the 70.0%p rows, 95%-단문 without condition
+labels, legacy-bench area gaps unlabeled, Kakao vs MapLibre, missing API rows,
+127-test counts) were FIXED same day in 기술설명서-작성자료.md / README.md;
+fig8 gained an all-survive baseline row. One audit claim was rejected on
+verification: the alleged M2 metric drift (0.7443 vs 0.7474) — the tech doc
+matches the post-refresh ledger entry at model-findings.md:2686.
+
+Remaining, deliberately unfixed:
+
+| what | where | why deferred |
+|---|---|---|
+| deposit opportunity rate 4% has no cited source (goodwill's 7.01% carries one) | `service/cost.py:11` | picking a citation the day before deadline risks a wrong claim; present as stated assumption |
+| economics uses uptae-agnostic MEAN of per-store revenue while goodwill uses per-uptae MEDIAN with a documented outlier rationale | `service/economics.py:84-90` vs `service/goodwill.py:59-71` | changing the default shifts every displayed 손익; caption is truthful ("서울 상권 평균") |
+| economics default margin 0.25 (sensitivity 0.20/0.30) unsourced and not rendered in UI | `service/economics.py:104,126` | product default; UI change too close to deadline |
+| requirements are range-pinned (`>=,<`), verified versions listed only as comments | `requirements.txt` | exact-pinning untested combinations the night before submission is riskier than the drift it prevents |
+| most cards surface raw `ApiError:` English strings on 5xx (only AiSummaryCard/S4 404 have Korean copy) | e.g. `EconomicsCard.tsx:100` | unreachable in the offline demo path; copy sweep is post-deadline work |
+| fig8 prediction cache keyed by model name only — a future source refresh could silently plot stale curves | `scripts/roc_h1_viz.py:56` | figure is frozen for the deck; regenerate-after-refresh is a known manual step |
+| 6-model figure draws competitors at default hyperparameters while §7-A found better settings for hgb/logit/mlp on the selection bench | `scripts/roc_h1_viz.py` vs `model-findings.md:418-425` | selection legitimacy lives on the 2019–2022 bench; defend verbally — "선발은 §7-A, 이 그림은 재확인" |
+| SUBMISSION zip ships comment-stripped sources, ~1,000 font subset files, and no tests | `tools/strip.py`, packaging allowlist | packaging policy decided earlier; README + verify.ipynb carry the evidence trail |

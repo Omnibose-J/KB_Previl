@@ -328,7 +328,7 @@ function Decomposition({
   asking: number;
 }) {
   const parts = [
-    { key: "facility", name: "시설", value: d.facility, note: "인테리어·집기 · 5년 감가" },
+    { key: "facility", name: "시설", value: d.facility, note: "인테리어·집기 · 내용연수 정액 감가" },
     { key: "business", name: "영업", value: d.business, note: "단골·매출로 버는 몫" },
     { key: "floorKey", name: "바닥", value: d.floorKey, note: "자리 그 자체의 값" },
   ] as const;

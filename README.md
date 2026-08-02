@@ -4,7 +4,7 @@
 
 ```
 verify 7/8 · consistency 17/17 · 누수 가드 PASS · as-of 셀프테스트 PASS
-서빙 계약 124 PASS · 제출물 2종 (합본 zip · .env) · 리허설 통과
+서빙 계약 127 PASS · 제출물 2종 (합본 zip · .env) · 리허설 통과
 ```
 
 `verify` 의 `counts` 는 라이브 API 총건수와 대조하는 검사라, 캐시로 재구축한 DB
@@ -202,7 +202,7 @@ python -m pipeline.verify        # 적재 8종
 python -m pipeline.consistency   # 논리 정합성 17종
 python -m model.test_leakage     # 누수 가드 RED→GREEN
 python -m model.asof --selftest-cut     # 신규 피처: T 이후 행을 지워도 값 불변
-python -m pytest service/               # 서빙 121종
+python -m pytest service/               # 서빙 127종
 ```
 
 깊이 들어가려면:
@@ -237,7 +237,7 @@ python build.py --rehearse                   # 화면 빌드 → 게이트 → �
    그대로이고, 빌드 입력 하나를 목록에서 빠뜨리면 낡은 화면이 조용히 실립니다.
 2. **게이트** (`tools/audit.py`) — 진입점에서 도달하지 않는 모듈이 섞이지 않았는지,
    출하 소스에서 주석·독스트링이 남김없이 걷혔는지, 사유 없이 400줄을 넘는 파일이
-   없는지, **벗겨낸 트리에서 서빙 계약 124종이 그대로 통과하는지**, 그리고 **zip 에
+   없는지, **벗겨낸 트리에서 서빙 계약 127종이 그대로 통과하는지**, 그리고 **zip 에
    들어갈 바로 그 프론트 소스가 `tsc` 와 `vite build` 를 통과하는지**.
 3. **패키징** (`tools/package.py`) — `SUBMISSION/` 에 산출물을 만듭니다. 포함 목록은
    allowlist 입니다. denylist 는 패턴 하나를 빠뜨리면 `.env` 가 나가지만,
@@ -332,7 +332,8 @@ AUC 0.6227). 하지만 점포 속성이지 입지가 아니고, 추천에서는 
   게다가 시드에 민감합니다 — 시드 8개로 재보면 67.5~70.0%p 이고 배포분이 그중
   최대값입니다. 1등급 80.1% 는 반대로 강건해서 8개 시드가 전부 발표 CI 안에
   듭니다.
-- 미확보 원천: 공정위 창업비용, R-ONE 임대료, VWORLD 물리입지, 집계구 경계.
+- 미확보 원천: 공정위 창업비용, R-ONE 임대료, VWORLD 물리입지, 집계구 경계,
+  부동산원 권리금 시세(자치구 단위 앵커).
 
 <br>
 

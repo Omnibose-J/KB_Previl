@@ -57,7 +57,7 @@ def recommend(uptae, districts=(), top=24):
             GRID_SELECT
             + " WHERE 1 = 1"
             + district_sql
-            + " ORDER BY s.score DESC LIMIT ?",
+            + " ORDER BY s.score DESC, s.grid_id LIMIT ?",
             [uptae, *district_args, top],
         ).fetchall()
         grid_ids = [row["grid_id"] for row in rows]

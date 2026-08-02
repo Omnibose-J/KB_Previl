@@ -141,6 +141,20 @@ def fig_roc_h1(rows, y, out):
                      color=INK if best else INK2,
                      fontweight="bold" if best else "normal")
 
+    # All-survive baseline row: with an 78.6% base rate a constant "survive"
+    # answer already scores F1 0.88 - the model rows are read against this.
+    p_rate = float(np.asarray(y).mean())
+    f1_all = 2 * p_rate / (1 + p_rate)
+    base = {"auc": 0.5, "f1_surv": f1_all, "prec_close": 0.0,
+            "macro": f1_all / 2}
+    yy = y_top - len(order) * dy
+    axR.axhline(yy + dy * 0.45, xmin=0.01, xmax=0.99, color=GRID, lw=1.0)
+    axR.text(x_model + 0.055, yy, "All-survive baseline", fontsize=10,
+             color=MUTED, style="italic")
+    for (_, key), xv in zip(cols, x_vals):
+        axR.text(xv, yy, f"{base[key]:.3f}", fontsize=10, ha="right",
+                 color=MUTED, style="italic")
+
     fig.tight_layout()
     fig.savefig(out, dpi=200)
     plt.close(fig)
