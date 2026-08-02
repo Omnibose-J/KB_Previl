@@ -112,11 +112,11 @@ python run.py
 | 이 동네는 어떻게 변하고 있나 | 최근 개업·폐업 흐름 |
 | 주변엔 어떤 가게가 있나 | 걸어갈 거리 안 영업 중인 가게 구성 |
 | 여긴 누구와 오는 자리인가 | 손님 후기에서 센 동반자 구성 |
-| AI 요약 | 위 숫자들을 문장으로 정리 |
+| AI 요약 | 검증된 근거 중 무엇을 강조할지 골라 정리 |
 
-**숫자는 전부 프로그램이 계산하고, AI 는 문장만 씁니다.** AI 가 숫자를 직접 쓰려고
-하면 프로그램이 거부하도록 막아 뒀습니다. 그래서 화면의 숫자와 문장 속 숫자가
-어긋날 수 없습니다.
+**숫자와 문장은 프로그램이 검증된 틀로 만듭니다.** AI 는 실제 데이터가 있는 근거
+문장 가운데 2~4개를 고를 뿐, 문장을 새로 쓰거나 숫자를 만들 수 없습니다. 그래서
+화면의 숫자와 문장 속 숫자가 어긋날 수 없습니다.
 
 ---
 
@@ -142,11 +142,20 @@ python run.py
 ### 제대로 도는지 직접 확인하기
 
 `verify.ipynb` 를 주피터나 VS Code 로 열어 위에서부터 실행하면 됩니다.
-터미널에서 한 번에 돌리려면:
+터미널에서 한 번에 돌리려면 아래 명령을 사용합니다.
 
-```bash
+Windows PowerShell:
+
+```powershell
 .venv\Scripts\python -m pip install -r requirements-full.txt   # 처음 한 번
 .venv\Scripts\python -m nbconvert --to notebook --execute verify.ipynb --stdout
+```
+
+macOS / Linux:
+
+```bash
+.venv/bin/python -m pip install -r requirements-full.txt   # 처음 한 번
+.venv/bin/python -m nbconvert --to notebook --execute verify.ipynb --stdout
 ```
 
 데이터가 다 들어와 있는지, 등급이 실제로 생존율 순인지, API 와 화면이 응답하는지를
