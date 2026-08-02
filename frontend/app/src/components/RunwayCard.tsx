@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { RunwayInput, RunwayResponse } from "../api/types";
-import { man, pct0, signedMan } from "../lib/format";
+import { man, pct0, quarter, signedMan } from "../lib/format";
 import { ErrorState, Loading } from "./states";
 import s from "./RunwayCard.module.css";
 
@@ -47,6 +47,10 @@ export default function RunwayCard({
   const [debounced, setDebounced] = useState<RunwayInput | null>(null);
 
   const ready = budget !== null && upfront !== null && rentMonthly !== null;
+
+  // 자리가 바뀌면 즉시 비운다 — 디바운스 400ms 동안 이전 격자의 판정이 새
+  // 격자 제목 아래 그대로 떠 있는 잔상을 막는다.
+  useEffect(() => setDebounced(null), [gridId, uptae]);
 
   useEffect(() => {
     if (!ready) {
@@ -186,10 +190,15 @@ function Verdict({ data }: { data: RunwayResponse }) {
       ) : null}
 
       {data.revenueSource !== "user_input" ? (
+        // 금액·기준 분기까지 적는다 — 사용자가 못 본 숫자로 계산된 판정을
+        // 읽게 하지 않는다 (서버가 실어 보내는 값 그대로).
         <p className={s.caption}>
           {data.revenueSource === "trade_area_average"
-            ? "이 주변 상권의 같은 업종 평균 매출로 계산했어요. 이 가게의 추정 매출이 아니에요."
-            : "서울 상권 평균 매출로 계산했어요. 이 자리의 추정 매출이 아니에요."}
+            ? "이 주변 상권의 같은 업종 평균 매출"
+            : "서울 상권 평균 매출"}
+          {`(월 ${man(data.revenueMonthly)}`}
+          {data.revenueAsOfQuarter ? ` · ${quarter(data.revenueAsOfQuarter)} 기준` : ""}
+          {`)로 계산했어요. 이 ${data.revenueSource === "trade_area_average" ? "가게" : "자리"}의 추정 매출이 아니에요.`}
         </p>
       ) : null}
       <p className={s.assumptions}>
@@ -226,10 +235,18 @@ const HEADLINES: Record<
         ? `월 흑자는 ${d.breakevenMonth}개월차부터라, 그 전에 버틸 돈이 모자라요.`
         : `${d.horizonMonths}개월 안에 월 흑자가 안 와요. 매출·임대료 조건을 다시 봐야 해요.`,
   }),
-  WARN: () => ({
-    title: "버티긴 하는데, 여유가 거의 없어요",
-    sub: "매출이 예상보다 늦게 오르면 위험해요. 아래 속도를 «천천히»로 바꿔서 확인해 보세요.",
-  }),
+  WARN: (d) =>
+    // 흑자 전환이 지평 안에 없으면 «골짜기»가 아니라 그냥 내리막이다 — 서버가
+    // OK 를 WARN 으로 강등해 보내는 케이스라, 문구도 다른 말을 해야 한다.
+    d.breakevenMonth === null
+      ? {
+          title: "버텨도 매달 적자예요",
+          sub: `${d.horizonMonths}개월 안에 월 흑자가 안 와요 — 매출·임대료 조건을 다시 봐야 해요.`,
+        }
+      : {
+          title: "버티긴 하는데, 여유가 거의 없어요",
+          sub: "매출이 예상보다 늦게 오르면 위험해요. 아래 속도를 «천천히»로 바꿔서 확인해 보세요.",
+        },
   OK: () => ({
     title: "초기 골짜기를 넘을 돈이 확보돼요",
     sub: "예상보다 매출이 늦게 올라도 버틸 여유가 있어요.",

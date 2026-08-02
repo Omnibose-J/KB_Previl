@@ -94,8 +94,12 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
   const search = useSearch();
   const budget = search.budget;
   const [extraUpfront, setExtraUpfront] = useState<number | null>(null);
-  const [runwayRows, setRunwayRows] = useState<RunwayRow[] | null>(null);
+  // rows 는 자기 요청 키와 함께 저장한다 — 늦게 도착한 이전 예산의 응답이
+  // 현재 결과를 덮어쓰는 레이스를 키 대조로 끊는다 (compare 의 ranKey 게이트는
+  // compare 결과만 지킨다).
+  const [runwayRows, setRunwayRows] = useState<{ key: string; rows: RunwayRow[] } | null>(null);
   const [runwayPending, setRunwayPending] = useState(false);
+  const latestRunwayKey = useRef<string | null>(null);
 
   const ready = slots.filter(isComplete);
   // 값은 넣었는데 자리를 안 찍은 후보. 조용히 빼면 사용자는 두 곳을 비교한 줄
@@ -175,6 +179,8 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
     // 버티는 기간은 비교와 별개 축이라 실패해도 비교를 막지 않는다. 후보별로
     // 실패를 따로 담아 «그 후보만 계산 못 했다»를 보이게 남긴다.
     if (budget !== null) {
+      const key = requestKey;
+      latestRunwayKey.current = key;
       setRunwayPending(true);
       setRunwayRows(null);
       Promise.all(
@@ -193,10 +199,12 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
             ),
         ),
       ).then((rows) => {
-        setRunwayRows(rows);
+        if (latestRunwayKey.current !== key) return; // 이미 다른 실행이 대체
+        setRunwayRows({ key, rows });
         setRunwayPending(false);
       });
     } else {
+      latestRunwayKey.current = null;
       setRunwayRows(null);
       setRunwayPending(false);
     }
@@ -433,7 +441,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                   budget,
                   extraUpfront: extraUpfront ?? 0,
                   pending: runwayPending,
-                  rows: runwayRows,
+                  rows: runwayRows?.key === requestKey ? runwayRows.rows : null,
                 }
               : null
           }
@@ -757,16 +765,26 @@ function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
               : "초기 골짜기를 못 넘어요"}
           </b>
           <span className={s.uncertaintyWhy}>
-            계약하고 남는 돈 {man(result.reserve)}으로는 부족해요.
+            계약하고 남는 돈 {man(result.reserve)}으로는 부족해요{revenueNote(result)}.
           </span>
         </>
       );
     case "WARN":
-      return (
+      // 지평 안에 흑자 전환이 없으면(서버가 OK 를 강등한 케이스) «여유가
+      // 없다»가 아니라 «매달 적자»가 사실이다 — 다른 문장을 쓴다.
+      return result.breakevenMonth === null ? (
+        <>
+          <b className={s.shaky}>버텨도 매달 적자예요</b>
+          <span className={s.uncertaintyWhy}>
+            {result.horizonMonths}개월 안에 월 흑자가 안 와요{revenueNote(result)}.
+          </span>
+        </>
+      ) : (
         <>
           <b className={s.shaky}>버티지만 여유가 거의 없어요</b>
           <span className={s.uncertaintyWhy}>
-            매출이 예상보다 늦게 오르면 위험해요 — 남는 돈 {man(result.reserve)}.
+            매출이 예상보다 늦게 오르면 위험해요 — 남는 돈 {man(result.reserve)}
+            {revenueNote(result)}.
           </span>
         </>
       );
@@ -775,11 +793,19 @@ function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
         <>
           <b className={s.firm}>초기 골짜기를 넘을 돈이 확보돼요</b>
           <span className={s.uncertaintyWhy}>
-            계약하고 남는 돈이 {man(result.reserve)}이라 여유가 있어요.
+            계약하고 남는 돈이 {man(result.reserve)}이라 여유가 있어요
+            {revenueNote(result)}.
           </span>
         </>
       );
   }
+}
+
+/** 기본값 매출로 판정했으면 그 금액을 판정 옆에 그대로 밝힌다. */
+function revenueNote(result: RunwayResponse): string {
+  return result.revenueSource === "user_input"
+    ? ""
+    : ` (매출은 월 ${man(result.revenueMonthly)} 가정)`;
 }
 
 /* ─────────────────────────────────────────────────────────────────

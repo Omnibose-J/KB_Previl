@@ -13,7 +13,8 @@ import s from "./S2Input.module.css";
 // Differences from the mockup are data-honesty, not layout: STEP 4 창업자
 // 프로필 is not collected (nothing in the model consumes it), the funnel shows
 // live API counts instead of 12,480→842→24, and the 가중치 note states what is
-// actually precomputed. 예산 sliders feed /economics only — they never filter.
+// actually precomputed. 예산 sliders feed the S4 money tab (runway/occupancy
+// inputs) only — they never filter.
 
 const UPFRONT = { min: 0, max: 20000, step: 100 }; // 만원
 const RENT = { min: 0, max: 600, step: 10 }; // 만원/월

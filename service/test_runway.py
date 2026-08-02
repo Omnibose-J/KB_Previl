@@ -12,10 +12,10 @@ from service.test_app import _sample_grid
 client = TestClient(app)
 
 # Hand-computed base case (만원): steady 1,000 · margin 0.25 · rent 200 ·
-# ramp 6 · start 0.45.
-# nets: -64.583, -41.667, -18.75, +4.167, +27.083, then +50 flat
-# cums: -64.583, -106.25, -125.0, -120.833, -93.75, -43.75, +6.25 ...
-# trough month 3 → need 125 · breakeven month 4.
+# ramp 6 · start 0.45. r(m) = 0.45 + 0.55(m−1)/6, so month 1 = 45% exactly.
+# nets: -87.5, -64.583, -41.667, -18.75, +4.167, +27.083, then +50 flat
+# cums: -87.5, -152.083, -193.75, -212.5, -208.333, -181.25, -131.25 ...
+# trough month 4 → need 212.5 · breakeven month 5.
 BASE = dict(
     grid_id="1_1",
     uptae="한식",
@@ -30,9 +30,11 @@ BASE = dict(
 @pytest.mark.parametrize(
     ("budget", "level", "coverage", "depletion"),
     [
-        (8165, "OK", 1.32, None),  # reserve 165 / need 125
-        (8145, "WARN", 1.16, None),  # reserve 145
-        (8100, "DANGER", 0.8, 2),  # reserve 100, dry at month 2
+        # 212.5 × 1.3 = 276.25 — the exact OK/WARN boundary sits at OK.
+        (8276.25, "OK", 1.3, None),
+        # coverage exactly 1.0 — the DANGER/WARN boundary sits at WARN.
+        (8212.5, "WARN", 1.0, None),
+        (8100, "DANGER", 100 / 212.5, 2),  # dry at month 2
         (7950, "IMPOSSIBLE", None, 1),  # reserve -50: cannot even sign
     ],
 )
@@ -40,14 +42,32 @@ def test_verdict_ladder(budget, level, coverage, depletion):
     result = runway.calculate(budget=budget, **BASE)
 
     assert result["level"] == level
-    assert result["working_capital_need"] == pytest.approx(125)
-    assert result["trough_month"] == 3
-    assert result["breakeven_month"] == 4
+    assert result["working_capital_need"] == pytest.approx(212.5)
+    assert result["trough_month"] == 4
+    assert result["breakeven_month"] == 5
     assert result["depletion_month"] == depletion
     if coverage is None:
         assert result["coverage"] is None
     else:
         assert result["coverage"] == pytest.approx(coverage)
+
+
+def test_first_month_matches_labelled_start_ratio():
+    # The screen says «첫 달 매출 = 안정기의 45%» — pin month 1 to the label.
+    result = runway.calculate(budget=9000, **BASE)
+    assert result["curve"][0]["revenue"] == pytest.approx(
+        BASE["revenue_monthly"] * params.START_RATIO.value
+    )
+
+
+def test_perpetual_deficit_never_reads_ok():
+    # steady net = 700×0.25 − 200 = −25/월: the trough is only the horizon
+    # cut, so even a huge reserve must not paint a green «골짜기를 넘어요».
+    result = runway.calculate(budget=9300, **{**BASE, "revenue_monthly": 700})
+
+    assert result["breakeven_month"] is None
+    assert result["level"] == "WARN"
+    assert result["depletion_month"] is None  # survives the horizon on cash
 
 
 def test_matches_economics_steady_month():
@@ -76,9 +96,9 @@ def test_curve_invariants():
     assert [point["month"] for point in curve] == list(
         range(1, params.HORIZON_MONTHS + 1)
     )
-    # Ramp reaches steady exactly at ramp_months and stays there.
+    # Months 1..ramp climb below steady; steady holds from ramp+1 on.
     for point in curve:
-        if point["month"] >= BASE["ramp_months"]:
+        if point["month"] > BASE["ramp_months"]:
             assert point["revenue"] == pytest.approx(BASE["revenue_monthly"])
         else:
             assert point["revenue"] < BASE["revenue_monthly"]

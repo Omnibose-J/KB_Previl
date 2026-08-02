@@ -423,7 +423,9 @@ export interface RunwayResponse {
   workingCapitalNeed: number;
   /** reserve ÷ need; null when nothing to bridge or the signing itself fails */
   coverage: number | null;
-  /** first month the remaining money goes below zero; null = survives 24m */
+  /** first month the remaining money goes below zero. null = survives 24m —
+   *  except under IMPOSSIBLE, where the signing itself fails and a strong
+   *  month 1 can keep the curve above zero */
   depletionMonth: number | null;
   /** first month with a positive net — null = never within the horizon */
   breakevenMonth: number | null;

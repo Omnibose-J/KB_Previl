@@ -22,11 +22,17 @@ from service.estimation import _trade_area_revenue
 
 
 def revenue_ramp(steady, month, ramp_months, start_ratio=params.START_RATIO.value):
-    """Month-m revenue: linear from start_ratio×steady up to steady."""
+    """Month-m revenue: linear from start_ratio×steady up to steady.
 
-    if month >= ramp_months:
+    Month 1 must equal start_ratio exactly — the screen labels the assumption
+    as «첫 달 매출 = 안정기의 45%», so (month−1) indexes the ramp. The spec's
+    original month/ramp form made month 1 land at 54%, quietly more optimistic
+    than its own label.
+    """
+
+    if month > ramp_months:
         return steady
-    return steady * (start_ratio + (1 - start_ratio) * (month / ramp_months))
+    return steady * (start_ratio + (1 - start_ratio) * ((month - 1) / ramp_months))
 
 
 def cashflow_curve(steady_revenue, margin, rent_monthly, ramp_months):
@@ -100,7 +106,9 @@ def calculate(
     trough = min(point["cum"] for point in curve)
     need = max(0.0, -trough)
     if need > 0 and reserve >= 0:
-        coverage = round(reserve / need, 2)
+        # Unrounded on purpose: the level thresholds below use the same value,
+        # and rounding here once produced coverage 1.3 alongside level WARN.
+        coverage = reserve / need
     else:
         # IMPOSSIBLE (reserve < 0) or no working capital needed — a ratio
         # would mislead either way.
@@ -121,6 +129,10 @@ def calculate(
         level = "WARN"
     else:
         level = "OK"
+    # A perpetual deficit has no far side of the valley: the trough is just
+    # the horizon cut, so «골짜기를 넘는다»(OK) would be a false green. Cap it.
+    if breakeven_month is None and level == "OK":
+        level = "WARN"
 
     if not all(
         math.isfinite(value)

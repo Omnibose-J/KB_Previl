@@ -1,8 +1,9 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 // The two required inputs (업종 + 범위) plus the optional budget, carried from
-// S2 to S3/S4 (ui-spec §3-S2). Budget is optional on purpose: the economics
-// card stays uncomputed until the user supplies rent — we never fill it in.
+// S2 to S3/S4/S5 (ui-spec §3-S2). Budget fields are optional on purpose: the
+// runway card stays uncomputed until the user supplies them — we never fill
+// them in.
 
 export interface SearchState {
   /** exact meta().uptae value — never a prettified label (ui-spec §7) */
