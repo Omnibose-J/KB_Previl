@@ -304,56 +304,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               등급·생존율 블록에서 떼어 놓아야 예측처럼 읽히지 않는다. */}
           <VisitorPartyCard party={d.visitorParty} />
 
-          {/* ── 경쟁 + 위험 pair ─────────────────────────────────── */}
-          <div className={s.pair}>
-            <section className={s.card} data-reveal>
-              <div className={s.cardHead}>
-                <h2>경쟁이 걱정되세요?</h2>
-                <p>가게가 오래 버티고 있는 곳은 그만큼 검증된 자리예요.</p>
-              </div>
-              {/* 이 두 값은 업태를 가리지 않은 «음식점 전체»다 — 위의 업태별
-                  칸과 이름이 겹치지 않게 «음식점»으로 부른다. */}
-              <div className={s.vs}>
-                <div className={s.vsGreen}>
-                  <span>영업 중인 음식점</span>
-                  <strong>
-                    {d.competition.shopsHere !== null ? `${int(d.competition.shopsHere)}곳` : "정보 없음"}
-                  </strong>
-                  <em>오래 버틴 가게가 많다는 뜻이에요</em>
-                </div>
-                <div className={s.vsOrange}>
-                  <span>지금까지 연 음식점</span>
-                  <strong>
-                    {d.competition.openingsTotal !== null ? `${int(d.competition.openingsTotal)}곳` : "정보 없음"}
-                  </strong>
-                  <em>지금까지 이 자리를 거쳐 간 가게 수예요</em>
-                </div>
-              </div>
-            </section>
-
-            <section className={s.card} data-reveal>
-              <div className={s.cardHead}>
-                <h2>미리 알아두세요</h2>
-              </div>
-              {/* Only actual risks earn a row — «이 자리의» 위험만 담고 모델
-                  일반론은 담지 않는다. 하드코딩한 AUC 를 여기 적었던 적이
-                  있는데, 값이 바뀌면 화면 두 곳이 갈라지는 자리였다.
-                  모델 한계를 다시 실으려면 `meta().caveats` 를 쓴다. */}
-              <div className={s.risks}>
-                {search.rentMonthly === null ? (
-                  <RiskRow level="high" title="임대료를 아직 안 넣으셨어요" desc="손익·권리금 탭에서 넣으면 손익까지 계산해 드려요." />
-                ) : null}
-                {d.confidence === "partial" ? (
-                  <RiskRow
-                    level="mid"
-                    title="주변 매출 기록이 없는 자리예요"
-                    desc="매출·유동 관련 숫자는 비어 있어요. 없는 값을 채워 넣지 않았어요."
-                  />
-                ) : null}
-                <RiskRow level="mid" title="인구 숫자는 동 단위예요" desc="바로 옆 자리와 같은 값일 수 있어요." />
-              </div>
-            </section>
-          </div>
           </div>
 
           <div className={s.panel} hidden={tab !== "moneyTab"}>
@@ -884,16 +834,3 @@ function BarRow({
   );
 }
 
-function RiskRow({ level, title, desc }: { level: "high" | "mid"; title: string; desc: string }) {
-  const cls = level === "high" ? s.lvHigh : s.lvMid;
-  const label = level === "high" ? "높음" : "중간";
-  return (
-    <div className={s.risk}>
-      <span className={cls}>{label}</span>
-      <div className={s.riskBody}>
-        <strong>{title}</strong>
-        <p>{desc}</p>
-      </div>
-    </div>
-  );
-}

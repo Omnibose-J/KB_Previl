@@ -436,79 +436,6 @@
 }
 
 /* 경쟁/위험 pair — one section, two columns split by a vertical rule */
-.pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 36px;
-  align-items: start;
-  border-top: 1px solid var(--fg-line);
-}
-
-.pair > .card {
-  border-top: 0;
-}
-
-.pair > .card:nth-child(2) {
-  border-left: 1px solid var(--fg-line3);
-  padding-left: 36px;
-}
-
-.vs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.vsGreen,
-.vsOrange {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
-  border-radius: 12px;
-}
-
-.vsGreen {
-  background: var(--fg-green-bg);
-}
-
-.vsOrange {
-  background: var(--fg-orange-bg);
-}
-
-.vsGreen > span {
-  color: var(--fg-green);
-}
-
-.vsOrange > span {
-  color: var(--fg-orange);
-}
-
-.vs span {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.vsGreen strong {
-  color: var(--fg-green);
-}
-
-.vsOrange strong {
-  color: var(--fg-orange);
-}
-
-.vs strong {
-  font-size: 28px;
-  font-weight: 900;
-  line-height: 33px;
-}
-
-.vs em {
-  font-style: normal;
-  font-size: 13px;
-  color: #5a5a5a;
-}
-
 .verdict {
   padding: 14px 16px;
   border-radius: 10px;
@@ -517,60 +444,6 @@
   font-size: 15px;
   font-weight: 700;
   line-height: 24px;
-}
-
-/* risk rows */
-.risks {
-  display: flex;
-  flex-direction: column;
-}
-
-.risk {
-  display: flex;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--fg-line3);
-}
-
-.risk:last-child {
-  border-bottom: 0;
-}
-
-.lvHigh,
-.lvMid {
-  flex: none;
-  align-self: flex-start;
-  padding: 4px 8px;
-  border-radius: 5px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.lvHigh {
-  background: var(--fg-red);
-}
-
-.lvMid {
-  background: var(--fg-orange);
-}
-
-.riskBody {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.riskBody strong {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--fg-ink);
-}
-
-.riskBody p {
-  font-size: 14px;
-  line-height: 23px;
-  color: var(--fg-t5);
 }
 
 /* observed-by-grade table */
@@ -1045,8 +918,6 @@
   .hero { flex-wrap: wrap; padding: 24px 20px; gap: 16px; }
   .heroTitle { font-size: 30px; line-height: 41px; }
   .heroGrade { align-items: flex-start; }
-  .pair { grid-template-columns: 1fr; gap: 0; }
-  .pair > .card:nth-child(2) { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); }
   .crumb { padding: 12px 16px; }
 }
 
