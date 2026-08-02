@@ -344,6 +344,21 @@ class BuildingsResponse(ApiModel):
     unparsed_count: int
 
 
+class BuildingFootprint(ApiModel):
+    name: str | None
+    floors: int | None
+    # 바깥 링만. [[lon, lat], ...] 이고 첫 점과 끝 점이 같다.
+    rings: list[list[list[float]]]
+
+
+class FootprintsResponse(ApiModel):
+    grid_id: str
+    source: Literal["vworld"]
+    buildings: list[BuildingFootprint]
+    # 이 응답이 캐시에서 나왔는지. 상류 쿼터를 아끼는 것이 눈에 보여야 한다.
+    cached: bool
+
+
 class EconomicsInput(ApiModel):
     grid_id: Annotated[str, Field(pattern=r"^\d+_\d+$")]
     uptae: UptaeName

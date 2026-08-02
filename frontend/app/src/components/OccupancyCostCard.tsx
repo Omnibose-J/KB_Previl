@@ -23,6 +23,7 @@ export default function OccupancyCostCard({
   sales,
   rentMonthly,
   onRentChange,
+  onSuccession,
 }: {
   gridId: string;
   uptae: string;
@@ -32,6 +33,9 @@ export default function OccupancyCostCard({
   /** S4가 들고 있는 값 — 손익 카드와 같은 임대료를 쓴다(두 번 입력시키지 않는다) */
   rentMonthly: number | null;
   onRentChange: (v: number | null) => void;
+  /** 계산된 승계 확률을 알린다. 아직 못 구했으면 null — 아래 KB 연계 카드가
+   *  이 값으로 «뜰지 말지»와 «무엇을 권할지»를 정한다. */
+  onSuccession?: (prob: number | null) => void;
 }) {
   const [deposit, setDeposit] = useState<number | null>(null);
   const [goodwill, setGoodwill] = useState<number | null>(null);
@@ -66,6 +70,14 @@ export default function OccupancyCostCard({
     queryFn: () => api.estimate(debounced!),
     enabled: debounced !== null,
   });
+
+  // 승계 확률을 아래 카드(KB 연계)가 쓴다. 그쪽이 /estimate 를 따로 부르지
+  // 않는 이유는 입력이 여기 있어서다 — 두 번 부르면 사용자가 값을 만지는
+  // 동안 두 카드가 서로 다른 순간의 값을 보여준다.
+  const succession = q.data?.successionProb ?? null;
+  useEffect(() => {
+    onSuccession?.(succession);
+  }, [onSuccession, succession]);
 
   return (
     <section className={s.card}>
@@ -191,12 +203,14 @@ function Result({ data, sales, uptae }: {
         />
       </ul>
 
+      <BurdenRow data={data} sales={sales} uptae={uptae} />
+
       {/* «회수»가 아니라 «승계» — 지불비율 원천이 없어 회수율이라 부를 수 없다.
           그리고 원천이 constant면 그것은 «이 자리의 값»이 아니라 모든 자리에
-          같은 기본값이다. 측정값처럼 그리면 이 제품이 가장 경계하는 거짓이 된다. */}
+          같은 기본값이다. 측정값처럼 그리면 이 제품이 가장 경계하는 거짓이 된다.
+          부담률 뒤에 둔다 — 바로 아래 KB 연계 카드가 이 값으로 갈리므로
+          «승계가 이렇다 → 그래서 이걸 하세요» 가 끊기지 않는다. */}
       <SuccessionRow prob={data.successionProb} source={data.recoverySource} />
-
-      <BurdenRow data={data} sales={sales} uptae={uptae} />
 
       <p className={s.notice}>{data.notice}</p>
     </>

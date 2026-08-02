@@ -111,16 +111,23 @@
 
   /* grade ramp: amber sequential, hue + alpha stepped so adjacent grades are
      actually distinguishable on the map (single-alpha yellow read as one tone
-     in grade-1-dense districts). grade 1 = best = deepest. */
-  --color-heatmap-1: rgba(202, 108, 0, 0.9);
-  --color-heatmap-2: rgba(226, 132, 0, 0.82);
-  --color-heatmap-3: rgba(245, 158, 0, 0.74);
-  --color-heatmap-4: rgba(255, 180, 0, 0.64);
-  --color-heatmap-5: rgba(255, 196, 26, 0.55);
-  --color-heatmap-6: rgba(255, 208, 70, 0.46);
-  --color-heatmap-7: rgba(255, 219, 112, 0.38);
-  --color-heatmap-8: rgba(255, 229, 150, 0.3);
-  --color-heatmap-9: rgba(255, 238, 186, 0.24);
+     in grade-1-dense districts). grade 1 = best = deepest.
+     Softened ramp — lightness raised (+3.5~+12 L) and saturation pulled off
+     full (100% -> 72..62). The map fill discards alpha (`opaque()` in
+     gridGeo.ts) because a per-grade alpha sinks the pale end into the basemap,
+     so separation there is carried by RGB alone: the L steps were re-spaced to
+     hold end-to-end dE76 at 50.8 (was 52.0) as composited at fill-opacity 0.8
+     over --fg-mapbg. Worst adjacent pair is 4-5 at dE 6.0 — do not flatten the
+     ramp further without re-measuring that pair. */
+  --color-heatmap-1: rgba(211, 129, 34, 0.9);
+  --color-heatmap-2: rgba(221, 150, 49, 0.82);
+  --color-heatmap-3: rgba(224, 169, 70, 0.74);
+  --color-heatmap-4: rgba(226, 186, 90, 0.64);
+  --color-heatmap-5: rgba(229, 198, 111, 0.55);
+  --color-heatmap-6: rgba(232, 208, 135, 0.46);
+  --color-heatmap-7: rgba(235, 216, 160, 0.38);
+  --color-heatmap-8: rgba(240, 226, 186, 0.3);
+  --color-heatmap-9: rgba(245, 238, 214, 0.24);
   --color-heatmap-null: #c9c6c0;
 }
 

@@ -22,6 +22,7 @@ from service import api
 from service import buildings as buildings_service
 from service import economics as economics_service
 from service import estimation as estimation_service
+from service import footprints as footprints_service
 from service import goodwill as goodwill_service
 from service import reporting
 
@@ -36,6 +37,7 @@ from .schemas import (
     ErrorResponse,
     EstimateInput,
     EstimateResponse,
+    FootprintsResponse,
     GoodwillInput,
     GoodwillResponse,
     GridAddressResponse,
@@ -124,6 +126,15 @@ async def estimation_unavailable(
     _request: Request, exc: estimation_service.EstimationUnavailableError
 ) -> JSONResponse:
     return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+@app.exception_handler(footprints_service.FootprintsUnavailableError)
+async def footprints_unavailable(
+    _request: Request, exc: footprints_service.FootprintsUnavailableError
+) -> JSONResponse:
+    # 형제들은 503(우리 데이터가 없다)인데 이것만 502 다 — 실패한 곳이 우리가
+    # 아니라 상류(VWORLD)라서, 둘을 같은 코드로 내면 원인 구분이 안 된다.
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 @app.exception_handler(goodwill_service.GoodwillUnavailableError)
@@ -261,6 +272,21 @@ def grid_buildings(
     grid_id: Annotated[str, Path(pattern=r"^\d+_\d+$")],
 ) -> dict:
     return buildings_service.for_grid(grid_id)
+
+
+@app.get(
+    "/api/grid/{grid_id}/footprints",
+    response_model=FootprintsResponse,
+    responses={
+        404: {"model": ErrorResponse},
+        502: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+)
+def grid_footprints(
+    grid_id: Annotated[str, Path(pattern=r"^\d+_\d+$")],
+) -> dict:
+    return footprints_service.for_grid(grid_id)
 
 
 @app.get(

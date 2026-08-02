@@ -4,71 +4,12 @@ import {
   Map as MlMap,
   Marker,
   NavigationControl,
-  type CanvasSource,
   type GeoJSONSource,
   type LngLatBoundsLike,
   type MapLayerMouseEvent,
   type StyleSpecification,
 } from "maplibre-gl";
-import { emptyFc, makeColorOf, paintField, toFc } from "../lib/gridGeo";
-
-/** 지도 소스가 물고 있는 캔버스 하나. 갱신 때마다 여기에 다시 그린다. */
-let sharedField: HTMLCanvasElement | null = null;
-function fieldCanvas() {
-  if (!sharedField) {
-    sharedField = document.createElement("canvas");
-    sharedField.width = 1;
-    sharedField.height = 1;
-  }
-  return sharedField;
-}
-
-/**
- * 등급 면 그림을 지도에 올리고 갱신한다.
- *
- * 소스를 «데이터가 생긴 뒤에» 붙인다. 빈 좌표(`0,0` 네 개)로 미리 만들어 두면
- * 타일 좌표가 Infinity 가 되면서 지도 전체가 죽는다 — 실제로 그렇게 깨졌다.
- */
-function ensureField(m: MlMap, cells: GridCell[]) {
-  const target = fieldCanvas();
-  const ctx = target.getContext("2d");
-  if (!ctx) return;
-  const source = m.getSource("grid-field") as CanvasSource | undefined;
-  const painted = cells.length ? paintField(cells, makeColorOf()) : null;
-  if (!painted) {
-    // 칸이 없으면 비운다. 낡은 그림이 남으면 다른 업종의 면이 그대로 보인다.
-    ctx.clearRect(0, 0, target.width, target.height);
-    source?.setCoordinates(source.coordinates);   // 캔버스를 다시 읽게 한다
-    return;
-  }
-  target.width = painted.canvas.width;
-  target.height = painted.canvas.height;
-  ctx.clearRect(0, 0, target.width, target.height);
-  ctx.drawImage(painted.canvas, 0, 0);
-  if (source) {
-    // 좌표를 다시 넣으면 소스가 캔버스를 다시 읽는다(animate: false).
-    source.setCoordinates(painted.coordinates);
-    return;
-  }
-  m.addSource("grid-field", {
-    type: "canvas",
-    canvas: target,
-    coordinates: painted.coordinates,
-    animate: false,
-  });
-  m.addLayer({
-    id: "grid-field",
-    type: "raster",
-    source: "grid-field",
-    // 램프 색이 자체 alpha 를 갖는다. 여기 opacity 는 1등급 밀집 구역에서
-    // 도로·라벨이 읽히게 하는 몫이다.
-    paint: {
-      "raster-opacity": 0.8,
-      "raster-resampling": "linear",
-      "raster-fade-duration": 0,
-    },
-  }, "grid-fill");                                 // 테두리 층들보다 아래로
-}
+import { emptyFc, toBuildingFc, toEdgeFc, toFc } from "../lib/gridGeo";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { ApiError, api } from "../api/client";
 import type { GridCell, Grade, Point } from "../api/types";
@@ -169,6 +110,18 @@ export default function GridMap({
     enabled: bbox !== null,
   });
 
+  // 고른 칸의 건물 외곽선. 상류(VWORLD)를 그때 부르므로 재시도를 끈다 —
+  // 실패를 세 번 더 물어봐야 남의 쿼터만 축난다. 못 받으면 외곽선을 안 그리고
+  // 끝낸다. 화면이 건물에 대해 아무 주장도 하지 않으므로 없는 것이 거짓말이
+  // 되지 않는다(등급·생존율은 이 호출과 무관하게 이미 떠 있다).
+  const footprints = useQuery({
+    queryKey: ["footprints", selectedId],
+    queryFn: () => api.footprints(selectedId!),
+    enabled: selectedId !== null,
+    retry: false,
+    staleTime: Infinity,
+  });
+
   // --- map lifecycle -------------------------------------------------------
   useEffect(() => {
     if (!holder.current) return;
@@ -189,18 +142,63 @@ export default function GridMap({
 
     m.on("load", () => {
       m.addSource("grids", { type: "geojson", data: emptyFc() });
-      // 등급 면은 벡터가 아니라 그림 한 장으로 낸다(`ensureField`). 칸마다
-      // 칠하고 전체를 번지게 해서 등고선처럼 잇되, 칸이 있는 자리 모양으로
-      // 오려낸다. 그래서 색이 구역 밖으로 나가지 않는다 — heatmap·circle-blur
-      // 로 두 번 시도해 봤을 때 실패한 지점이 정확히 그것이었다.
-      //
-      // 칸 자체는 투명하게 남긴다 — 보이는 것은 그 그림이고, 이 층은 클릭과
-      // 마우스 위치를 잡는 몫만 한다.
+      // 등급 면은 칸 폴리곤 그대로 칠한다. 번지게 해서 등고선처럼 잇는 그림
+      // 한 장을 써 봤지만, 이웃끼리 섞인 색이 «이 칸의 등급»으로 안 읽혔다 —
+      // 색이 칸 밖으로 나가는 순간 100m 라는 우리 해상도가 거짓이 된다.
+      // 이 층은 클릭과 마우스 위치도 함께 잡는다.
       m.addLayer({
         id: "grid-fill",
         type: "fill",
         source: "grids",
-        paint: { "fill-color": "#000", "fill-opacity": 0 },
+        paint: {
+          // 색은 `toFc` 가 램프에서 읽어 알파를 떼고 넣어 둔다. 투명도를 여기
+          // 하나로 모아야 1등급 밀집 구역에서도 도로·라벨이 읽힌다.
+          "fill-color": ["get", "color"],
+          "fill-opacity": 0.8,
+        },
+      });
+      // 칸마다 경계. 색이 칸을 넘지 않는다는 것을 눈으로 보이게 하는 몫이라
+      // 순위와 무관하게 전부 두른다. 점선이라 순위 테두리(실선)·선택 테두리
+      // (굵은 실선)와 굵기가 아니라 «무늬»로 갈린다.
+      //
+      // 소스가 `grids` 와 따로다 — 폴리곤 링으로 그리면 맞닿은 변이 두 번
+      // 그려져 점선이 서로의 빈칸을 메우고 실선이 된다(`toEdgeFc`).
+      m.addSource("grid-edges", { type: "geojson", data: emptyFc() });
+      m.addLayer({
+        id: "grid-outline",
+        type: "line",
+        source: "grid-edges",
+        paint: {
+          "line-color": "#7a7a7a",
+          "line-width": 1,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.5,
+        },
+      });
+      // 고른 칸 안의 건물 외곽선(VWORLD). 파랑인 것은 램프가 앰버라 노랑
+      // 계열이 묻히기 때문이고, 실선이라 칸 점선과도 갈린다. 아래 선택
+      // 테두리(검정·2.5)보다는 확실히 약해야 «지금 이 칸»이 계속 읽힌다.
+      m.addSource("grid-buildings", { type: "geojson", data: emptyFc() });
+      // 채우기가 선보다 먼저다 — 순서가 뒤집히면 면이 자기 윤곽선을 덮는다.
+      // 아래 등급 색이 비쳐야 «어느 등급의 칸에 선 건물»로 읽히므로 옅게 깐다.
+      m.addLayer({
+        id: "building-fill",
+        type: "fill",
+        source: "grid-buildings",
+        paint: {
+          "fill-color": "#3b6fb0",
+          "fill-opacity": 0.2,
+        },
+      });
+      m.addLayer({
+        id: "building-outline",
+        type: "line",
+        source: "grid-buildings",
+        paint: {
+          "line-color": "#3b6fb0",
+          "line-width": 1.4,
+          "line-opacity": 0.9,
+        },
       });
       // 순위에 든 칸을 표시한다. 램프가 브랜드 노랑이라 노란 선은 묻히므로
       // 어두운 선을 쓰되, **아래 선택 테두리보다 확실히 약해야 한다** —
@@ -261,11 +259,21 @@ export default function GridMap({
   useEffect(() => {
     const m = map.current;
     const src = m?.getSource("grids") as GeoJSONSource | undefined;
-    if (!m || !src) return;
+    const edges = m?.getSource("grid-edges") as GeoJSONSource | undefined;
+    if (!src || !edges) return;
     const cells = q.data ? q.data.items : [];
     src.setData(cells.length ? toFc(cells) : emptyFc());
-    ensureField(m, cells);
+    edges.setData(cells.length ? toEdgeFc(cells) : emptyFc());
   }, [q.data, ready]);
+
+  useEffect(() => {
+    const src = map.current?.getSource("grid-buildings") as GeoJSONSource | undefined;
+    if (!src) return;
+    // 고른 칸이 바뀌는 순간 지난 칸의 건물을 지운다. 새 응답을 기다리는 동안
+    // 남겨 두면 «이 칸의 건물»로 읽힌다.
+    const items = selectedId && footprints.data ? footprints.data.buildings : [];
+    src.setData(toBuildingFc(items));
+  }, [footprints.data, selectedId, ready]);
 
   useEffect(() => {
     const m = map.current;

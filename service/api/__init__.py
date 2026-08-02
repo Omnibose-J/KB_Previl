@@ -24,7 +24,7 @@ from .base import (
     ResourceNotFoundError,
     ViewportTooLargeError,
 )
-from .cells import NOT_EVALUATED_DETAIL, RESOLUTION, location_names
+from .cells import NOT_EVALUATED_DETAIL, RESOLUTION, grid_polygon, location_names
 from .changes import grid_changes
 from .context import PARTY_SERVED, REST_EATERY
 from .meta import _grade_area, areas, meta
@@ -47,6 +47,7 @@ __all__ = [
     "at_point",
     "grid_changes",
     "grid_detail",
+    "grid_polygon",
     "grids",
     "location_names",
     "meta",

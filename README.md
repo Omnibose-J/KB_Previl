@@ -114,11 +114,14 @@ legacy 벤치(학습 2005~2018 / 검증 2019~2022)에서 잰 것이라 위 표�
 | `model/backtest·robustness·stratified` | 실효성 검증 |
 | `service/api/` | 조회 계층. 점수는 감추고 등급과 실측치만 낸다 |
 | `service/economics·goodwill·estimation` | 손익 시나리오 · 권리금 참고가 · 실질 점유비용 |
+| `service/footprints.py` | 건물 외곽선 프록시. DB 에 굽지 않는 이유가 파일 머리에 |
 | `service/demo_db.py` | 제출용 경량 DB 추출 (테이블 목록을 코드에서 재도출) |
 
 ### API
 
-읽기 전용이고 인증이 없습니다. 전체 스키마는 서버를 띄운 뒤 `/docs`.
+읽기 전용이고 인증이 없습니다. 전체 스키마는 서버를 띄운 뒤 `/docs`. `footprints`
+하나만 외부(VWORLD)를 그때 부르므로 실패가 우리 DB 가 아니라 상류에서 나올 수
+있고, 그래서 형제들의 503 과 달리 502 를 냅니다.
 
 ```
 GET  /api/meta                       업종·자치구·등급별 실측치·한계 문구
@@ -128,6 +131,7 @@ GET  /api/areas                      행정동 목록과 지도 이동 좌표
 GET  /api/grid/{id}                  자리 상세
 GET  /api/grid/{id}/address          그 칸의 대략 주소 (본번까지)
 GET  /api/grid/{id}/buildings        칸 안 건물별 인허가 이력
+GET  /api/grid/{id}/footprints       칸 안 건물 외곽선 (VWORLD 실시간, 표기 전용)
 GET  /api/grid/{id}/changes          직전 채점 대비 변화
 GET  /api/at                         좌표로 자리 찾기
 POST /api/economics · /api/estimate  손익 · 실질 점유비용
@@ -169,8 +173,12 @@ precompute → ui_curves → succession → party`.
 | `SGIS_CONSUMER_KEY` / `_SECRET` | 센서스 | 배후인구 피처 결측 |
 | `DATA_GO_KR_SERVICE_KEY` | SEMAS 점포 | 완주는 하나 `consistency` 의 `crosssource` 실패 |
 
-`OPENAI_API_KEY` 는 콜드스타트에 필요 없습니다. 파이프라인·게이트 어디에도 쓰이지
-않고 `/api/report` 하나만 씁니다.
+`OPENAI_API_KEY` 와 `VWORLD_API_KEY` 는 콜드스타트에 필요 없습니다. 파이프라인·
+게이트 어디에도 쓰이지 않고 각각 `/api/report` 와 `/api/grid/{id}/footprints` 만
+씁니다. 브이월드는 키 발급과 별개로 **데이터API 활용신청**이 있어야 합니다 —
+없으면 지오코딩만 되고 데이터API 는 `"인증키 정보가 올바르지 않습니다"` 를 내는데,
+문구가 키를 가리켜서 권한 문제를 키 문제로 오진하기 쉽습니다. 서버 호출에는
+Referer 가 없으므로 `domain` 파라미터도 같이 보내야 같은 문구를 피합니다.
 
 ### 시간과 쿼터
 
@@ -332,8 +340,11 @@ AUC 0.6227). 하지만 점포 속성이지 입지가 아니고, 추천에서는 
   게다가 시드에 민감합니다 — 시드 8개로 재보면 67.5~70.0%p 이고 배포분이 그중
   최대값입니다. 1등급 80.1% 는 반대로 강건해서 8개 시드가 전부 발표 CI 안에
   듭니다.
-- 미확보 원천: 공정위 창업비용, R-ONE 임대료, VWORLD 물리입지, 집계구 경계,
-  부동산원 권리금 시세(자치구 단위 앵커).
+- 미확보 원천: 공정위 창업비용, R-ONE 임대료, 집계구 경계, 부동산원 권리금
+  시세(자치구 단위 앵커).
+- 건물 외곽선은 확보했으나 **표기 전용**입니다. 점수·등급·추천 순위 어디에도
+  들어가지 않고, 인허가 집계와도 잇지 않습니다 — 인허가 좌표가 지번 단위라
+  (실측: 한 칸 60건이 서로 다른 좌표 13개) 어느 건물인지까지는 참이 아닙니다.
 
 <br>
 

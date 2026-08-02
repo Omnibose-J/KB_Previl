@@ -11,8 +11,8 @@ import VisitorPartyCard from "../components/VisitorPartyCard";
 import EconomicsCard from "../components/EconomicsCard";
 import GoodwillCard from "../components/GoodwillCard";
 import OccupancyCostCard from "../components/OccupancyCostCard";
+import KbLinkCard from "../components/KbLinkCard";
 import { ErrorState, Loading } from "../components/states";
-import { SOURCES } from "../copy";
 import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
 import { isRecommendable } from "../lib/grade";
 import { useReveal } from "../lib/reveal";
@@ -23,7 +23,13 @@ import s from "./S4Detail.module.css";
 // → 등급별 실측표, 오른쪽에 사이드바.
 //
 // 데이터가 없는 시안 블록은 지우지 않고 정직한 내용으로 채웠다. 대출·코칭 카드는
-// «준비 중» 딱지를 달고 모의 숫자를 넣지 않으며, 매물 표 자리는 실측 생존표가 됐다.
+// 모의 숫자를 넣지 않고 KB 실제 창구로 넘기며, 매물 표 자리는 실측 생존표가 됐다.
+
+// 사이드바 두 카드가 나가는 곳. 코칭 카드의 칩 네 개(상권 분석·창업 일반·금융
+// 상담·경영 상담)는 컨설팅 페이지가 실제로 안내하는 서비스 이름이라, 넷을 따로
+// 걸지 않고 카드 하나로 같은 곳에 보낸다.
+const KB_LOAN_URL = "https://obank.kbstar.com/quics?page=C103425";
+const KB_CONSULTING_URL = "https://obiz.kbstar.com/quics?page=C044463";
 
 export default function S4Detail({
   go,
@@ -123,6 +129,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
   // 계약기간 선택 — 등급은 그대로 두고, 기간별 «실측» 표에서 그 기간 열과
   // 리드 문장만 바꾼다. 재계산·재등급이 아니라 강조 전환이다.
   const [leaseYears, setLeaseYears] = useState<1 | 2 | 3>(3);
+  // 점유비용 카드가 계산해 올려 주는 값. 그 전까지는 null 이라 아래 KB 연계
+  // 카드가 아예 뜨지 않는다 — 값 없이 띄우면 «권할지 말지»를 근거 없이 고르게 된다.
+  const [succession, setSuccession] = useState<number | null>(null);
   useEffect(() => {
     if (!gwOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -326,9 +335,10 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               <div className={s.cardHead}>
                 <h2>미리 알아두세요</h2>
               </div>
-              {/* Only actual risks earn a row. Model-limit copy lives in the
-                  data card below, sourced from meta().caveats — restating it
-                  here with a hardcoded AUC was a second source of truth. */}
+              {/* Only actual risks earn a row — «이 자리의» 위험만 담고 모델
+                  일반론은 담지 않는다. 하드코딩한 AUC 를 여기 적었던 적이
+                  있는데, 값이 바뀌면 화면 두 곳이 갈라지는 자리였다.
+                  모델 한계를 다시 실으려면 `meta().caveats` 를 쓴다. */}
               <div className={s.risks}>
                 {search.rentMonthly === null ? (
                   <RiskRow level="high" title="임대료를 아직 안 넣으셨어요" desc="손익·권리금 탭에서 넣으면 손익까지 계산해 드려요." />
@@ -347,17 +357,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           </div>
 
           <div className={s.panel} hidden={tab !== "moneyTab"}>
-          {/* ── 실질 월 점유비용 — 비용이 손익보다 먼저 온다 (기획서 §3) ──
-              월세·보증금·권리금을 한 숫자로 합쳐야 그 다음 손익 계산의
-              분모가 정직해진다. 임대료 입력은 아래 손익 카드와 공유한다. */}
-          <OccupancyCostCard
-            gridId={d.gridId}
-            uptae={uptae}
-            sales={d.sales}
-            rentMonthly={search.rentMonthly}
-            onRentChange={(v) => search.set({ rentMonthly: v })}
-          />
-
           {/* ── economics (centrepiece) ──────────────────────────── */}
           <EconomicsCard
             gridId={d.gridId}
@@ -367,6 +366,26 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}
           />
+
+          {/* ── 실질 월 점유비용 ─────────────────────────────────
+              월세·보증금·권리금을 한 숫자로 합친다. 임대료 입력은 위 손익
+              카드와 공유한다 — 두 번 입력시키지 않는다.
+              기획서 §3 은 이 카드를 손익보다 «먼저» 두라고 했다(합친 비용이
+              손익의 정직한 분모라는 이유). 2026-08-02 사용자 지시로 순서를
+              뒤집었으므로, 되돌릴 때 그 근거부터 다시 읽을 것. */}
+          <OccupancyCostCard
+            gridId={d.gridId}
+            uptae={uptae}
+            sales={d.sales}
+            rentMonthly={search.rentMonthly}
+            onRentChange={(v) => search.set({ rentMonthly: v })}
+            onSuccession={setSuccession}
+          />
+
+          {/* 위 카드가 승계 확률을 «계산한 뒤에» 이어서 뜬다. 붙여 두는 이유가
+              있다 — «이어받을 사람이 적다» 는 사실과 «그래서 무엇을 하면 되나»
+              가 떨어져 있으면 앞의 숫자가 겁만 주고 끝난다. */}
+          <KbLinkCard successionProb={succession} />
 
           {/* ── 권리금 진입 카드 — 리포트 본체는 다이얼로그로 ────── */}
           <section className={s.card} data-reveal>
@@ -533,8 +552,13 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
 
         {/* ── sidebar ──────────────────────────────────────────────── */}
         <aside className={s.side}>
-          <div className={s.loan}>
-            <span className={s.loanTag}>KB 창업자금 대출 · 준비 중</span>
+          <a
+            className={s.loan}
+            href={KB_LOAN_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className={s.loanTag}>KB 창업자금 대출</span>
             <h3>이 분석 그대로 대출 상담까지</h3>
             <ul className={s.loanList}>
               <li>함께 전달되는 것 · 입지 등급</li>
@@ -542,31 +566,25 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               <li>입력한 조건의 손익 계산 결과</li>
             </ul>
             <span className={s.loanCap}>한도·금리 시뮬레이션은 제공하지 않습니다.</span>
-          </div>
+          </a>
 
-          <div className={s.coach}>
-            <span className={s.coachTag}>전문가 최종 코칭 · 준비 중</span>
-            <p>이 리포트와 함께 KB 소상공인 컨설팅 전문가와 최종 점검을 이어갈 수 있게 됩니다.</p>
+          <a
+            className={s.coach}
+            href={KB_CONSULTING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className={s.coachTag}>전문가 최종 코칭</span>
+            <p>이 리포트와 함께 KB 소상공인 컨설팅 전문가와 최종 점검을 이어갈 수 있어요.</p>
             <div className={s.coachChips}>
               <span>상권 분석</span>
               <span>창업 일반</span>
               <span>금융 상담</span>
               <span>경영 상담</span>
             </div>
-          </div>
+          </a>
 
           <ChangesCard gridId={d.gridId} uptae={uptae} />
-
-          <div className={s.datacard}>
-            <strong>데이터 출처 및 한계</strong>
-            <ul>
-              <li>· 정형 · {SOURCES.join(", ")}</li>
-              <li>· 모델 · LightGBM 분류 + 시간분리 홀드아웃 검증</li>
-              <li>· 비정형 · 인스타·블로그 등은 두 방식으로 측정했으나 기여가 없어 쓰지 않습니다</li>
-              {meta?.caveats.map((c) => <li key={c}>· 한계 · {c}</li>)}
-            </ul>
-            <span className={s.dataFoot}>최종 갱신 {meta?.asOf ?? "정보 없음"}</span>
-          </div>
         </aside>
       </main>
 

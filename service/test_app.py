@@ -20,6 +20,7 @@ from service import api
 from service import demo_db
 from service import economics as economics_service
 from service import estimation as estimation_service
+from service import footprints as footprints_service
 from service import goodwill as goodwill_service
 from service import precompute
 from service import reporting
@@ -1696,6 +1697,7 @@ def test_openapi_declares_runtime_error_contract():
         "/api/recommend": {"200", "422", "503"},
         "/api/grid/{grid_id}": {"200", "404", "422", "503"},
         "/api/grid/{grid_id}/buildings": {"200", "404", "422", "503"},
+        "/api/grid/{grid_id}/footprints": {"200", "404", "422", "502", "503"},
         "/api/grid/{grid_id}/address": {"200", "404", "422", "503"},
         "/api/areas": {"200", "503"},
         "/api/at": {"200", "404", "422", "503"},
@@ -1714,6 +1716,7 @@ def test_openapi_declares_runtime_error_contract():
                 "/api/recommend",
                 "/api/grid/{grid_id}",
                 "/api/grid/{grid_id}/buildings",
+                "/api/grid/{grid_id}/footprints",
                 "/api/grid/{grid_id}/address",
                 "/api/areas",
                 "/api/at",
@@ -2016,6 +2019,139 @@ def _create_building_facts_db(path, licence_rows):
             "VALUES (?, ?, ?, ?)",
             licence_rows,
         )
+
+
+def _vworld_ok(features):
+    return {
+        "response": {
+            "status": "OK",
+            "result": {"featureCollection": {"features": features}},
+        }
+    }
+
+
+def _stub_vworld(monkeypatch, payload, calls):
+    footprints_service._cache.clear()
+    monkeypatch.setattr(footprints_service, "load_env", lambda: {"VWORLD_API_KEY": "k"})
+
+    def fake_get(_url, **_kwargs):
+        calls.append(1)
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", "http://x"))
+
+    monkeypatch.setattr(footprints_service.httpx, "get", fake_get)
+
+
+def test_footprints_returns_outer_rings_and_serves_repeats_from_cache(
+    monkeypatch,
+    tmp_path,
+):
+    source_db = tmp_path / "footprints.db"
+    _create_building_facts_db(source_db, [("서울특별시 영등포구 여의도동 22", "한식", 0, "1_1")])
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
+    calls = []
+    _stub_vworld(
+        monkeypatch,
+        _vworld_ok(
+            [
+                {
+                    "properties": {"buld_nm": "TP Tower", "gro_flo_co": "29"},
+                    "geometry": {
+                        "type": "MultiPolygon",
+                        # 바깥 링 + 안뜰. 안뜰은 화면에 안 쓰므로 버려야 한다.
+                        "coordinates": [
+                            [
+                                [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0]],
+                                [[0.2, 0.2], [0.2, 0.4], [0.4, 0.4], [0.2, 0.2]],
+                            ]
+                        ],
+                    },
+                }
+            ]
+        ),
+        calls,
+    )
+
+    first = client.get("/api/grid/1_1/footprints")
+    assert first.status_code == 200
+    assert first.json() == {
+        "gridId": "1_1",
+        "source": "vworld",
+        "cached": False,
+        "buildings": [
+            {
+                "name": "TP Tower",
+                "floors": 29,
+                "rings": [[[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0]]],
+            }
+        ],
+    }
+
+    second = client.get("/api/grid/1_1/footprints")
+    assert second.status_code == 200
+    assert second.json()["cached"] is True
+    assert second.json()["buildings"] == first.json()["buildings"]
+    # 캐시가 상류를 막는 것이 요점이다. 쿼터를 이걸로 지킨다.
+    assert len(calls) == 1
+
+
+def test_footprints_reports_empty_range_as_no_buildings_not_as_failure(
+    monkeypatch,
+    tmp_path,
+):
+    source_db = tmp_path / "footprints-empty.db"
+    _create_building_facts_db(source_db, [("서울특별시 영등포구 여의도동 22", "한식", 0, "1_1")])
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
+    _stub_vworld(monkeypatch, {"response": {"status": "NOT_FOUND"}}, [])
+
+    response = client.get("/api/grid/1_1/footprints")
+
+    assert response.status_code == 200
+    assert response.json()["buildings"] == []
+
+
+def test_footprints_surfaces_upstream_refusal_as_502(monkeypatch, tmp_path):
+    source_db = tmp_path / "footprints-refused.db"
+    _create_building_facts_db(source_db, [("서울특별시 영등포구 여의도동 22", "한식", 0, "1_1")])
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
+    _stub_vworld(
+        monkeypatch,
+        {"response": {"status": "ERROR", "error": {"text": "인증키 정보가 올바르지 않습니다."}}},
+        [],
+    )
+
+    response = client.get("/api/grid/1_1/footprints")
+
+    assert response.status_code == 502
+    assert "인증키" in response.json()["detail"]
+
+
+def test_footprints_without_key_fails_loud_instead_of_reporting_no_buildings(
+    monkeypatch,
+    tmp_path,
+):
+    source_db = tmp_path / "footprints-nokey.db"
+    _create_building_facts_db(source_db, [("서울특별시 영등포구 여의도동 22", "한식", 0, "1_1")])
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
+    footprints_service._cache.clear()
+    monkeypatch.setattr(footprints_service, "load_env", lambda: {})
+
+    response = client.get("/api/grid/1_1/footprints")
+
+    assert response.status_code == 502
+    assert "VWORLD_API_KEY" in response.json()["detail"]
+
+
+def test_footprints_unknown_grid_is_404_before_any_upstream_call(monkeypatch, tmp_path):
+    source_db = tmp_path / "footprints-unknown.db"
+    _create_building_facts_db(source_db, [("서울특별시 영등포구 여의도동 22", "한식", 0, "1_1")])
+    monkeypatch.setattr(api.base, "DB_PATH", source_db)
+    calls = []
+    _stub_vworld(monkeypatch, _vworld_ok([]), calls)
+
+    response = client.get("/api/grid/9_9/footprints")
+
+    assert response.status_code == 404
+    assert calls == []
 
 
 def test_buildings_returns_parcel_facts_without_guessing_unparsed_rows(

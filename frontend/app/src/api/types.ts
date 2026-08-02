@@ -363,6 +363,23 @@ export interface BuildingsResponse {
   unparsedCount: number;
 }
 
+/** 건물 외곽선. VWORLD 에서 그때그때 받아 오는 표기 전용 자료라 등급·순위와
+ *  아무 관계가 없다. `BuildingFacts` 와 별개다 — 저쪽은 인허가에서 나온 사실,
+ *  이쪽은 모양뿐이고 둘을 이어 붙이지 않는다. */
+export interface BuildingFootprint {
+  name: string | null;
+  floors: number | null;
+  /** 바깥 링만. [[lon, lat], ...] 이고 첫 점과 끝 점이 같다. */
+  rings: [number, number][][];
+}
+
+export interface FootprintsResponse {
+  gridId: string;
+  source: string;
+  buildings: BuildingFootprint[];
+  cached: boolean;
+}
+
 export interface EconomicsInput {
   gridId: string;
   uptae: string;

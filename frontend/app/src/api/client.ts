@@ -8,6 +8,7 @@ import type {
   EconomicsResponse,
   EstimateInput,
   EstimateResponse,
+  FootprintsResponse,
   GoodwillInput,
   GoodwillResponse,
   GridAddress,
@@ -71,6 +72,8 @@ export const api = {
     request<GridDetail>(`/grid/${encodeURIComponent(gridId)}?uptae=${encodeURIComponent(uptae)}`),
   buildings: (gridId: string) =>
     request<BuildingsResponse>(`/grid/${encodeURIComponent(gridId)}/buildings`),
+  footprints: (gridId: string) =>
+    request<FootprintsResponse>(`/grid/${encodeURIComponent(gridId)}/footprints`),
   areas: () => request<AreasResponse>("/areas"),
   gridAddress: (gridId: string) =>
     request<GridAddress>(`/grid/${encodeURIComponent(gridId)}/address`),

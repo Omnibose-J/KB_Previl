@@ -55,7 +55,7 @@ LEFT JOIN grid_access a ON a.grid_id = f.grid_id
 """
 
 
-def _grid_polygon(grid_id):
+def grid_polygon(grid_id):
     try:
         gx, gy = (int(value) for value in grid_id.split("_"))
     except (AttributeError, TypeError, ValueError) as exc:
@@ -90,7 +90,7 @@ def _grid_cell(row, uptae):
         "grade": row["grade"],
         "observed_survival": row["observed"],
         "confidence": row["confidence"],
-        "polygon": _grid_polygon(row["grid_id"]),
+        "polygon": grid_polygon(row["grid_id"]),
         "center": [
             round(row["center_lon"], 6),
             round(row["center_lat"], 6),
