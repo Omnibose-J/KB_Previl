@@ -12,8 +12,10 @@ export const pct1 = (v: number) => `${(v * 100).toFixed(1)}%`;
 /** 0..1 -> "74%" */
 export const pct0 = (v: number) => `${Math.round(v * 100)}%`;
 
-/** 만원 단위 금액 -> "1,234만" / "-1,895만" */
-export const man = (v: number) => `${int(Math.round(v))}만`;
+/** 만원 단위 금액 -> "1,234만" / "-1,895만".
+ *  `+ 0` 은 -0 정규화다 — Math.round(-0.3) 은 -0 이고 toLocaleString 이
+ *  그것을 "-0" 으로 찍어 «-0만» 이 화면에 나온다. */
+export const man = (v: number) => `${int(Math.round(v) + 0)}만`;
 
 /** 만원 단위 금액에 부호를 붙여 손익을 읽히게 한다 */
 export const signedMan = (v: number) => `${v > 0 ? "+" : ""}${man(v)}`;

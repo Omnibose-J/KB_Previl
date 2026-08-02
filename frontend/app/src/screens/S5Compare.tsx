@@ -636,10 +636,13 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
                 <b className={firm ? s.firm : s.shaky}>
                   {firm ? "거의 안 움직여요" : `${man(width)} 폭으로 움직여요`}
                 </b>
+                {/* 끝값을 특정 가정에 귀속하지 않는다 — 밴드는 회수·상각기간·
+                    이자율을 함께 흔든 5~95% 구간이라, «못 건지면 = 높은 쪽» 은
+                    같은 화면의 대표값(전액 손실 가정)과 다른 숫자를 말하게 된다. */}
                 <span className={s.uncertaintyWhy}>
                   {firm
                     ? "권리금이 없거나 작아서, 몇 년을 하든 회수를 얼마나 하든 결과가 같아요."
-                    : `권리금을 못 건지면 ${man(it.effectiveCostBand.high)}, 이 자리 승계 비율만큼 건지면 ${man(it.effectiveCostBand.low)}이에요.`}
+                    : `권리금 회수·상각 기간 ±1년·이자율 ±1%p를 함께 흔들면 ${man(it.effectiveCostBand.low)}~${man(it.effectiveCostBand.high)} 사이에서 움직여요.`}
                 </span>
               </li>
             );
@@ -651,9 +654,10 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
           «승계 비율»은 그 자리에서 가게가 문을 닫은 뒤 다음 가게가 곧바로 들어온
           비율이에요. 인허가 이력으로 학습해 맞춰 본 값이고
           {/* null 은 «계산할 기록이 없다»이지 0% 가 아니다. 걸러 내지 않으면
-              pct0(null) 이 «0%» 를 찍어 없는 값을 잰 값처럼 만든다. */}
+              pct0(null) 이 «0%» 를 찍어 없는 값을 잰 값처럼 만든다. 반대로
+              측정된 0 은 잰 값이므로 그대로 낸다. */}
           {(() => {
-            const known = byTeo.filter((it) => it.successionProb !== null && it.successionProb > 0);
+            const known = byTeo.filter((it) => it.successionProb !== null);
             return known.length
               ? ` (${known.map((it) => `${it.label} ${pct0(it.successionProb!)}`).join(" · ")})`
               : "";

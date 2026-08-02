@@ -107,6 +107,19 @@ def _uptae_sales_batch(con, grid_ids, uptae):
         # 그 업태는 상권분석 분류에 대응이 아예 없다 — 점포 수도 셀 수 없다.
         return {gid: {"stores": None, "published": False} for gid in ids}
 
+    # 공표 여부는 «언젠가 한 번»이 아니라 estimation·goodwill 이 실제로 읽는
+    # «업종 최신 분기» 기준으로 판정한다. 아무 분기나 EXISTS 로 잡으면, 다음
+    # 분기 갱신 뒤 옛 분기에만 공표됐던 상권이 published=true 로 남아 권리금
+    # 버튼이 영구 503 을 누르게 한다. 최신 분기가 없으면(quarter IS NULL 비교)
+    # EXISTS 가 자연히 거짓이 된다.
+    latest_quarter = con.execute(
+        "SELECT MAX(s.quarter) FROM trdar_sales s JOIN trdar_store t "
+        "ON t.trdar_cd = s.trdar_cd AND t.induty_cd = s.induty_cd "
+        "AND t.quarter = s.quarter "
+        "WHERE s.induty_cd = ? AND t.stor_co > 0",
+        (induty,),
+    ).fetchone()[0]
+
     out = {}
     for start in range(0, len(ids), 400):
         chunk = ids[start : start + 400]
@@ -119,9 +132,9 @@ def _uptae_sales_batch(con, grid_ids, uptae):
             f"          ON t2.trdar_cd = s.trdar_cd AND t2.induty_cd = s.induty_cd "
             f"         AND t2.quarter = s.quarter "
             f"        WHERE s.trdar_cd = f.trdar_cd AND s.induty_cd = ? "
-            f"          AND t2.stor_co > 0) published "
+            f"          AND s.quarter = ? AND t2.stor_co > 0) published "
             f"FROM grid_feature f WHERE f.grid_id IN ({holes})",
-            [induty, induty, *chunk],
+            [induty, induty, latest_quarter, *chunk],
         ):
             # 상권 안에서 행이 없으면 0 이다. trdar_store 는 stor_co=0 인 행도
             # 1,001개 담고 있으므로 «행 없음» 과 «0곳» 이 원천에서 같은 뜻이다.
