@@ -120,6 +120,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
   // keeps only an entry card. The dialog stays MOUNTED while closed so typed
   // inputs (호가·잔여·자산 rows) survive close/reopen and tab switches.
   const [gwOpen, setGwOpen] = useState(false);
+  // 계약기간 선택 — 등급은 그대로 두고, 기간별 «실측» 표에서 그 기간 열과
+  // 리드 문장만 바꾼다. 재계산·재등급이 아니라 강조 전환이다.
+  const [leaseYears, setLeaseYears] = useState<1 | 2 | 3>(3);
   useEffect(() => {
     if (!gwOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -462,9 +465,22 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                     42.2개월(약 3.5년)이다. «임차는 보통 1~2년» 은 최초 계약의
                     인상이고, 갱신요구권까지 포함한 실제 체류는 3년대다. */}
                 <h2>1년, 2년, 3년, 5년 뒤에는</h2>
-                <p>시간이 지날수록 얼마나 남았는지예요.</p>
+                <p>계약기간을 고르면 그 기간의 실측이 진해져요. 등급은 그대로예요.</p>
               </div>
-              <PeriodTable meta={meta} grade={d.grade} />
+              <div className={s.leaseSeg} role="group" aria-label="계약기간 선택">
+                {([1, 2, 3] as const).map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    className={y === leaseYears ? `${s.leaseBtn} ${s.leaseBtnOn}` : s.leaseBtn}
+                    onClick={() => setLeaseYears(y)}
+                  >
+                    {y}년{y === 3 ? " 이상" : ""} 계약
+                  </button>
+                ))}
+              </div>
+              <LeaseLead meta={meta} grade={d.grade} years={leaseYears} />
+              <PeriodTable meta={meta} grade={d.grade} focusYears={leaseYears} />
               <p className={s.tableFoot}>
                 * 5년 숫자는 다른 시기({periodOf(meta, 5)?.cohort ?? "별도"})에 연 가게들 기준이라 1·2·3년과
                 이어서 읽으면 안 돼요.
@@ -709,7 +725,31 @@ function periodOf(meta: Meta, years: 1 | 2 | 3 | 5) {
  *  leases are commonly 1-2 years, so it is the horizon most tenants actually
  *  ask about — and it carries the largest sample (the 2023 cohort is fully
  *  judged at 2 years but only half-judged at 3). */
-function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
+/** One sentence answering the user's actual question — «내 계약기간 동안
+ *  이 밴드 자리들은 실제로 얼마나 남았나». Reads the same holdout bands the
+ *  table shows; renders nothing when the band shape is not the 3-band one. */
+function LeaseLead({ meta, grade, years }: { meta: Meta; grade: number; years: 1 | 2 | 3 }) {
+  const p = periodOf(meta, years);
+  const bands = p?.bands ?? null;
+  const b = bands && bands.length === 3 ? bands[bandIndex(grade)] : null;
+  if (!b || b.survival === null || b.survival === undefined) return null;
+  return (
+    <p className={s.leaseLead}>
+      {years}년{years === 3 ? " 이상" : ""} 계약이면 — 이 자리 밴드({b.band})는 실제로{" "}
+      <b>{pct1(b.survival)}</b>가 남았어요.
+    </p>
+  );
+}
+
+function PeriodTable({
+  meta,
+  grade,
+  focusYears,
+}: {
+  meta: Meta;
+  grade: number;
+  focusYears?: 1 | 2 | 3;
+}) {
   const periods = ([1, 2, 3, 5] as const).map((y) => periodOf(meta, y));
   const bandLabels = periods.find((p) => p?.bands)?.bands?.map((b) => b.band) ?? [];
   if (bandLabels.length === 0) return null;
@@ -720,7 +760,7 @@ function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
           <th>밴드</th>
           {periods.map((p, i) =>
             p?.bands ? (
-              <th key={i}>
+              <th key={i} className={p.years === focusYears ? s.colOn : undefined}>
                 {p.years}년{p.years === 5 ? " *" : ""}
                 {p.testWindow ? <span className={s.thCap}> 검증 {p.testWindow}</span> : null}
               </th>
@@ -743,7 +783,7 @@ function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
                 // 5y period is a separate fit and owes us no row order.
                 const b = p.bands.find((x) => x.band === label);
                 return (
-                  <td key={i}>
+                  <td key={i} className={p.years === focusYears ? s.colOn : undefined}>
                     {b?.survival !== null && b?.survival !== undefined ? pct1(b.survival) : "정보 없음"}
                     {b?.n !== null && b?.n !== undefined ? (
                       <span className={s.tdCap}> 표본 {int(b.n)}</span>
@@ -757,7 +797,11 @@ function PeriodTable({ meta, grade }: { meta: Meta; grade: number }) {
         <tr className={s.overallRow}>
           <td>전체</td>
           {periods.map((p, i) =>
-            p?.bands ? <td key={i}>{p.overall !== null ? pct1(p.overall) : "정보 없음"}</td> : null,
+            p?.bands ? (
+              <td key={i} className={p.years === focusYears ? s.colOn : undefined}>
+                {p.overall !== null ? pct1(p.overall) : "정보 없음"}
+              </td>
+            ) : null,
           )}
         </tr>
       </tbody>

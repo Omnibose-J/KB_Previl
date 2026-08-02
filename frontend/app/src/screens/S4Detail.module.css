@@ -630,6 +630,44 @@
   color: var(--fg-t8);
 }
 
+/* 계약기간 선택 — 등급을 다시 매기지 않고 강조 열만 바꾼다 */
+.leaseSeg {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.leaseBtn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--fg-chipline);
+  background: transparent;
+  color: var(--fg-t2);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.leaseBtnOn {
+  background: var(--fg-y);
+  border-color: var(--fg-y);
+  color: var(--fg-ink);
+}
+
+.leaseLead {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--fg-t2);
+}
+
+.leaseLead b {
+  color: var(--fg-ink);
+}
+
+.colOn {
+  background: var(--fg-y-bg);
+}
+
 .tdCap {
   font-size: 12px;
   color: var(--fg-t8);
