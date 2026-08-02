@@ -429,6 +429,15 @@
    열 머리글이 absolute(top:-22px)라 위 문단과 겹친다 — 그만큼 띄운다. */
 /* ── 임차 기간 슬라이더 (S4 권리금 카드와 같은 형태) ────────── */
 
+.budgetRow {
+  display: flex;
+  gap: 12px;
+}
+
+.budgetRow > * {
+  flex: 1;
+}
+
 .leaseField {
   display: flex;
   flex-direction: column;
@@ -548,6 +557,15 @@
 
 .shaky {
   color: var(--fg-orange-deep);
+}
+
+.rwBad {
+  color: var(--fg-red);
+}
+
+.rwFail {
+  color: var(--fg-t5);
+  font-weight: 500;
 }
 
 .uncertaintyWhy {

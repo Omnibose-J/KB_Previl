@@ -2,11 +2,18 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { api } from "../api/client";
-import type { CompareItem, CompareResponse, GridCell, Point } from "../api/types";
+import type {
+  CompareItem,
+  CompareResponse,
+  GridCell,
+  Point,
+  RunwayResponse,
+} from "../api/types";
 import AreaPicker from "../components/AreaPicker";
 import GridMap from "../components/GridMap";
 import { ErrorState, Loading } from "../components/states";
 import { man, pct0, pct1 } from "../lib/format";
+import { useSearch } from "../state/search";
 import s from "./S5Compare.module.css";
 
 // 후보를 이미 손에 쥔 사람을 위한 입구다. «어디가 좋아?»가 아니라 «여기
@@ -64,6 +71,12 @@ function isComplete(slot: Slot): boolean {
   );
 }
 
+/** 예산 버티기 — 후보별 runway 응답. null 은 그 후보의 계산 실패(보이게 실패). */
+interface RunwayRow {
+  label: string;
+  result: RunwayResponse | null;
+}
+
 export default function S5Compare({ go }: { go: (s: Screen) => void }) {
   const meta = useQuery({ queryKey: ["meta"], queryFn: api.meta });
   const [uptae, setUptae] = useState<string | null>(null);
@@ -75,6 +88,14 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
   });
 
   const [leaseYears, setLeaseYears] = useState<number>(3);
+
+  // 예산은 사람의 것이라 후보 공용이고, S4 버티기 카드와 같은 값을 공유한다.
+  // 그 외 초기투자(인테리어 등)는 이 화면 전용 — 모든 후보에 같이 더한다.
+  const search = useSearch();
+  const budget = search.budget;
+  const [extraUpfront, setExtraUpfront] = useState<number | null>(null);
+  const [runwayRows, setRunwayRows] = useState<RunwayRow[] | null>(null);
+  const [runwayPending, setRunwayPending] = useState(false);
 
   const ready = slots.filter(isComplete);
   // 값은 넣었는데 자리를 안 찍은 후보. 조용히 빼면 사용자는 두 곳을 비교한 줄
@@ -142,14 +163,43 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
   };
   // 결과가 어떤 조건에서 나왔는지 붙들어 둔다. 이게 없으면 업종·기간·금액을
   // 바꾼 뒤에도 이전 결과가 그대로 붙어 있어, 사용자는 그것을 지금 조건의
-  // 답으로 읽는다. 보낸 것과 같은 것에서만 결과를 보여 준다.
-  const requestKey = JSON.stringify(payload);
+  // 답으로 읽는다. 보낸 것과 같은 것에서만 결과를 보여 준다. 예산·공통
+  // 초기투자도 결과(버티는 기간)를 바꾸므로 같은 키에 묶는다.
+  const requestKey = JSON.stringify({ payload, budget, extraUpfront });
   const [ranKey, setRanKey] = useState<string | null>(null);
 
   const run = () => {
     if (!canCompare) return;
     setRanKey(requestKey);
     compare.mutate(payload);
+    // 버티는 기간은 비교와 별개 축이라 실패해도 비교를 막지 않는다. 후보별로
+    // 실패를 따로 담아 «그 후보만 계산 못 했다»를 보이게 남긴다.
+    if (budget !== null) {
+      setRunwayPending(true);
+      setRunwayRows(null);
+      Promise.all(
+        ready.map((sl) =>
+          api
+            .runway({
+              gridId: sl.cell!.gridId,
+              uptae: uptae!,
+              budget,
+              upfront: sl.deposit! + sl.goodwill! + (extraUpfront ?? 0),
+              rentMonthly: sl.rentMonthly!,
+            })
+            .then(
+              (result): RunwayRow => ({ label: sl.label, result }),
+              (): RunwayRow => ({ label: sl.label, result: null }),
+            ),
+        ),
+      ).then((rows) => {
+        setRunwayRows(rows);
+        setRunwayPending(false);
+      });
+    } else {
+      setRunwayRows(null);
+      setRunwayPending(false);
+    }
   };
 
   // 업종이 바뀌면 찍어 둔 자리의 등급은 이전 업종의 값이다. 금액은 업종과
@@ -284,6 +334,31 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
             </div>
           </div>
 
+          {/* ── 예산 (선택) ───────────────────────────────────────── */}
+          <div className={s.block}>
+            <h2 className={s.blockH}>
+              <i>4</i> 예산도 넣어볼까요
+            </h2>
+            <p className={s.blockNote}>
+              선택이에요. 넣으면 계약하고 남는 돈으로 각 자리에서 몇 개월
+              버티는지도 같이 계산해요.
+            </p>
+            <div className={s.budgetRow}>
+              <Num
+                label="총 예산"
+                value={budget}
+                onChange={(v) => search.set({ budget: v })}
+                placeholder="예: 15,000"
+              />
+              <Num
+                label="그 외 초기투자"
+                value={extraUpfront}
+                onChange={setExtraUpfront}
+                placeholder="인테리어 등, 없으면 비움"
+              />
+            </div>
+          </div>
+
           <button className={s.runBtn} disabled={!canCompare || compare.isPending} onClick={run}>
             {compare.isPending ? "계산 중…" : "다시 줄 세우기"}
           </button>
@@ -350,7 +425,19 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
           <ErrorState onRetry={run} detail={String(compare.error)} />
         </div>
       ) : compare.data && ranKey === requestKey ? (
-        <Reversal r={compare.data} />
+        <Reversal
+          r={compare.data}
+          runway={
+            budget !== null
+              ? {
+                  budget,
+                  extraUpfront: extraUpfront ?? 0,
+                  pending: runwayPending,
+                  rows: runwayRows,
+                }
+              : null
+          }
+        />
       ) : compare.data ? (
         <div className={s.resultPad}>
           <p className={s.stale}>
@@ -372,7 +459,14 @@ const ROW_H = 62;
 /** `rankMoved`는 서버 값 둘의 뺄셈이라 재계산이 아니라 표시 연산이다. */
 type Labeled = CompareItem & { label: string; rankMoved: number };
 
-function Reversal({ r }: { r: CompareResponse }) {
+interface RunwayStripData {
+  budget: number;
+  extraUpfront: number;
+  pending: boolean;
+  rows: RunwayRow[] | null;
+}
+
+function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData | null }) {
   const items: Labeled[] = r.items.map((it, i) => ({
     ...it,
     label: it.label ?? SLOT_LABELS[i] ?? String(i + 1),
@@ -561,6 +655,37 @@ function Reversal({ r }: { r: CompareResponse }) {
         </p>
       </div>
 
+      {/* 예산 버티기 — 순위와 별개 축. 부담률은 좋은데 운영자금이 없는 후보를
+          잡는 장치라, 정렬에는 손대지 않고 후보별 판정만 늘어놓는다. */}
+      {runway ? (
+        <div className={s.uncertainty}>
+          <h3>예산 {man(runway.budget)}으로 버티면</h3>
+          {runway.pending ? (
+            <Loading label="버티는 기간 계산 중…" />
+          ) : runway.rows ? (
+            <ul>
+              {byTeo.map((it) => {
+                const row = runway.rows!.find((x) => x.label === it.label);
+                if (!row) return null;
+                return (
+                  <li key={it.label}>
+                    <span className={s.tag}>{it.label}</span>
+                    <RunwayVerdict result={row.result} />
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <p className={s.uncertaintyNote}>
+            초기투자는 보증금+권리금
+            {runway.extraUpfront > 0 ? `+공통 초기투자 ${man(runway.extraUpfront)}` : ""}
+            으로 잡았어요. 매출은 각 자리 주변 상권의 같은 업종 평균(없으면 서울
+            평균), 마진율은 기본값, 매출이 자리 잡는 기간은 6개월로 가정했어요 —
+            자리 상세의 버티기 카드에서 조건을 바꿔 볼 수 있어요.
+          </p>
+        </div>
+      ) : null}
+
       {/* 부담률로 줄 세울 수 있는지 — 같은 상권이면 매출이 동점이라 못 한다 */}
       <p className={burdenComparable ? s.burdenOk : s.burdenNo}>
         {burdenComparable
@@ -604,6 +729,57 @@ function RankRow({
       </div>
     </div>
   );
+}
+
+/** 후보 한 곳의 버티기 판정 한 줄. null = 그 후보만 계산 실패 — 숨기지 않는다. */
+function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
+  if (result === null) {
+    return (
+      <b className={s.rwFail}>계산하지 못했어요 — «다시 줄 세우기»로 다시 시도해 주세요.</b>
+    );
+  }
+  switch (result.level) {
+    case "IMPOSSIBLE":
+      return (
+        <>
+          <b className={s.rwBad}>계약 자체가 어려워요</b>
+          <span className={s.uncertaintyWhy}>
+            초기투자가 예산보다 {man(-result.reserve)} 많아요.
+          </span>
+        </>
+      );
+    case "DANGER":
+      return (
+        <>
+          <b className={s.rwBad}>
+            {result.depletionMonth !== null
+              ? `개업 ${result.depletionMonth}개월차에 돈이 바닥나요`
+              : "초기 골짜기를 못 넘어요"}
+          </b>
+          <span className={s.uncertaintyWhy}>
+            계약하고 남는 돈 {man(result.reserve)}으로는 부족해요.
+          </span>
+        </>
+      );
+    case "WARN":
+      return (
+        <>
+          <b className={s.shaky}>버티지만 여유가 거의 없어요</b>
+          <span className={s.uncertaintyWhy}>
+            매출이 예상보다 늦게 오르면 위험해요 — 남는 돈 {man(result.reserve)}.
+          </span>
+        </>
+      );
+    default:
+      return (
+        <>
+          <b className={s.firm}>초기 골짜기를 넘을 돈이 확보돼요</b>
+          <span className={s.uncertaintyWhy}>
+            계약하고 남는 돈이 {man(result.reserve)}이라 여유가 있어요.
+          </span>
+        </>
+      );
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────
