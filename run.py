@@ -119,8 +119,68 @@ def backfill(py, dry_run):
     return subprocess.call([str(py), "-m", "pipeline.bootstrap"], cwd=ROOT, env=env)
 
 
+def port_in_use(port):
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+def port_owner(port):
+    """(pid, cmdline) of the process LISTENING on the port, else (None, "")."""
+    try:
+        if os.name == "nt":
+            out = subprocess.run(["netstat", "-ano", "-p", "TCP"],
+                                 capture_output=True, text=True).stdout
+            for line in out.splitlines():
+                parts = line.split()
+                if (len(parts) >= 5 and parts[3] == "LISTENING"
+                        and parts[1].rsplit(":", 1)[-1] == str(port)):
+                    pid = int(parts[4])
+                    cmd = subprocess.run(
+                        ["powershell", "-NoProfile", "-Command",
+                         f"(Get-CimInstance Win32_Process -Filter 'ProcessId={pid}').CommandLine"],
+                        capture_output=True, text=True).stdout.strip()
+                    return pid, cmd
+        else:
+            out = subprocess.run(["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+                                 capture_output=True, text=True).stdout.strip()
+            if out:
+                pid = int(out.splitlines()[0])
+                cmd = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
+                                     capture_output=True, text=True).stdout.strip()
+                return pid, cmd
+    except (OSError, ValueError):
+        pass
+    return None, ""
+
+
+def reclaim_port(port, url):
+    """더블클릭을 두 번 하면 bind 오류가 «Python 미설치?» 안내로 이어져 원인을
+    거꾸로 말하게 된다(2026-08-03 실사고). 우리 서버로 확인된 프로세스만 끄고
+    이어서 새로 띄운다 — 남의 프로그램이면 절대 끄지 않고 사정을 말한다."""
+    import time
+
+    pid, cmd = port_owner(port)
+    if pid is None or "uvicorn" not in cmd or "service.app" not in cmd:
+        print(f"{url} 을 다른 프로그램이 쓰고 있어요. 그 프로그램을 닫거나,")
+        print(f"    python run.py --port {port + 1}")
+        print("처럼 다른 포트로 띄워 주세요.")
+        return False
+    print(f"이전에 띄운 서버(PID {pid})가 아직 켜져 있어요 — 끄고 새로 시작합니다.")
+    os.kill(pid, 15)
+    for _ in range(20):
+        if not port_in_use(port):
+            return True
+        time.sleep(0.25)
+    print("이전 서버가 끝나지 않아요 — 그 창을 직접 닫고(Ctrl+C) 다시 실행해 주세요.")
+    return False
+
+
 def serve(py, port, open_browser, db):
     url = f"http://127.0.0.1:{port}"
+    if port_in_use(port) and not reclaim_port(port, url):
+        return 1
     print(f"[4/4] 서버 기동 — {url}  (멈추려면 Ctrl+C)")
     if open_browser:
         threading.Timer(2.0, webbrowser.open, args=(url,)).start()
