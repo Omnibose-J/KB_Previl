@@ -73,10 +73,20 @@ class SurvivalYear(ApiModel):
     opened: int
 
 
+# 공정위 창업비용 참고값(부동산 제외). label 이 근거·연도·제외 범위를 다 말한다 —
+# 화면은 이 라벨 없이 값을 단독으로 그리지 않는다.
+class UpfrontHint(ApiModel):
+    value: Annotated[float, Field(gt=0)]
+    year: int
+    label: str
+    proxy: bool
+
+
 class MetaResponse(ApiModel):
     as_of: str | None
     uptae: list[str]
     goodwill_supported_uptae: list[str]
+    upfront_helper: dict[str, UpfrontHint]
     districts: list[str]
     observed_by_grade: list[ObservedGrade]
     overall_survival: Annotated[float | None, Field(ge=0, le=1)]

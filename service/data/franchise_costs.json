@@ -1,0 +1,70 @@
+{
+  "source": "공정거래위원회 가맹정보 업종별 창업비용 (data.go.kr 15110293)",
+  "endpoint": "https://apis.data.go.kr/1130000/FftcSclasIndutyFntnStatsService/getSclaIndutyFntnOutStats",
+  "year": 2024,
+  "fetched": "2026-08-03",
+  "unit": "만원",
+  "scope": "가맹비+교육비+기타(인테리어 등) — 가맹보증금·임대보증금·권리금 제외",
+  "helpers": {
+    "한식": {
+      "value": 7109,
+      "sourceIndustry": "한식",
+      "proxy": false
+    },
+    "까페": {
+      "value": 2739,
+      "sourceIndustry": "커피",
+      "proxy": false
+    },
+    "분식": {
+      "value": 2708,
+      "sourceIndustry": "분식",
+      "proxy": false
+    },
+    "통닭(치킨)": {
+      "value": 1125,
+      "sourceIndustry": "치킨",
+      "proxy": false
+    },
+    "호프/통닭": {
+      "value": 4948,
+      "sourceIndustry": "주점",
+      "proxy": false
+    },
+    "정종/대포집/소주방": {
+      "value": 4948,
+      "sourceIndustry": "주점",
+      "proxy": true
+    },
+    "일식": {
+      "value": 10053,
+      "sourceIndustry": "일식",
+      "proxy": false
+    },
+    "중국식": {
+      "value": 7034,
+      "sourceIndustry": "중식",
+      "proxy": false
+    },
+    "경양식": {
+      "value": 9357,
+      "sourceIndustry": "서양식",
+      "proxy": false
+    },
+    "외국음식전문점(인도,태국등)": {
+      "value": 6908,
+      "sourceIndustry": "기타 외국식",
+      "proxy": false
+    },
+    "식육(숯불구이)": {
+      "value": 7109,
+      "sourceIndustry": "한식",
+      "proxy": true
+    },
+    "기타": {
+      "value": 5374,
+      "sourceIndustry": "기타 외식",
+      "proxy": false
+    }
+  }
+}

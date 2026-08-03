@@ -26,6 +26,7 @@ from service import footprints as footprints_service
 from service import goodwill as goodwill_service
 from service import reporting
 from service import runway as runway_service
+from service import runway_params
 
 from .schemas import (
     AreasResponse,
@@ -177,6 +178,9 @@ def meta() -> dict:
     return {
         **api.meta(),
         "goodwill_supported_uptae": list(goodwill_service.UPTAE_INDUTY),
+        # 표시 전용 참고값 — 계산 경로에는 들어가지 않는다. 데이터 파일이 없으면
+        # 빈 dict 로 나가고 화면은 힌트를 그리지 않는다.
+        "upfront_helper": runway_params.upfront_helper(),
     }
 
 

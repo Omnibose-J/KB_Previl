@@ -1,30 +1,43 @@
-"""FTC franchise startup-cost ingest for the runway upfront helper.
+"""FTC franchise startup-cost ingest → service/data/franchise_costs.json.
 
-Turns 공정위 가맹정보 창업비용 (data.go.kr) into a per-uptae default for the
-"그 외 초기투자" input (S5) and the S4 upfront hint. DELIBERATELY excludes the
-franchise deposit from the helper value — the user types 보증금·권리금
-separately, so including it would double-count.
+Feeds the runway upfront helper: a per-uptae «부동산 제외 창업비용» reference
+(가맹비 + 교육비 + 기타(인테리어·설비 등)) surfaced through /api/meta as a
+labeled hint. 가맹보증금은 합계에서 뺀다 — 사용자가 보증금을 따로 입력하므로
+넣으면 이중계상이고, 임대보증금·권리금은 애초에 FTC 통계 범위 밖이다. 그래서
+모든 라벨이 «보증금·권리금 제외»를 함께 말해야 한다.
+
+Endpoint verified LIVE 2026-08-03 (new data.go.kr account key):
+  https://apis.data.go.kr/1130000/FftcSclasIndutyFntnStatsService/getSclaIndutyFntnOutStats
+  ?serviceKey=…&yr=2024&resultType=json  → 외식 중분류 15행, resultCode 00.
+
+⚠️ Source data traps, all measured (do NOT "fix" these to look sensible):
+  1. Field names are MISLABELED at the source. Proof: the sum identity
+     smtnAmt == frcsCnt + avrgFrcsAmt + avrgFntnAmt + avrgJngEtcAmt holds on
+     every row (±1 rounding). Actual meanings:
+       jnghdqrtrsCnt = 가맹본부 수 (the only true count; not in the sum)
+       frcsCnt       = 평균 가맹보증금액   ← an AMOUNT, not a store count
+       avrgFrcsAmt   = 평균 가맹비(가입비)
+       avrgFntnAmt   = 평균 가맹교육금액
+       avrgJngEtcAmt = 평균 가맹기타금액 (인테리어·설비·초도물품 등)
+       smtnAmt       = 창업비용 합계
+     validate_rows() enforces this identity — if it ever breaks, the fields
+     changed meaning and the ingest must stop, not guess.
+  2. crrncyUnitCdNm says "(단위 :천원)" but the actual unit is 만원
+     (일식 smtnAmt 11,016 → 1.10억: plausible; as 천원 it would be 1,100만
+     for a full franchise fit-out: impossible). A range guard pins this.
+  3. 까페 must map to the "커피" row by EXACT name match — substring matching
+     hits "음료 (커피 외)" (= beverages EXCLUDING coffee) first.
 
 Usage:
-  python -m scripts.franchise_costs --selftest      # no network — mapping + conversion
+  python -m scripts.franchise_costs --selftest        # offline: mapping + guards
   python -m scripts.franchise_costs --fetch [--year 2024]
 
---fetch needs DATA_GO_KR_SERVICE_KEY *approved for this API* (활용신청 per API;
-the SEMAS approval does not carry over). Portal maintenance until 2026-08-03
-09:00 blocks the 신청, not necessarily the endpoint.
-
-Exact response field names are unknown until the portal reopens, so nothing is
-hardcoded: every concept is resolved against the actual payload keys and the
-script aborts listing the real keys when a concept cannot be resolved
-unambiguously. When real data lands, a mismatch is a one-line candidate fix.
-
-Landing plan for the produced dict (not wired yet on purpose — no dead config):
-runway_params.UPFRONT_HELPER_BY_UPTAE, surfaced through /api/meta as a labeled
-hint ("공정위 YYYY 가맹 평균") — display + one-tap apply, never silently
-prefilled into a calculation.
+--fetch needs DATA_GO_KR_FTC_KEY (decoded form) in .env; falls back to
+DATA_GO_KR_SERVICE_KEY. Approval is per-API (활용신청) and per-account.
 """
 
 import argparse
+import datetime
 import json
 import sys
 import urllib.parse
@@ -34,89 +47,176 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Candidate endpoints, most useful first. 업종별(15110293) may stop at the
-# 대분류 grain ("외식" one row); the 브랜드별(15110265) fallback always carries
-# enough rows to aggregate a 중분류 median ourselves.
-ENDPOINTS = {
-    "by_industry": "https://apis.data.go.kr/1130000/FftcIndutyFrcsCstStatsService/getIndutyFrcsCstStats",
-    "by_brand": "https://apis.data.go.kr/1130000/FftcBrandFrcsCstStatsService/getBrandFrcsCstStats",
-}
+ENDPOINT = (
+    "https://apis.data.go.kr/1130000/"
+    "FftcSclasIndutyFntnStatsService/getSclaIndutyFntnOutStats"
+)
 
-# concept -> plausible field-name candidates. Resolution demands exactly one
-# hit against the real payload; anything else aborts with the actual keys.
-FIELD_CANDIDATES = {
-    "industry_mid": ("indutyMlsfcNm", "indutyMclasNm", "induty_mlsfc_nm", "indutyNm"),
-    "franchise_fee": ("frcsFee", "jnngFee", "frcsBcncJnngAmt", "joinAmt"),
-    "education_fee": ("eduFee", "frcsBcncEduAmt", "educationAmt"),
-    "deposit": ("guartAmt", "frcsBcncGuartAmt", "gtyAmt"),
-    "etc_cost": ("etcAmt", "frcsBcncEtcAmt", "etcCost"),
-}
+REQUIRED_FIELDS = (
+    "indutyMlsfcNm", "jnghdqrtrsCnt", "frcsCnt",
+    "avrgFrcsAmt", "avrgFntnAmt", "avrgJngEtcAmt", "smtnAmt",
+)
 
-# KB 12업태 -> FTC 외식 중분류 name candidates. PROXY = nearest available
-# class, labeled so the screen can say so. Validated against kb.db in selftest.
+# 헬퍼 합에 들어가는 금액 필드 (frcsCnt=가맹보증금은 제외).
+HELPER_FIELDS = ("avrgFrcsAmt", "avrgFntnAmt", "avrgJngEtcAmt")
+
+# KB 12업태 → FTC 외식 중분류 이름. (candidates, proxy). Matching is
+# exact-first (after strip) — substring only as fallback for renames.
+# PROXY = nearest available class; the screen label appends a marker.
 UPTAE_MAP = {
     "한식": (("한식",), False),
-    "까페": (("커피", "커피전문점"), False),
-    "분식": (("분식", "김밥·간이음식", "김밥"), False),
+    "까페": (("커피",), False),
+    "분식": (("분식",), False),
     "통닭(치킨)": (("치킨",), False),
-    "호프/통닭": (("주점", "생맥주·기타주점", "호프"), False),
-    "정종/대포집/소주방": (("주점", "생맥주·기타주점"), True),
+    "호프/통닭": (("주점",), False),
+    "정종/대포집/소주방": (("주점",), True),
     "일식": (("일식",), False),
     "중국식": (("중식",), False),
     "경양식": (("서양식",), False),
-    "외국음식전문점(인도,태국등)": (("외국식",), False),
+    "외국음식전문점(인도,태국등)": (("기타 외국식", "외국식"), False),
     "식육(숯불구이)": (("한식",), True),
-    "기타": (("기타 외식", "기타외식"), False),
+    "기타": (("기타 외식",), False),
 }
 
 RAW_OUT = ROOT / "pipeline" / "cache" / "franchise_costs_raw.json"
+DATA_OUT = ROOT / "service" / "data" / "franchise_costs.json"
+
+# 만원 단위 sanity band for the 합계 최대값. 천원이면 ×10, 원이면 ×10,000 으로
+# 밴드를 벗어나므로 단위 회귀를 잡는다.
+SUM_PEAK_MIN, SUM_PEAK_MAX = 1_000, 100_000
 
 
-def resolve_field(row, concept):
-    hits = [k for k in FIELD_CANDIDATES[concept] if k in row]
-    if len(hits) != 1:
+def validate_rows(rows):
+    """Field presence + the mislabel sum identity + the 만원 range guard."""
+    if len(rows) < 10:
+        raise SystemExit(f"[shape] 외식 중분류가 {len(rows)}행뿐 — 원문 확인")
+    for row in rows:
+        missing = [f for f in REQUIRED_FIELDS if f not in row]
+        if missing:
+            raise SystemExit(
+                f"[shape] 필드 소실 {missing} — actual keys: {sorted(row)}"
+            )
+        total = row["frcsCnt"] + sum(row[f] for f in HELPER_FIELDS)
+        if abs(total - row["smtnAmt"]) > 1:
+            raise SystemExit(
+                "[identity] smtnAmt != 보증금+가맹비+교육비+기타 "
+                f"({row['indutyMlsfcNm']}: {total} vs {row['smtnAmt']}) — "
+                "필드 의미가 바뀌었다. 원문을 다시 검증할 것."
+            )
+    peak = max(row["smtnAmt"] for row in rows)
+    if not SUM_PEAK_MIN <= peak < SUM_PEAK_MAX:
         raise SystemExit(
-            f"[shape] {concept}: candidates {FIELD_CANDIDATES[concept]} matched "
-            f"{hits or 'nothing'} — actual keys: {sorted(row)}"
+            f"[unit] 합계 최대 {peak} — 만원 밴드({SUM_PEAK_MIN}~{SUM_PEAK_MAX}) "
+            "밖이다. 단위가 바뀌었는지 원문 확인."
         )
-    return hits[0]
-
-
-def money_divisor(all_values):
-    """원 vs 천원 is a property of the FILE, not of one value — a 50만원
-    education fee in 원 sits in the ambiguous band and must not abort alone.
-    Decide once from the largest money value; refuse only a wholly ambiguous
-    file instead of guessing."""
-    peak = max(float(v) for v in all_values if v not in (None, ""))
-    if peak >= 1_000_000:  # 원 — franchise fees land in the millions
-        return 10_000
-    if peak < 100_000:  # 천원
-        return 10
-    raise SystemExit(f"[unit] ambiguous money scale (peak {peak}) — inspect raw dump")
 
 
 def map_rows(rows):
-    """rows: [{industry_mid_name: str, fee/edu/etc in 만원}] -> per-uptae helper."""
-    by_industry = {}
-    for row in rows:
-        by_industry.setdefault(row["industry"], []).append(
-            row["franchise_fee"] + row["education_fee"] + row["etc_cost"]
-        )
-    medians = {
-        name: sorted(vals)[len(vals) // 2] for name, vals in by_industry.items()
-    }
+    """rows(list of raw dicts) → {uptae: {value, sourceIndustry, proxy}}."""
+    by_name = {row["indutyMlsfcNm"].strip(): row for row in rows}
     out, missing = {}, []
     for uptae, (candidates, proxy) in UPTAE_MAP.items():
-        hit = next((c for c in candidates if c in medians), None)
+        # exact first — «커피» 를 부분일치로 찾으면 «음료 (커피 외)» 에 걸린다.
+        hit = next((c for c in candidates if c in by_name), None)
+        if hit is None:
+            hit = next(
+                (name for name in by_name for c in candidates if c in name),
+                None,
+            )
         if hit is None:
             missing.append((uptae, candidates))
             continue
+        row = by_name[hit]
         out[uptae] = {
-            "value": round(medians[hit], 1),
-            "source_industry": hit,
+            "value": round(sum(row[f] for f in HELPER_FIELDS), 1),
+            "sourceIndustry": hit,
             "proxy": proxy,
         }
     return out, missing
+
+
+def fetch_rows(year, service_key):
+    url = (
+        f"{ENDPOINT}?serviceKey={urllib.parse.quote(service_key, safe='')}"
+        f"&yr={year}&resultType=json&numOfRows=999&pageNo=1"
+    )
+    with urllib.request.urlopen(url, timeout=30) as r:
+        body = r.read().decode("utf-8", "replace")
+    RAW_OUT.parent.mkdir(parents=True, exist_ok=True)
+    RAW_OUT.write_text(body, encoding="utf-8")
+    payload = json.loads(body)
+    if payload.get("resultCode") != "00":
+        raise SystemExit(
+            f"[api] resultCode {payload.get('resultCode')} "
+            f"({payload.get('resultMsg')}) — 활용신청/키 확인. 원문: {RAW_OUT}"
+        )
+    return payload["items"]
+
+
+def write_out(year, helper):
+    DATA_OUT.parent.mkdir(parents=True, exist_ok=True)
+    DATA_OUT.write_text(
+        json.dumps(
+            {
+                "source": "공정거래위원회 가맹정보 업종별 창업비용 (data.go.kr 15110293)",
+                "endpoint": ENDPOINT,
+                "year": year,
+                "fetched": datetime.date.today().isoformat(),
+                "unit": "만원",
+                "scope": "가맹비+교육비+기타(인테리어 등) — 가맹보증금·임대보증금·권리금 제외",
+                "helpers": helper,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"[out] {len(helper)}/12 uptae → {DATA_OUT}")
+
+
+def fetch(year):
+    from pipeline.config import load_env
+
+    env = load_env()
+    key = env.get("DATA_GO_KR_FTC_KEY") or env.get("DATA_GO_KR_SERVICE_KEY")
+    if not key:
+        raise SystemExit("DATA_GO_KR_FTC_KEY 없음 — .env 확인")
+    rows = fetch_rows(year, key)
+    validate_rows(rows)
+    helper, missing = map_rows(rows)
+    if missing:
+        raise SystemExit(f"[map] 미연결 업태 {missing} — 중분류 이름 변경 여부 확인")
+    write_out(year, helper)
+    for uptae, h in sorted(helper.items(), key=lambda kv: -kv[1]["value"]):
+        mark = " (proxy)" if h["proxy"] else ""
+        print(f"  {uptae:<22} {h['value']:>8,.0f}만원  ← {h['sourceIndustry']}{mark}")
+
+
+# ── selftest (offline) ──────────────────────────────────────────────────────
+
+# 2024 실측 6행 발췌 — 실제 응답 그대로(필드명 오배치 포함). «음료 (커피 외)»
+# 가 커피 함정의 실물이라 반드시 픽스처에 남긴다.
+SAMPLE_2024 = [
+    {"yr": "2024", "indutyMlsfcNm": "음료 (커피 외)", "jnghdqrtrsCnt": 24,
+     "frcsCnt": 283, "avrgFrcsAmt": 156, "avrgFntnAmt": 140,
+     "avrgJngEtcAmt": 3058, "smtnAmt": 3638},
+    {"yr": "2024", "indutyMlsfcNm": "커피", "jnghdqrtrsCnt": 35,
+     "frcsCnt": 204, "avrgFrcsAmt": 109, "avrgFntnAmt": 86,
+     "avrgJngEtcAmt": 2544, "smtnAmt": 2943},
+    {"yr": "2024", "indutyMlsfcNm": "한식", "jnghdqrtrsCnt": 12,
+     "frcsCnt": 642, "avrgFrcsAmt": 337, "avrgFntnAmt": 241,
+     "avrgJngEtcAmt": 6531, "smtnAmt": 7750},
+    {"yr": "2024", "indutyMlsfcNm": "주점", "jnghdqrtrsCnt": 19,
+     "frcsCnt": 416, "avrgFrcsAmt": 222, "avrgFntnAmt": 123,
+     "avrgJngEtcAmt": 4603, "smtnAmt": 5365},
+    {"yr": "2024", "indutyMlsfcNm": "일식", "jnghdqrtrsCnt": 9,
+     "frcsCnt": 962, "avrgFrcsAmt": 486, "avrgFntnAmt": 333,
+     "avrgJngEtcAmt": 9234, "smtnAmt": 11016},
+    {"yr": "2024", "indutyMlsfcNm": "아이스크림/빙수 ", "jnghdqrtrsCnt": 43,
+     "frcsCnt": 180, "avrgFrcsAmt": 94, "avrgFntnAmt": 105,
+     "avrgJngEtcAmt": 1765, "smtnAmt": 2144},
+]
 
 
 def selftest():
@@ -129,71 +229,30 @@ def selftest():
         f"only in map: {set(UPTAE_MAP) - served}"
     )
 
-    # ASSUMED-shape sample (field names are placeholders; resolution is what
-    # is under test, values are round-trip fixtures in 원).
-    sample = [
-        {"indutyMlsfcNm": n, "frcsFee": 10_000_000, "eduFee": 2_000_000,
-         "guartAmt": 5_000_000, "etcAmt": 30_000_000}
-        for n in ("한식", "커피", "분식", "치킨", "주점", "일식", "중식",
-                  "서양식", "외국식", "기타 외식")
-    ]
-    # 교육비를 일부러 모호 구간(50만원=500,000원)에 두어 파일 단위 판정을 검증.
-    sample[0]["eduFee"] = 500_000
-    key = {c: resolve_field(sample[0], c) for c in FIELD_CANDIDATES}
-    money_concepts = ("franchise_fee", "education_fee", "deposit", "etc_cost")
-    div = money_divisor(
-        r[key[c]] for r in sample for c in money_concepts
-    )
-    assert div == 10_000, div
-    rows = [
-        {
-            "industry": r[key["industry_mid"]],
-            "franchise_fee": r[key["franchise_fee"]] / div,
-            "education_fee": r[key["education_fee"]] / div,
-            "etc_cost": r[key["etc_cost"]] / div,
-        }
-        for r in sample
-    ]
-    helper, missing = map_rows(rows)
-    assert not missing, f"unmapped uptae: {missing}"
-    assert len(helper) == 12 and helper["한식"]["value"] == 4050.0
-    assert helper["식육(숯불구이)"]["proxy"] is True
-    assert sample[0][key["deposit"]] / div == 500.0  # excluded from the helper sum
-    print("selftest PASS — 12/12 uptae mapped, deposit excluded, 원→만원 ok")
+    # identity guard: 실측 행은 전부 통과해야 하고, 의미가 바뀐 행은 잡혀야 한다.
+    rows = [dict(r) for r in SAMPLE_2024] * 2  # >=10행 요건 충족
+    validate_rows(rows)
+    corrupted = [dict(r) for r in rows]
+    corrupted[0]["frcsCnt"] = 9_999  # count 로 «정상화»된 세상
+    try:
+        validate_rows(corrupted)
+        raise AssertionError("identity guard did not fire")
+    except SystemExit:
+        pass
 
-
-def fetch(year):
-    from pipeline.config import load_env
-
-    service_key = load_env().get("DATA_GO_KR_SERVICE_KEY")
-    if not service_key:
-        raise SystemExit("DATA_GO_KR_SERVICE_KEY 없음 — .env 확인")
-    for name, base in ENDPOINTS.items():
-        url = (f"{base}?serviceKey={urllib.parse.quote(service_key)}"
-               f"&yr={year}&resultType=json&numOfRows=999&pageNo=1")
-        try:
-            with urllib.request.urlopen(url, timeout=30) as r:
-                body = r.read().decode("utf-8", "replace")
-        except OSError as exc:
-            print(f"[{name}] FAIL — {exc}")
-            continue
-        RAW_OUT.parent.mkdir(parents=True, exist_ok=True)
-        RAW_OUT.write_text(body, encoding="utf-8")
-        print(f"[{name}] {len(body):,} bytes → {RAW_OUT}")
-        if "SERVICE_ACCESS_DENIED" in body or "SERVICE ERROR" in body:
-            print(f"[{name}] 활용신청 미승인으로 보인다 — data.go.kr 에서 신청")
-            continue
-        try:
-            payload = json.loads(body)
-        except ValueError:
-            print(f"[{name}] JSON 아님(아마 XML 오류 응답) — 원문을 열어 확인")
-            continue
-        print(f"[{name}] top-level keys: {list(payload)[:8]}")
-        return
-    raise SystemExit("두 엔드포인트 모두 실패 — 내일 9시 포털 재개 후 재시도")
+    # 커피 함정: 까페는 정확일치로 «커피» 에 붙어야 한다.
+    helper, _missing = map_rows(rows)
+    assert helper["까페"]["sourceIndustry"] == "커피", helper["까페"]
+    assert helper["까페"]["value"] == 109 + 86 + 2544  # 보증금(frcsCnt) 제외
+    assert helper["정종/대포집/소주방"]["proxy"] is True
+    # 이름 끝 공백이 있어도 strip 으로 붙는다 (아이스크림/빙수 실측).
+    assert "아이스크림/빙수" in {r["indutyMlsfcNm"].strip() for r in rows}
+    print("selftest PASS — identity guard, 커피 exact-match, deposit excluded")
 
 
 if __name__ == "__main__":
+    # Windows cp949 console cannot print the em dashes in our messages.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--fetch", action="store_true")

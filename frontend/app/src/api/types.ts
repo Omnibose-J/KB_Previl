@@ -61,6 +61,15 @@ export interface SurvivalYear {
   opened: number;
 }
 
+export interface UpfrontHint {
+  /** 만원 — 가맹비+교육비+기타(인테리어 등). 보증금·권리금은 안 들어 있다. */
+  value: number;
+  year: number;
+  label: string;
+  /** 정확히 같은 업종이 아니라 인접 업종 평균으로 대신한 값 */
+  proxy: boolean;
+}
+
 export interface Meta {
   asOf: string | null;
   uptae: string[]; // render chips with these values verbatim (ui-spec §7)
@@ -75,6 +84,10 @@ export interface Meta {
    *  빠진다(다른 업종 벤치마크를 빌리지 않는다). 격자별 조건이 아니라 업태의
    *  정적 성질이라, 화면은 요청 전에 이 목록으로 막는다. */
   goodwillSupportedUptae: string[];
+  /** 공정위 창업비용 참고값(업태별). 데이터 미적재면 빈 객체 — 힌트를 그리지
+   *  않는다. label 이 근거·연도·«보증금·권리금 제외»를 다 말하므로 값을 라벨
+   *  없이 단독으로 그리지 말 것. 계산에 넣는 값이 아니라 표시 전용이다. */
+  upfrontHelper: Record<string, UpfrontHint>;
   gradeDirection: "1_is_best";
   /**
    * 서울 전체 개업연도별 3년 생존율. 3년이 다 지난 완결 코호트만 담기므로

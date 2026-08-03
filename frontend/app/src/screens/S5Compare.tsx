@@ -366,6 +366,22 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                 placeholder="인테리어 등, 없으면 비움"
               />
             </div>
+            {/* 공정위 창업비용 원탭 — 이 필드는 보증금·권리금을 따로 받으므로
+                «부동산 제외» 평균과 의미가 정확히 겹친다. 라벨 없이 값만 넣지
+                않는다(meta.upfrontHelper 계약). */}
+            {uptae !== null && meta.data?.upfrontHelper[uptae] ? (
+              <button
+                type="button"
+                className={s.upfrontApply}
+                onClick={() => setExtraUpfront(meta.data!.upfrontHelper[uptae].value)}
+              >
+                <span>
+                  감이 안 오시면 — 이 업종 평균{" "}
+                  <b>{man(meta.data.upfrontHelper[uptae].value)}</b> 넣기
+                </span>
+                <i>{meta.data.upfrontHelper[uptae].label}</i>
+              </button>
+            ) : null}
           </div>
 
           <button className={s.runBtn} disabled={!canCompare || compare.isPending} onClick={run}>

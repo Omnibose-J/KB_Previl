@@ -217,7 +217,7 @@ def rehearse(bundled=False):
                 f.extractall(tmp)
         for must in ("README.md", "run.py", "run.bat", "requirements.txt",
                      "kb-demo.db", "service/app.py", "web/index.html",
-                     "verify.ipynb"):
+                     "service/data/franchise_costs.json", "verify.ipynb"):
             ok = (tmp / must).is_file()
             print(f"  [{'PASS' if ok else 'FAIL'}] {must}")
             if not ok:

@@ -38,6 +38,9 @@ SHIP_FILES = (
     ("requirements-full.txt", "requirements-full.txt"),
     # main.tsx 가 직접 부른다. 이것 없이는 프론트 소스가 빌드되지 않는다.
     ("frontend/design/tokens/tokens.css", "frontend/design/tokens/tokens.css"),
+    # 공정위 창업비용 힌트 데이터 — runway_params.upfront_helper() 가 읽는다.
+    # 없어도 서비스는 뜨지만 초기투자 힌트가 빠진다.
+    ("service/data/franchise_costs.json", "service/data/franchise_costs.json"),
 )
 
 # (source dir, arcname). web = 서버가 서빙하는 빌드본, frontend = 그 소스.

@@ -321,6 +321,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}
             onResult={setRunway}
+            upfrontHint={meta?.upfrontHelper[uptae] ?? null}
           />
 
           {/* ── 실질 월 점유비용 ─────────────────────────────────
