@@ -172,11 +172,14 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
   // 초기투자도 결과(버티는 기간)를 바꾸므로 같은 키에 묶는다.
   const requestKey = JSON.stringify({ payload, budget, extraUpfront });
   const [ranKey, setRanKey] = useState<string | null>(null);
+  // 리포트는 팝업으로 띄운다(2026-08-03 지시). 계산이 끝나면 열리고, 닫아도
+  // 아래 «다시 열기»로 언제든 돌아온다.
+  const [reportOpen, setReportOpen] = useState(false);
 
   const run = () => {
     if (!canCompare) return;
     setRanKey(requestKey);
-    compare.mutate(payload);
+    compare.mutate(payload, { onSuccess: () => setReportOpen(true) });
     // 버티는 기간은 비교와 별개 축이라 실패해도 비교를 막지 않는다. 후보별로
     // 실패를 따로 담아 «그 후보만 계산 못 했다»를 보이게 남긴다.
     if (budget !== null) {
@@ -237,7 +240,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
         </h1>
         {/* 최대 세 곳이라는 것은 «+ 후보 추가 (2/3)» 버튼이 스스로 말한다. */}
         <p className={s.heroSub}>
-          보증금과 권리금까지 한 달치로 바꿔서 다시 줄을 세워 드려요.
+          보증금과 권리금까지 한 달치로 바꿔서, 실제로 나가는 돈으로 비교해 드려요.
         </p>
       </header>
 
@@ -385,13 +388,13 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
           </div>
 
           <button className={s.runBtn} disabled={!canCompare || compare.isPending} onClick={run}>
-            {compare.isPending ? "계산 중…" : "다시 줄 세우기"}
+            {compare.isPending ? "계산 중…" : "비교하기"}
           </button>
           {/* «업종을 고르세요»·«후보를 넣으세요» 는 위 단계 제목이 이미 한 말이다.
               여기서는 왜 한 곳으로는 안 되는지만 남긴다. */}
           {!canCompare ? (
             <p className={s.runHint}>
-              후보 <b>두 곳</b>은 채워야 줄을 세울 수 있어요. 위치와 보증금·월세·권리금이
+              후보 <b>두 곳</b>은 채워야 비교할 수 있어요. 위치와 보증금·월세·권리금이
               모두 필요해요.
             </p>
           ) : droppedForCell.length > 0 ? (
@@ -444,29 +447,57 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
         </section>
       </main>
 
-      {/* ── 결과 ─────────────────────────────────────────────────── */}
+      {/* ── 결과 — 리포트는 팝업으로 뜬다(2026-08-03 지시). 계산이 끝나면
+          자동으로 열리고, 닫으면 아래 «다시 열기»가 남는다. ─────────── */}
       {compare.isError ? (
         <div className={s.resultPad}>
           <ErrorState onRetry={run} detail={String(compare.error)} />
         </div>
       ) : compare.data && ranKey === requestKey ? (
-        <Reversal
-          r={compare.data}
-          runway={
-            budget !== null
-              ? {
-                  budget,
-                  extraUpfront: extraUpfront ?? 0,
-                  pending: runwayPending,
-                  rows: runwayRows?.key === requestKey ? runwayRows.rows : null,
+        <>
+          <div className={s.resultPad}>
+            <button className={s.reportBtn} onClick={() => setReportOpen(true)}>
+              비교 리포트 다시 열기
+            </button>
+          </div>
+          {/* data-lenis-prevent: 전역 Lenis 가 휠을 가로채면 팝업이 아니라 뒤
+              문서가 굴러간다(S4 권리금 다이얼로그와 같은 처치). */}
+          <div
+            className={s.rptOverlay}
+            hidden={!reportOpen}
+            data-lenis-prevent
+            onClick={() => setReportOpen(false)}
+          >
+            <div
+              className={s.rptDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-label="비교 리포트"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className={s.rptClose} onClick={() => setReportOpen(false)} aria-label="닫기">
+                ✕
+              </button>
+              <Reversal
+                r={compare.data}
+                runway={
+                  budget !== null
+                    ? {
+                        budget,
+                        extraUpfront: extraUpfront ?? 0,
+                        pending: runwayPending,
+                        rows: runwayRows?.key === requestKey ? runwayRows.rows : null,
+                      }
+                    : null
                 }
-              : null
-          }
-        />
+              />
+            </div>
+          </div>
+        </>
       ) : compare.data ? (
         <div className={s.resultPad}>
           <p className={s.stale}>
-            조건이 바뀌었어요. 아래 결과는 바꾸기 전 것이라 지웠어요. 다시
+            조건이 바뀌었어요. 이전 결과는 바꾸기 전 것이라 지웠어요. 다시
             계산해 주세요.
           </p>
         </div>
@@ -764,7 +795,7 @@ function RankRow({
 function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
   if (result === null) {
     return (
-      <b className={s.rwFail}>계산하지 못했어요. «다시 줄 세우기»로 다시 시도해 주세요.</b>
+      <b className={s.rwFail}>계산하지 못했어요. «비교하기»로 다시 시도해 주세요.</b>
     );
   }
   switch (result.level) {

@@ -65,12 +65,14 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
 
       {/* ── Hero (dark) ──────────────────────────────────────────────── */}
       <header className={s.hero}>
+        {/* «데이터로 성공을 만듭니다»는 회사 슬로건 어투라 뺐다(2026-08-03
+            어휘 정비) — 고객의 질문을 그대로 제목으로 쓴다. */}
         <h1 className={s.h1}>
-          데이터로 성공을 만듭니다
+          어디서 열어야 버틸 수 있을까요
           <br />
           {/* 좁은 폭에서 «KB / Previl» 로 갈라진다 — 한글은 keep-all 이 잡아주지만
               라틴 사이의 공백은 그대로 끊기는 자리라 브랜드명만 묶어준다. */}
-          <em>새로운 창업의 시작, KB&nbsp;Previl</em>
+          <em>기록으로 답하는 자리 찾기, KB&nbsp;Previl</em>
         </h1>
 
         {/* search pill — real inputs feeding the S2 form */}
@@ -221,7 +223,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
         </div>
         <div className={s.table}>
           <div className={s.tHead}>
-            <span>축</span>
+            <span>구분</span>
             <span>KB bridge 상권분석</span>
             <span className={s.tOurs}>KB Previl (본 서비스)</span>
           </div>
@@ -265,9 +267,9 @@ const DIFF_ROWS = (uptaeCount: number | null): [string, string, string][] => [
   ["결과물", "동네 현황 설명", "자리 추천 + 등급 + 실제 생존율"],
   [
     "업종 반영",
-    "얕음",
+    "대략적",
     uptaeCount !== null ? `${uptaeCount}개 업종 각각 따로 평가` : "업종별 각각 따로 평가",
   ],
   ["단위", "행정동", "100m 단위 (서울 전역)"],
-  ["성격", "정적 정보 조회", "조건을 바꾸면 결과도 바뀜"],
+  ["성격", "정해진 통계를 보여줌", "조건을 바꾸면 결과도 바뀜"],
 ];

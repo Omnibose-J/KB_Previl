@@ -426,13 +426,18 @@ function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse })
     <div className={s.sens}>
       <div className={s.sensHead}>
         <p className={s.sensTitle}>가정을 바꾸면</p>
-        <div className={s.yearChips}>
-          {years.map((v) => (
-            <button key={v} className={v === y ? s.yearOn : s.year} onClick={() => setYr(v)}>
-              {yearsLabel(v)}
-            </button>
-          ))}
-        </div>
+        {/* 계약이 짧으면 서버가 그 기간 안의 연차만 내서 선택지가 하나가 된다.
+            칩 하나는 «고장난 컨트롤»로 읽히므로 숨기고, 아래 캡션이 기간은
+            슬라이더로 바꾼다고 안내한다(2026-08-03 피드백). */}
+        {years.length > 1 ? (
+          <div className={s.yearChips}>
+            {years.map((v) => (
+              <button key={v} className={v === y ? s.yearOn : s.year} onClick={() => setYr(v)}>
+                {yearsLabel(v)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <table className={s.sensTable}>
         <thead>
@@ -461,7 +466,12 @@ function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse })
           ))}
         </tbody>
       </table>
-      <p className={s.sensCap}>산정 기간 {yearsLabel(y)} 기준 · 굵은 칸이 이 리포트의 가정</p>
+      <p className={s.sensCap}>
+        산정 기간 {yearsLabel(y)} 기준 · 굵은 칸이 이 리포트의 가정
+        {years.length === 1
+          ? " · 계산 기간은 위 «계약 남은 기간»을 움직여 바꿔 볼 수 있어요"
+          : ""}
+      </p>
     </div>
   );
 }

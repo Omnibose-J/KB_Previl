@@ -63,6 +63,17 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
     anchor: px < PAD.left + 80 ? "start" : px > W - PAD.right - 80 ? "end" : "middle",
   } as const;
 
+  // 라벨 충돌 규칙 — «시작 7,000만 / 가장 얕을 때 6,999만» 처럼 값이 비슷하면
+  // 두 라벨이 같은 자리에 얹힌다(2026-08-03 사용자 보고). 겹치면 정보가 더 많은
+  // 쪽(최저점·바닥)을 남기고 시작/끝 라벨을 접는다.
+  const startAt = { lx: x(0) + 8, ly: y(data.reserve) - 10 };
+  const endAt = { lx: x(last.month) - 4, ly: y(last.balance) - 10 };
+  const clash = (a: { lx: number; ly: number }, b: { lx: number; ly: number }) =>
+    Math.abs(a.lx - b.lx) < 170 && Math.abs(a.ly - b.ly) < 22;
+  const showMark = dry !== null || (mark.month !== last.month && !clash(markAt, endAt));
+  const showStart = mark.month !== 0 && !(showMark && clash(markAt, startAt));
+  const showEnd = dry === null || (dry.month !== last.month && !clash(markAt, endAt));
+
   return (
     <figure className={s.fig}>
       <svg
@@ -98,10 +109,8 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
 
         <path className={s.line} d={path} />
 
-        {/* 시작점 — 곡선이 어디서 출발하는지(계약하고 남은 돈)를 못박는다.
-            최저점이 곧 시작점이면(단조 상승 곡선) 아래 최저점 라벨과 같은 자리에
-            겹치므로 생략한다. */}
-        {mark.month !== 0 ? (
+        {/* 시작점 — 곡선이 어디서 출발하는지(계약하고 남은 돈)를 못박는다 */}
+        {showStart ? (
           <>
             <circle className={s.dot} cx={x(0)} cy={y(data.reserve)} r={4} />
             <text className={s.mark} x={x(0) + 8} y={y(data.reserve) - 10} textAnchor="start">
@@ -110,10 +119,8 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
           </>
         ) : null}
 
-        {/* 골짜기 최저점 — 바닥나는 달이 따로 있으면 그 점을 우선한다.
-            일반 최저점이 끝점과 같은 달이면(단조 하락) 끝 라벨과 같은 자리라
-            생략한다 — 값도 같아서 잃는 정보가 없다. */}
-        {dry !== null || mark.month !== last.month ? (
+        {/* 골짜기 최저점 — 바닥나는 달이 따로 있으면 그 점을 우선한다 */}
+        {showMark ? (
           <>
             <circle
               className={dry ? s.dotBad : s.dot}
@@ -127,8 +134,8 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
           </>
         ) : null}
 
-        {/* 끝점 — 바닥나는 달이 마침 끝 달이면 바닥 라벨이 우선한다 */}
-        {dry === null || dry.month !== last.month ? (
+        {/* 끝점 — 바닥/최저 라벨과 겹치면 그쪽이 우선한다 */}
+        {showEnd ? (
           <text className={s.mark} x={x(last.month) - 4} y={y(last.balance) - 10} textAnchor="end">
             {data.horizonMonths}개월 뒤 {signedMan(last.balance)}
           </text>

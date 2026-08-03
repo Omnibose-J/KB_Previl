@@ -879,3 +879,86 @@
   border-color: var(--fg-y-deep);
   background: var(--fg-y-bg);
 }
+
+/* ── 비교 리포트 팝업 (2026-08-03) — S4 권리금 다이얼로그와 같은 프레임 ── */
+.reportBtn {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--fg-line);
+  border-radius: 12px;
+  background: var(--fg-card);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.reportBtn:hover {
+  border-color: var(--fg-t8);
+}
+
+.rptOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  background: rgb(20 18 14 / 55%);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+
+.rptOverlay[hidden] {
+  display: none;
+}
+
+.rptDialog {
+  position: relative;
+  width: min(960px, 100%);
+  /* 스크롤바는 팝업 «안»에 둔다 — 리포트가 길어서 없으면 갇힌다. */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 26px 32px 32px;
+  background: var(--fg-card);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 30%);
+  animation: var(--kf-fade-up) 0.28s var(--ease-out) both;
+}
+
+/* .result 는 본문용 카드 크롬(margin·border·배경)을 갖고 있다 — 팝업 안에서는
+   다이얼로그가 그 프레임이므로 벗긴다. */
+.rptDialog .result {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  animation: none;
+}
+
+.rptClose {
+  /* 다이얼로그가 스스로 스크롤하므로 absolute 면 닫기가 함께 굴러간다 */
+  position: sticky;
+  top: 0;
+  float: right;
+  margin: -6px -12px 0 0;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg-gray-bg);
+  color: var(--fg-t4);
+  font-size: 16px;
+  line-height: 1;
+  z-index: 1;
+}
+
+.rptClose:hover {
+  background: var(--fg-line3);
+  color: var(--fg-ink);
+}
+
+@media (max-width: 680px) {
+  .rptOverlay { padding: 0; }
+  .rptDialog { min-height: 100%; max-height: 100vh; border-radius: 0; padding: 24px 16px 32px; }
+}
