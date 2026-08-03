@@ -681,3 +681,50 @@
   .sensHead { flex-wrap: wrap; }
   .sensTable, .assetTable { display: block; overflow-x: auto; }
 }
+
+/* ---- 접이식 근거 (2026-08-03) ----
+   결론(판정·참고가·분해)만 먼저 보이고, 근거 행렬과 민감도 표는 한 번의
+   펼침 뒤에 둔다. 값을 빼는 게 아니라 읽는 순서를 주는 것. */
+.fold {
+  border: 1px solid var(--fg-line2);
+  border-radius: 10px;
+  background: var(--fg-card-warm);
+}
+
+.fold + .fold {
+  margin-top: -6px;
+}
+
+.foldHead {
+  padding: 13px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-t3);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.foldHead::-webkit-details-marker {
+  display: none;
+}
+
+.foldHead::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--fg-t6);
+  transition: transform 0.15s var(--ease-out);
+}
+
+.fold[open] > .foldHead::before {
+  transform: rotate(90deg);
+}
+
+.fold[open] {
+  background: var(--fg-card);
+}
+
+.fold > *:not(summary) {
+  margin: 0 16px 14px;
+}

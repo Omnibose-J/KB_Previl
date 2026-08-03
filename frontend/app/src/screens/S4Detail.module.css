@@ -200,6 +200,9 @@
   gap: 6px;
   padding: 18px 0 14px;
   border-bottom: 1px solid var(--fg-line);
+  /* 오른쪽을 조금 비워 hairline 이 본문 끝까지 달리지 않게 한다 — 탭 무리가
+     한 덩어리로 읽히고 시선이 오른쪽 빈 줄을 따라 흩어지지 않는다. */
+  margin-right: 28px;
 }
 
 .tab,

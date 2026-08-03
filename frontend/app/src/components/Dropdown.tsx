@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { cleanText } from "../lib/guard";
 import s from "./Dropdown.module.css";
 
 // Custom select: native <select> popups cannot be styled, and the raw widget
@@ -125,6 +126,9 @@ export default function Dropdown({
       className={className}
       role="listbox"
       ref={menu}
+      // 전역 Lenis 가 휠을 가로채 페이지를 굴린다 — 이 속성이 없으면 메뉴 위에서
+      // 마우스 휠이 목록 대신 문서를 스크롤해 «메뉴 스크롤이 안 먹는» 상태가 된다.
+      data-lenis-prevent
       // Keep focus on the trigger (or the search box): without this, mousedown
       // on an option blurs it, the onBlur close fires first, and the click
       // lands on a menu that no longer exists.
@@ -199,7 +203,7 @@ export default function Dropdown({
             value={query}
             placeholder={searchPlaceholder ?? "이름으로 찾기"}
             aria-label={searchPlaceholder ?? placeholder}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(cleanText(e.target.value, 30))}
           />
           {list(s.panelList)}
         </div>

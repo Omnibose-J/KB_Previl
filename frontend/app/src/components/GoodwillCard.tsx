@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { GoodwillAssetInput, GoodwillInput, GridDetail } from "../api/types";
-import { int, man, pct1, signedMan, yearsLabel } from "../lib/format";
+import { int, man, pct1, signedMan, uptaeLabel, yearsLabel } from "../lib/format";
+import { cleanText, parseNum } from "../lib/guard";
+import NumField from "./NumField";
 import { ErrorState, Loading } from "./states";
 import s from "./GoodwillCard.module.css";
 
@@ -74,11 +76,11 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
           {!d.sales.available
             ? "이 자리는 상권 밖이라 매출 기록이 없어서 권리금 참고가를 계산할 수 없어요."
             : d.sales.uptaeStores === null
-              ? `${uptae}은(는) 상권 매출 통계의 업종 분류에 없어서 권리금 참고가를 계산할 수 없어요.`
+              ? `${uptaeLabel(uptae)}은(는) 상권 매출 통계의 업종 분류에 없어서 권리금 참고가를 계산할 수 없어요.`
               : d.sales.uptaeStores === 0
-                ? `이 상권엔 ${uptae} 가게가 한 곳도 없어서 매출 통계가 없어요. ` +
+                ? `이 상권엔 ${uptaeLabel(uptae)} 가게가 한 곳도 없어서 매출 통계가 없어요. ` +
                   "권리금 참고가는 같은 업종 매출을 기준으로 잡기 때문에 계산할 수 없어요."
-                : `이 상권엔 ${uptae} 가게가 ${int(d.sales.uptaeStores)}곳뿐이라 매출 통계가 ` +
+                : `이 상권엔 ${uptaeLabel(uptae)} 가게가 ${int(d.sales.uptaeStores)}곳뿐이라 매출 통계가 ` +
                   "공표되지 않았어요. 가게가 적으면 개별 매출이 드러나서 서울시가 비공개합니다."}
         </p>
       </section>
@@ -91,7 +93,7 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
 
       {/* 입력 행 */}
       <div className={s.inputs}>
-        <NumField label="부르는 권리금" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
+        <NumField s={s} label="부르는 권리금" required value={asking} onChange={setAsking} unit="만원" placeholder="예: 3,000" />
         <LeaseSlider value={leaseYears} onChange={setLeaseYears} />
         <button
           className={s.addAsset}
@@ -113,11 +115,11 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
                 className={s.assetName}
                 placeholder="예: 주방 설비"
                 value={a.name}
-                onChange={(e) => patchAsset(setAssets, i, { name: e.target.value })}
+                onChange={(e) => patchAsset(setAssets, i, { name: cleanText(e.target.value, 30) })}
               />
               <AssetNum value={a.acquisitionCost} unit="만원 취득" onChange={(v) => patchAsset(setAssets, i, { acquisitionCost: v })} />
-              <AssetNum value={a.ageYears} unit="년 경과" onChange={(v) => patchAsset(setAssets, i, { ageYears: v })} />
-              <AssetNum value={a.usefulLifeYears} unit="년 내용연수" onChange={(v) => patchAsset(setAssets, i, { usefulLifeYears: v })} />
+              <AssetNum value={a.ageYears} unit="년 경과" max={100} onChange={(v) => patchAsset(setAssets, i, { ageYears: v })} />
+              <AssetNum value={a.usefulLifeYears} unit="년 내용연수" max={100} onChange={(v) => patchAsset(setAssets, i, { usefulLifeYears: v })} />
               <button className={s.assetDel} onClick={() => setAssets((arr) => arr.filter((_, j) => j !== i))}>
                 삭제
               </button>
@@ -209,12 +211,26 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
         </div>
       </div>
 
+      {/* 상한이 «3년치 기록»이라는 데이터 사정에서 온다는 것과, 그래서 값이
+          어느 방향으로 치우치는지를 밝힌다. 결론 바로 아래에 둔다 — 접힌 근거
+          안에 넣으면 헤드라인 숫자의 편향을 못 보고 지나간다. */}
+      {r.leaseRemainingYears >= r.expectedSurvivalYears ? (
+        <p className={s.capNote}>
+          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. 계약이 더 길다면{" "}
+          <b>실제 가치는 이보다 높다</b>고 보셔야 해요.
+        </p>
+      ) : null}
+
       {/* 호가 3분해 — 위 «괴리»가 얼마나 비싼지라면, 이건 그 돈이 무엇의 값인지다.
           점수만 보여주면 사용자는 아무것도 못 한다. 항목별로 쪼개야 어느 항목의
           근거를 물어볼지가 정해진다 (기획서 §4.3.1). */}
       <Decomposition d={r.decomposition} asking={r.askingGoodwill} />
 
-      {/* Valuation 분해 */}
+      {/* 계산 근거는 접어 둔다(2026-08-03 «한눈에 안 읽힌다» 피드백). 값은 전부
+          그대로 있고 한 번의 펼침 뒤에 있다 — 숨기는 게 아니라 순서를 주는 것. */}
+      <details className={s.fold}>
+        <summary className={s.foldHead}>어떤 값으로 계산했는지 보기</summary>
+
       <p className={s.valuation}>
         무형 {man(r.intangibleValue)} + 유형 {man(r.tangibleValue)}
         <em>
@@ -294,18 +310,12 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
           </dd>
         </div>
       </dl>
+      </details>
 
-      {/* 상한이 «3년치 기록»이라는 데이터 사정에서 온다는 것과, 그래서 값이
-          어느 방향으로 치우치는지를 밝힌다. 이걸 숨기면 잔여 계약이 긴 매물의
-          참고가가 왜 안 오르는지 사용자가 알 방법이 없다. */}
-      {r.leaseRemainingYears >= r.expectedSurvivalYears ? (
-        <p className={s.capNote}>
-          버티는 기간은 <b>3년치 기록</b>으로만 계산해서 3년을 넘지 않아요. 계약이 더 길다면{" "}
-          <b>실제 가치는 이보다 높다</b>고 보셔야 해요.
-        </p>
-      ) : null}
-
-      <SensitivityPivot r={r} />
+      <details className={s.fold}>
+        <summary className={s.foldHead}>가정을 바꾸면 얼마나 달라지는지 보기</summary>
+        <SensitivityPivot r={r} />
+      </details>
 
       <p className={s.notice}>{r.notice}</p>
     </>
@@ -460,49 +470,26 @@ function patchAsset(
   set((arr) => arr.map((a, j) => (j === i ? { ...a, ...patch } : a)));
 }
 
-function NumField({
-  label,
-  value,
-  onChange,
-  unit,
-  placeholder,
-  required,
-}: {
-  label: string;
-  value: number | null;
-  onChange: (v: number | null) => void;
-  unit: string;
-  placeholder: string;
-  required?: boolean;
-}) {
-  return (
-    <label className={s.field}>
-      <span className={s.fieldLabel}>
-        {label}
-        {required ? <i className={s.req}>필수</i> : null}
-      </span>
-      <span className={s.fieldInput}>
-        <input
-          type="number"
-          min={0}
-          value={value ?? ""}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        />
-        <span className={s.unit}>{unit}</span>
-      </span>
-    </label>
-  );
-}
 
-function AssetNum({ value, unit, onChange }: { value: number; unit: string; onChange: (v: number) => void }) {
+function AssetNum({
+  value,
+  unit,
+  max,
+  onChange,
+}: {
+  value: number;
+  unit: string;
+  max?: number;
+  onChange: (v: number) => void;
+}) {
   return (
     <span className={s.assetNum}>
       <input
         type="number"
         min={0}
+        max={max}
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(parseNum(e.target.value, { max }) ?? 0)}
         aria-label={unit}
       />
       <em>{unit}</em>

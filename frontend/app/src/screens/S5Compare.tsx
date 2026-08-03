@@ -12,7 +12,8 @@ import type {
 import AreaPicker from "../components/AreaPicker";
 import GridMap from "../components/GridMap";
 import { ErrorState, Loading } from "../components/states";
-import { man, pct0, pct1 } from "../lib/format";
+import { man, pct0, pct1, uptaeLabel } from "../lib/format";
+import { parseNum } from "../lib/guard";
 import { useSearch } from "../state/search";
 import s from "./S5Compare.module.css";
 
@@ -259,7 +260,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                     className={u === uptae ? s.chipOn : s.chip}
                     onClick={() => pickUptae(u)}
                   >
-                    {u}
+                    {uptaeLabel(u)}
                   </button>
                 ))}
               </div>
@@ -917,10 +918,12 @@ function Num({
       <span className={s.numInput}>
         <input
           type="number"
-          min={allowNegative ? undefined : 0}
+          min={allowNegative ? -10 : 0}
           value={value ?? ""}
           placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+          onChange={(e) =>
+            onChange(parseNum(e.target.value, allowNegative ? { min: -10, max: 200 } : {}))
+          }
         />
         <span className={s.numUnit}>{unit}</span>
       </span>

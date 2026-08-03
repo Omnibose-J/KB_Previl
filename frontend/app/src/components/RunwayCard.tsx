@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { RunwayInput, RunwayResponse } from "../api/types";
 import { man, pct0, quarter, signedMan } from "../lib/format";
+import NumField from "./NumField";
 import { ErrorState, Loading } from "./states";
 import s from "./RunwayCard.module.css";
 
@@ -29,6 +30,7 @@ export default function RunwayCard({
   rentMonthly,
   upfront,
   onBudgetChange,
+  onResult,
 }: {
   gridId: string;
   uptae: string;
@@ -40,6 +42,9 @@ export default function RunwayCard({
     rentMonthly?: number | null;
     upfront?: number | null;
   }) => void;
+  /** 계산 결과를 위로 알린다 — 아래 KB 연계 카드(자금 계획)가 부족액을
+   *  이 응답(need·reserve)에서 셈한다. 입력이 빠지면 null 로 되돌린다. */
+  onResult?: (r: RunwayResponse | null) => void;
 }) {
   const [revenue, setRevenue] = useState<number | null>(null);
   const [margin, setMargin] = useState<number | null>(null);
@@ -77,6 +82,11 @@ export default function RunwayCard({
     enabled: debounced !== null,
   });
 
+  const result = q.data ?? null;
+  useEffect(() => {
+    onResult?.(result);
+  }, [onResult, result]);
+
   return (
     <section className={s.card}>
       <header className={s.head}>
@@ -88,33 +98,40 @@ export default function RunwayCard({
       </header>
 
       <div className={s.inputs}>
-        <Field
+        <NumField
+          s={s}
           label="총 예산"
           value={budget}
           onChange={(v) => onBudgetChange({ budget: v })}
           placeholder="예: 15,000"
           required
         />
-        <Field
+        <NumField
+          s={s}
           label="초기투자 총액"
           value={upfront}
           onChange={(v) => onBudgetChange({ upfront: v })}
           placeholder="예: 8,000"
           required
         />
-        <Field
+        <NumField
+          s={s}
           label="월 임대료"
           value={rentMonthly}
           onChange={(v) => onBudgetChange({ rentMonthly: v })}
           placeholder="예: 250"
           required
         />
-        <Field label="월 예상매출" value={revenue} onChange={setRevenue} placeholder="비워두면 주변 평균" />
-        <Field
+        {/* 서버 계약이 gt=0 — 0 매출·0 마진은 422 가 되므로 화면이 먼저 막는다 */}
+        <NumField s={s} label="월 예상매출" value={revenue} onChange={setRevenue} min={1} placeholder="비워두면 주변 평균" />
+        <NumField
+          s={s}
           label="마진율"
           value={margin === null ? null : Math.round(margin * 100)}
           onChange={(v) => setMargin(v === null ? null : v / 100)}
           unit="%"
+          min={1}
+          max={100}
           placeholder="비워두면 기본값"
         />
         <div className={s.field}>
@@ -381,37 +398,3 @@ function RunwayChart({ data }: { data: RunwayResponse }) {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  unit = "만원",
-  placeholder,
-  required,
-}: {
-  label: string;
-  value: number | null;
-  onChange: (v: number | null) => void;
-  unit?: string;
-  placeholder?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className={s.field}>
-      <span className={s.fieldLabel}>
-        {label}
-        {required ? <i className={s.req}>필수</i> : null}
-      </span>
-      <span className={s.fieldInput}>
-        <input
-          type="number"
-          min={0}
-          value={value ?? ""}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        />
-        <span className={s.unit}>{unit}</span>
-      </span>
-    </label>
-  );
-}

@@ -7,7 +7,8 @@ import Dropdown from "../components/Dropdown";
 import SurvivalTrend from "../components/SurvivalTrend";
 import { useSearch } from "../state/search";
 import { FEATURES_3, PROVENANCE, SOURCES, TEAM } from "../copy";
-import { int, pct0, splitUnit } from "../lib/format";
+import { int, pct0, splitUnit, uptaeLabel } from "../lib/format";
+import { parseNum } from "../lib/guard";
 import { useReveal } from "../lib/reveal";
 import s from "./S1Landing.module.css";
 
@@ -77,9 +78,9 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
           <div className={s.field}>
             <span className={s.fieldLabel}>업종</span>
             <Dropdown
-              options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: u }))}
+              options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: uptaeLabel(u) }))}
               value={search.uptae}
-              placeholder="어떤 가게를 내시나요"
+              placeholder="어떤 가게를 내시나요?"
               emptyNote={meta.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
               onSelect={(v) => search.set({ uptae: v })}
             />
@@ -113,9 +114,7 @@ export default function S1Landing({ go }: { go: (s: Screen) => void }) {
                 min={0}
                 placeholder="예: 250"
                 value={search.rentMonthly ?? ""}
-                onChange={(e) =>
-                  search.set({ rentMonthly: e.target.value === "" ? null : Number(e.target.value) })
-                }
+                onChange={(e) => search.set({ rentMonthly: parseNum(e.target.value) })}
               />
               <span className={search.rentMonthly !== null ? s.unit : s.unitDim}>만원</span>
             </span>

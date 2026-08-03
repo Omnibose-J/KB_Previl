@@ -30,7 +30,8 @@
 
 /* 전역 anchor 리셋이 없어서 밑줄과 기본 파랑을 여기서 끈다. */
 .item,
-.accent {
+.accent,
+.preview {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -51,8 +52,16 @@
   background: var(--fg-y);
 }
 
+/* «미리 보기» — 지금은 실행할 수 없는 항목(보험은 계약 후에만). 점선·회색은
+   이 앱에서 «근거 없음/대기»에 쓰는 신호와 같은 결이다. */
+.preview {
+  background: var(--fg-wash);
+  border: 1px dashed var(--fg-chipline);
+}
+
 .item:hover,
-.accent:hover {
+.accent:hover,
+.preview:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgb(20 20 20 / 14%);
 }
@@ -68,7 +77,8 @@
 }
 
 .item strong,
-.accent strong {
+.accent strong,
+.preview strong {
   font-size: 17px;
   font-weight: 700;
   line-height: 26px;
@@ -76,7 +86,8 @@
 }
 
 .item p,
-.accent p {
+.accent p,
+.preview p {
   font-size: 14px;
   line-height: 22px;
   color: var(--fg-t4);
@@ -86,21 +97,13 @@
   color: var(--fg-y-dim2);
 }
 
-/* 가입 기한. 놓치면 되돌릴 수 없어서 설명 문장과 같은 무게로 두지 않는다 —
-   밑줄 대신 왼쪽 규칙선으로 세운다(밑줄은 링크로 읽힌다). */
-.note {
-  margin-top: 6px;
-  padding-left: 10px;
-  border-left: 3px solid var(--fg-ink);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 20px;
-  color: var(--fg-ink);
+.preview strong {
+  color: var(--fg-t2);
 }
 
-.item .note {
-  border-left-color: var(--fg-y-deep);
-  color: var(--fg-y-text);
+.preview p,
+.preview .tag {
+  color: var(--fg-t6);
 }
 
 .foot {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Screen } from "../App";
 import { ApiError, api } from "../api/client";
-import type { GridDetail, Meta } from "../api/types";
+import type { GridDetail, Meta, RunwayResponse } from "../api/types";
 import AiSummaryCard from "../components/AiSummaryCard";
 import ChangeHistoryChart from "../components/ChangeHistoryChart";
 import ConceptMixCard from "../components/ConceptMixCard";
@@ -13,7 +13,7 @@ import GoodwillCard from "../components/GoodwillCard";
 import OccupancyCostCard from "../components/OccupancyCostCard";
 import KbLinkCard from "../components/KbLinkCard";
 import { ErrorState, Loading } from "../components/states";
-import { int, meters, pct0, pct1, stationAnchor, survivalSentence } from "../lib/format";
+import { int, meters, pct0, pct1, stationAnchor, survivalSentence, uptaeLabel } from "../lib/format";
 import { isRecommendable } from "../lib/grade";
 import { useReveal } from "../lib/reveal";
 import { useSearch } from "../state/search";
@@ -132,6 +132,8 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
   // 점유비용 카드가 계산해 올려 주는 값. 그 전까지는 null 이라 아래 KB 연계
   // 카드가 아예 뜨지 않는다 — 값 없이 띄우면 «권할지 말지»를 근거 없이 고르게 된다.
   const [succession, setSuccession] = useState<number | null>(null);
+  // 손익 카드의 계산 결과 — KB 연계 «자금 계획»이 부족액(need − reserve)을 셈한다.
+  const [runway, setRunway] = useState<RunwayResponse | null>(null);
   useEffect(() => {
     if (!gwOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -160,7 +162,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
         <div className={s.heroL}>
           <div className={s.heroPills}>
             <span className={s.pillYellowDark}>
-              {uptae} {d.grade}등급
+              {uptaeLabel(uptae)} {d.grade}등급
             </span>
             {d.confidence === "partial" ? (
               <span className={s.pillGrayDark}>상권 밖 · 부분 데이터</span>
@@ -192,7 +194,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               손익·권리금
             </button>
             <button className={tab === "dataTab" ? s.tabOn : s.tab} onClick={() => setTab("dataTab")}>
-              기록 자세히
+              자세히 보기
             </button>
           </nav>
 
@@ -211,7 +213,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
               </span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kpiLabel}>이 자리의 {uptae} 가게</span>
+              <span className={s.kpiLabel}>이 자리의 {uptaeLabel(uptae)} 가게</span>
               <p className={s.kpiV}>
                 {d.competition.sameUptaeHere !== null ? (
                   <>
@@ -273,7 +275,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
                   이름으로 부르면 한식을 골라도 중국식을 골라도 같은 숫자가
                   나오던 예전 화면으로 되돌아간다. */}
               <BarPair
-                label={`${uptae} 가게 수`}
+                label={`${uptaeLabel(uptae)} 가게 수`}
                 a={{
                   name: "이 자리 100m",
                   value: d.competition.sameUptaeHere,
@@ -318,6 +320,7 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             rentMonthly={search.rentMonthly}
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}
+            onResult={setRunway}
           />
 
           {/* ── 실질 월 점유비용 ─────────────────────────────────
@@ -338,7 +341,10 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
           {/* 위 카드가 승계 확률을 «계산한 뒤에» 이어서 뜬다. 붙여 두는 이유가
               있다 — «이어받을 사람이 적다» 는 사실과 «그래서 무엇을 하면 되나»
               가 떨어져 있으면 앞의 숫자가 겁만 주고 끝난다. */}
-          <KbLinkCard successionProb={succession} />
+          <KbLinkCard
+            successionProb={succession}
+            shortfall={runway !== null ? Math.max(0, runway.workingCapitalNeed - runway.reserve) : null}
+          />
 
           {/* ── 권리금 진입 카드 — 리포트 본체는 다이얼로그로 ────── */}
           <section className={s.card} data-reveal>
@@ -542,7 +548,9 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
       </main>
 
       {/* ── 권리금 리포트 다이얼로그 — mounted while closed (inputs survive) ── */}
-      <div className={s.gwOverlay} hidden={!gwOpen} onClick={() => setGwOpen(false)}>
+      {/* data-lenis-prevent: 전역 Lenis 가 휠을 가로채면 다이얼로그가 아니라
+          뒤 문서가 굴러 «팝업 스크롤이 안 먹는» 상태가 된다. */}
+      <div className={s.gwOverlay} hidden={!gwOpen} data-lenis-prevent onClick={() => setGwOpen(false)}>
         <div
           className={s.gwDialog}
           role="dialog"
@@ -659,7 +667,7 @@ function BuildingsSection({ gridId, uptae }: { gridId: string; uptae: string }) 
               <div className={s.bldgMix}>
                 {b.uptaeMix.map((m) => (
                   <span key={m.uptae} className={m.uptae === uptae ? s.bldgChipOn : s.bldgChip}>
-                    {m.uptae} {int(m.active)}곳
+                    {uptaeLabel(m.uptae)} {int(m.active)}곳
                   </span>
                 ))}
               </div>

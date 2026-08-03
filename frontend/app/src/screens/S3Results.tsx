@@ -11,7 +11,8 @@ import GridMap, { type MapPin } from "../components/GridMap";
 import Nav from "../components/Nav";
 import { Empty, ErrorState, Loading } from "../components/states";
 import type { Point } from "../api/types";
-import { int } from "../lib/format";
+import { int, uptaeLabel } from "../lib/format";
+import { parseNum } from "../lib/guard";
 import { useSearch } from "../state/search";
 import s from "./S3Results.module.css";
 
@@ -100,7 +101,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
         onHome={() => go({ name: "landing" })}
         center={
           <div className={s.condPill}>
-            <span>{uptae}</span>
+            <span>{uptae !== null ? uptaeLabel(uptae) : null}</span>
             <i>·</i>
             <span>{rentMonthly === null ? "임대료 미입력" : `월 ${int(rentMonthly)}만`}</span>
             <i>·</i>
@@ -163,9 +164,9 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                     like a working 1-option control (fail-loud rule). */}
                 <Dropdown
                   dark
-                  options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: u }))}
+                  options={(meta.data?.uptae ?? []).map((u) => ({ value: u, label: uptaeLabel(u) }))}
                   value={uptae}
-                  display={uptae}
+                  display={uptae !== null ? uptaeLabel(uptae) : undefined}
                   placeholder="업태"
                   emptyNote={meta.isError ? "목록을 불러오지 못했습니다" : "불러오는 중…"}
                   onSelect={(v) => search.set({ uptae: v })}
@@ -189,9 +190,7 @@ export default function S3Results({ go }: { go: (s: Screen) => void }) {
                     min={0}
                     placeholder="예: 250"
                     value={rentMonthly ?? ""}
-                    onChange={(e) =>
-                      search.set({ rentMonthly: e.target.value === "" ? null : Number(e.target.value) })
-                    }
+                    onChange={(e) => search.set({ rentMonthly: parseNum(e.target.value) })}
                   />
                   <span>만</span>
                 </span>

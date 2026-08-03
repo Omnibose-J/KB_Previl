@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import CaveatStrip from "../components/CaveatStrip";
 import Nav from "../components/Nav";
 import { ErrorState, Loading } from "../components/states";
-import { int } from "../lib/format";
+import { int, uptaeLabel } from "../lib/format";
 import { isRecommendable } from "../lib/grade";
 import { useSearch } from "../state/search";
 import s from "./S2Input.module.css";
@@ -61,14 +61,14 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             ) : (
               <>
                 <div className={s.chips}>
-                  {/* meta().uptae verbatim — trimming labels breaks the DB key (§7). */}
+                  {/* value 는 meta().uptae 그대로(DB 키), 표기만 uptaeLabel 로 교정한다. */}
                   {meta.data.uptae.map((u) => (
                     <button
                       key={u}
                       className={search.uptae === u ? s.chipOn : s.chip}
                       onClick={() => search.set({ uptae: u })}
                     >
-                      {u}
+                      {uptaeLabel(u)}
                     </button>
                   ))}
                 </div>
@@ -79,7 +79,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
                         — the top-1 dong is what visibly reacts to the chips. */}
                     {search.uptae
                       ? rec.data && passing !== null
-                        ? `${search.uptae} 자리 ${int(rec.data.inScope)}곳 중 ${int(passing)}곳을 추천해요${
+                        ? `${uptaeLabel(search.uptae)} 자리 ${int(rec.data.inScope)}곳 중 ${int(passing)}곳을 추천해요${
                             firstPass?.admDong ? ` · 지금 1순위는 ${firstPass.admDong}` : ""
                           }`
                         : rec.isPending
@@ -160,7 +160,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
             <dl className={s.kv}>
               <div>
                 <dt>업종</dt>
-                <dd>{search.uptae ?? "미선택"}</dd>
+                <dd>{search.uptae !== null ? uptaeLabel(search.uptae) : "미선택"}</dd>
               </div>
               <div>
                 <dt>범위</dt>

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { EstimateInput, EstimateResponse, RecoverySource, Sales } from "../api/types";
-import { int, man, pct1, quarter } from "../lib/format";
+import { int, man, pct1, quarter, uptaeLabel } from "../lib/format";
+import NumField from "./NumField";
 import { ErrorState, Loading } from "./states";
 import s from "./OccupancyCostCard.module.css";
 
@@ -89,27 +90,32 @@ export default function OccupancyCostCard({
       </header>
 
       <div className={s.inputs}>
-        <Field label="보증금" value={deposit} onChange={setDeposit} placeholder="예: 5,000" required />
+        <NumField s={s} label="보증금" value={deposit} onChange={setDeposit} placeholder="예: 5,000" required />
         {/* 앱 전체가 «월 임대료»를 쓴다(S1·S2·S3·손익 카드). 같은 값을 공유하므로
             여기만 «월세»라 부르면 사용자가 다른 값으로 읽는다. */}
-        <Field label="월 임대료" value={rentMonthly} onChange={onRentChange} placeholder="예: 250" required />
-        <Field label="권리금" value={goodwill} onChange={setGoodwill} placeholder="없으면 0" required />
-        <Field
+        <NumField s={s} label="월 임대료" value={rentMonthly} onChange={onRentChange} placeholder="예: 250" required />
+        <NumField s={s} label="권리금" value={goodwill} onChange={setGoodwill} placeholder="없으면 0" required />
+        <NumField
+          s={s}
           label="면적"
           value={areaM2}
           onChange={setAreaM2}
           unit="㎡"
+          min={1}
+          max={100000}
           placeholder="예: 66"
           required
         />
-        <Field
+        <NumField
+          s={s}
           label="층"
           value={floor}
           onChange={setFloor}
           unit="층"
+          min={-10}
+          max={200}
           placeholder="지하는 -1"
           required
-          allowNegative
         />
       </div>
 
@@ -278,7 +284,7 @@ function WhyNoRevenue({ sales, uptae }: { sales: Sales; uptae: string }) {
   if (sales.uptaeStores === null) {
     return (
       <p>
-        {uptae}은(는) 상권 매출 통계의 업종 분류에 없어서 «매출 대비 얼마인지»를
+        {uptaeLabel(uptae)}은(는) 상권 매출 통계의 업종 분류에 없어서 «매출 대비 얼마인지»를
         낼 수 없어요.
       </p>
     );
@@ -286,14 +292,14 @@ function WhyNoRevenue({ sales, uptae }: { sales: Sales; uptae: string }) {
   if (sales.uptaeStores === 0) {
     return (
       <p>
-        이 상권엔 {uptae} 가게가 <b>한 곳도 없어서</b> 매출 통계가 없어요.
+        이 상권엔 {uptaeLabel(uptae)} 가게가 <b>한 곳도 없어서</b> 매출 통계가 없어요.
         경쟁이 없다는 뜻일 수도, 이 자리에 맞지 않는 업종이라는 뜻일 수도 있어요.
       </p>
     );
   }
   return (
     <p>
-      이 상권엔 {uptae} 가게가 <b>{int(sales.uptaeStores)}곳</b>뿐이라 매출
+      이 상권엔 {uptaeLabel(uptae)} 가게가 <b>{int(sales.uptaeStores)}곳</b>뿐이라 매출
       통계가 공표되지 않았어요. 가게가 적으면 개별 매출이 드러나서 서울시가
       비공개합니다.
     </p>
@@ -363,39 +369,3 @@ function Row({
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  unit = "만원",
-  placeholder,
-  required,
-  allowNegative,
-}: {
-  label: string;
-  value: number | null;
-  onChange: (v: number | null) => void;
-  unit?: string;
-  placeholder?: string;
-  required?: boolean;
-  allowNegative?: boolean;
-}) {
-  return (
-    <label className={s.field}>
-      <span className={s.fieldLabel}>
-        {label}
-        {required ? <i className={s.req}>필수</i> : null}
-      </span>
-      <span className={s.fieldInput}>
-        <input
-          type="number"
-          min={allowNegative ? undefined : 0}
-          value={value ?? ""}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        />
-        <span className={s.unit}>{unit}</span>
-      </span>
-    </label>
-  );
-}

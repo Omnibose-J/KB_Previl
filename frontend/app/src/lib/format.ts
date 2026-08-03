@@ -50,6 +50,10 @@ export const splitUnit = (v: string): [string, string] => {
   return [m[1], m[2]];
 };
 
+/** 서버 업태 키의 화면 표기 교정(까페→카페). 값(API 키·비교 대상)은 절대
+ *  바꾸지 않는다 — DB 키는 «까페»이고, 이 함수는 렌더 직전에만 쓴다. */
+export const uptaeLabel = (u: string) => u.replace("까페", "카페");
+
 /** Station name plus distance when measured; the name alone otherwise. */
 export const stationAnchor = (a: StationAnchor): string =>
   a.distanceM === null ? a.name : `${a.name} ${meters(a.distanceM)}`;

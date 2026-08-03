@@ -1,5 +1,5 @@
 import type { GridDetail } from "../api/types";
-import { int, meters, pct1, stationAnchor } from "../lib/format";
+import { int, meters, pct1, stationAnchor, uptaeLabel } from "../lib/format";
 import s from "./CandidateCard.module.css";
 
 // 후보 카드, figma-snapshot S3 card layout (rank box · title · pills · metric
@@ -80,7 +80,7 @@ export default function CandidateCard({
             그대로 적는다 — 예전엔 셋 다 «가게»여서 어느 것이 업태별인지 알 수
             없었고, 실제로 첫 칸은 업태와 무관한 전체 음식점 수였다. */}
         <Micro
-          label={`${cell.uptae} 가게`}
+          label={`${uptaeLabel(cell.uptae)} 가게`}
           value={
             cell.competition.sameUptaeHere !== null
               ? `${int(cell.competition.sameUptaeHere)}곳`
