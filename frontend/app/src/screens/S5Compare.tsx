@@ -376,7 +376,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
                 onClick={() => setExtraUpfront(meta.data!.upfrontHelper[uptae].value)}
               >
                 <span>
-                  감이 안 오시면 — 이 업종 평균{" "}
+                  감이 안 오시면 이 업종 평균{" "}
                   <b>{man(meta.data.upfrontHelper[uptae].value)}</b> 넣기
                 </span>
                 <i>{meta.data.upfrontHelper[uptae].label}</i>
@@ -466,7 +466,7 @@ export default function S5Compare({ go }: { go: (s: Screen) => void }) {
       ) : compare.data ? (
         <div className={s.resultPad}>
           <p className={s.stale}>
-            조건이 바뀌었어요. 아래 결과는 바꾸기 전 것이라 지웠어요 — 다시
+            조건이 바뀌었어요. 아래 결과는 바꾸기 전 것이라 지웠어요. 다시
             계산해 주세요.
           </p>
         </div>
@@ -634,7 +634,7 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
         {/* 결과를 가장 크게 흔드는 값이라 각주가 아니라 결과 옆에 적는다. 화면에
             고른 기간이 아니라 서버가 실제로 쓴 값을 되읽어 쓴다. */}
         {horizonMonths !== null
-          ? ` 권리금은 ${horizonMonths / 12}년에 나눠 담은 값이에요 — 기간을 바꾸면 순위가 달라질 수 있어요.`
+          ? ` 권리금은 ${horizonMonths / 12}년에 나눠 담은 값이라, 기간을 바꾸면 순위가 달라질 수 있어요.`
           : ""}
       </p>
 
@@ -679,7 +679,7 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
               ? ` (${known.map((it) => `${it.label} ${pct0(it.successionProb!)}`).join(" · ")})`
               : "";
           })()}
-          , 권리금을 그만큼 돌려받는다는 뜻은 아니에요 — 얼마에 넘겼는지는 공개된
+          , 권리금을 그만큼 돌려받는다는 뜻은 아니에요. 얼마에 넘겼는지는 공개된
           기록이 없어요. 대표값은 <b>한 푼도 못 건진다</b>고 본 쪽입니다.
         </p>
       </div>
@@ -709,7 +709,7 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
             초기투자는 보증금+권리금
             {runway.extraUpfront > 0 ? `+공통 초기투자 ${man(runway.extraUpfront)}` : ""}
             으로 잡았어요. 매출은 각 자리 주변 상권의 같은 업종 평균(없으면 서울
-            평균), 마진율은 기본값, 매출이 자리 잡는 기간은 6개월로 가정했어요 —
+            평균), 마진율은 기본값, 매출이 자리 잡는 기간은 6개월로 가정했어요.
             자리 상세의 버티기 카드에서 조건을 바꿔 볼 수 있어요.
           </p>
         </div>
@@ -729,7 +729,7 @@ function Reversal({ r, runway }: { r: CompareResponse; runway: RunwayStripData |
       {hasUnmeasured ? (
         <p className={s.burdenNo}>
           매출 정보가 없는 상권의 후보는 부담을 잴 수 없어서 순위 맨 뒤에 있어요.
-          자리가 나쁘다는 뜻이 아니라 잴 수 없다는 뜻이에요 — 금액은 표의 실질 월
+          자리가 나쁘다는 뜻이 아니라 잴 수 없다는 뜻이에요. 금액은 표의 실질 월
           점유비용으로 비교하세요.
         </p>
       ) : null}
@@ -764,7 +764,7 @@ function RankRow({
 function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
   if (result === null) {
     return (
-      <b className={s.rwFail}>계산하지 못했어요 — «다시 줄 세우기»로 다시 시도해 주세요.</b>
+      <b className={s.rwFail}>계산하지 못했어요. «다시 줄 세우기»로 다시 시도해 주세요.</b>
     );
   }
   switch (result.level) {
@@ -804,8 +804,8 @@ function RunwayVerdict({ result }: { result: RunwayResponse | null }) {
         <>
           <b className={s.shaky}>버티지만 여유가 거의 없어요</b>
           <span className={s.uncertaintyWhy}>
-            매출이 예상보다 늦게 오르면 위험해요 — 남는 돈 {man(result.reserve)}
-            {revenueNote(result)}.
+            매출이 예상보다 늦게 오르면 위험해요. 남는 돈은 {man(result.reserve)}
+            이에요{revenueNote(result)}.
           </span>
         </>
       );

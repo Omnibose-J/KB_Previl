@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { RunwayInput, RunwayResponse, UpfrontHint } from "../api/types";
+import type { RunwayInput, RunwayResponse } from "../api/types";
 import { man, pct0, quarter } from "../lib/format";
 import NumField from "./NumField";
 import RunwayChart from "./RunwayChart";
@@ -32,7 +32,6 @@ export default function RunwayCard({
   upfront,
   onBudgetChange,
   onResult,
-  upfrontHint,
 }: {
   gridId: string;
   uptae: string;
@@ -47,10 +46,6 @@ export default function RunwayCard({
   /** 계산 결과를 위로 알린다 — 아래 KB 연계 카드(자금 계획)가 부족액을
    *  이 응답(need·reserve)에서 셈한다. 입력이 빠지면 null 로 되돌린다. */
   onResult?: (r: RunwayResponse | null) => void;
-  /** 공정위 창업비용 참고값(meta.upfrontHelper[uptae]). 이 카드의 «초기투자
-   *  총액»은 보증금·권리금까지 든 전액이라 원탭으로 넣지 않는다 — 참고 캡션만.
-   *  원탭은 필드 의미가 정확히 겹치는 S5 «그 외 초기투자» 쪽에 있다. */
-  upfrontHint?: UpfrontHint | null;
 }) {
   const [revenue, setRevenue] = useState<number | null>(null);
   const [margin, setMargin] = useState<number | null>(null);
@@ -158,14 +153,6 @@ export default function RunwayCard({
         </div>
       </div>
 
-      {upfrontHint ? (
-        <p className={s.upfrontHint}>
-          초기투자 감이 안 오시면 — 인테리어·설비 같은 부동산 밖 비용이 이 업종
-          평균 <b>{man(upfrontHint.value)}</b>이에요 ({upfrontHint.label}). 여기에
-          보증금·권리금을 더해 총액으로 넣어 주세요.
-        </p>
-      ) : null}
-
       {!ready ? (
         <p className={s.prompt}>총 예산·초기투자·월 임대료를 넣으면 계산해 드려요.</p>
       ) : q.isPending ? (
@@ -211,7 +198,7 @@ function Verdict({ data }: { data: RunwayResponse }) {
               note={
                 data.breakevenMonth !== null
                   ? "이 달부터 한 달 장사가 남아요"
-                  : `${data.horizonMonths}개월 안에는 안 와요 — 조건을 다시 봐야 해요`
+                  : `${data.horizonMonths}개월 안에는 안 와요. 조건을 다시 봐야 해요`
               }
             />
           </div>
@@ -232,9 +219,10 @@ function Verdict({ data }: { data: RunwayResponse }) {
           {`)로 계산했어요. 이 ${data.revenueSource === "trade_area_average" ? "가게" : "자리"}의 추정 매출이 아니에요.`}
         </p>
       ) : null}
+      {/* 근거 문구(source)는 2026-08-03 사용자 지시로 화면에서 뺐다 — 값만 남긴다 */}
       <p className={s.assumptions}>
         {data.assumptions
-          .map((a) => `${a.label} ${a.value <= 1 ? pct0(a.value) : man(a.value)} (${a.source})`)
+          .map((a) => `${a.label} ${a.value <= 1 ? pct0(a.value) : man(a.value)}`)
           .join(" · ")}
       </p>
     </>
@@ -272,7 +260,7 @@ const HEADLINES: Record<
     d.breakevenMonth === null
       ? {
           title: "버텨도 매달 적자예요",
-          sub: `${d.horizonMonths}개월 안에 월 흑자가 안 와요 — 매출·임대료 조건을 다시 봐야 해요.`,
+          sub: `${d.horizonMonths}개월 안에 월 흑자가 안 와요. 매출·임대료 조건을 다시 봐야 해요.`,
         }
       : {
           title: "버티긴 하는데, 여유가 거의 없어요",

@@ -321,7 +321,6 @@ function Body({ d, meta, uptae }: { d: GridDetail; meta: Meta | undefined; uptae
             upfront={search.upfront}
             onBudgetChange={(patch) => search.set(patch)}
             onResult={setRunway}
-            upfrontHint={meta?.upfrontHelper[uptae] ?? null}
           />
 
           {/* ── 실질 월 점유비용 ─────────────────────────────────
@@ -715,7 +714,7 @@ function LeaseLead({ meta, grade, years }: { meta: Meta; grade: number; years: 1
   if (!b || b.survival === null || b.survival === undefined) return null;
   return (
     <p className={s.leaseLead}>
-      {years}년{years === 3 ? " 이상" : ""} 계약이면 — 이 자리 밴드({b.band})는 실제로{" "}
+      {years}년{years === 3 ? " 이상" : ""} 계약이면, 이 자리 밴드({b.band})는 실제로{" "}
       <b>{pct1(b.survival)}</b>가 남았어요.
     </p>
   );

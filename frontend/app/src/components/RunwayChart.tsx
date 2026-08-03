@@ -17,8 +17,16 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
     ...data.curve.map((p) => ({ month: p.month, balance: data.reserve + p.cum })),
   ];
   const values = balances.map((b) => b.balance);
-  const lo = Math.min(0, ...values);
-  const hi = Math.max(0, ...values);
+  // 축은 데이터 범위에 맞춘다 — 항상 0 을 포함시키면 잔고가 0 에서 먼 경우
+  // 곡선이 위에 눌려 경사가 안 보인다(2026-08-03 사용자 보고). 0 선은 데이터
+  // 범위(여백 포함)에 들어올 때만 그린다 — 바닥 근처거나 실제로 뚫린 경우.
+  const dataLo = Math.min(...values);
+  const dataHi = Math.max(...values);
+  const dataSpan = dataHi - dataLo || Math.abs(dataHi) || 1;
+  const margin = dataSpan * 0.12;
+  const zeroVisible = dataLo - margin <= 0;
+  const lo = zeroVisible ? Math.min(0, dataLo - margin) : dataLo - margin;
+  const hi = dataHi + margin;
   const span = hi - lo || 1;
 
   const x = (month: number) =>
@@ -29,6 +37,13 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
   const path = balances
     .map((b, i) => `${i === 0 ? "M" : "L"}${x(b.month).toFixed(1)} ${y(b.balance).toFixed(1)}`)
     .join(" ");
+  // 선 아래를 칠해 «남아 있는 돈의 부피»로 읽히게 한다. 0 선이 보일 때는 거기
+  // 까지 채우고 위/아래를 클립으로 갈라 위는 잉크 워시, 아래(바닥난 구간)는
+  // 빨강. 0 선이 화면 밖(한참 아래)이면 플롯 바닥까지 워시만 채운다.
+  const areaBase = zeroVisible ? y(0) : H - PAD.bottom;
+  const area =
+    `${path} L${x(balances[balances.length - 1].month).toFixed(1)} ${areaBase.toFixed(1)}` +
+    ` L${x(0).toFixed(1)} ${areaBase.toFixed(1)} Z`;
 
   const troughIdx = values.indexOf(Math.min(...values));
   const trough = balances[troughIdx];
@@ -56,31 +71,68 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
         role="img"
         aria-label={
           dry !== null
-            ? `남은 돈 곡선 — 개업 ${dry.month}개월차에 0 아래로 내려가요`
-            : `남은 돈 곡선 — ${data.horizonMonths}개월 동안 0 아래로 내려가지 않아요`
+            ? `남은 돈 곡선. 개업 ${dry.month}개월차에 0 아래로 내려가요`
+            : `남은 돈 곡선. ${data.horizonMonths}개월 동안 0 아래로 내려가지 않아요`
         }
       >
-        <line className={s.zero} x1={PAD.left} x2={W - PAD.right} y1={y(0)} y2={y(0)} />
-        <text className={s.zeroLabel} x={W - PAD.right} y={y(0) - 6} textAnchor="end">
-          잔고 0
-        </text>
+        {zeroVisible ? (
+          <>
+            <defs>
+              <clipPath id="rw-above">
+                <rect x={0} y={0} width={W} height={y(0)} />
+              </clipPath>
+              <clipPath id="rw-below">
+                <rect x={0} y={y(0)} width={W} height={H - y(0)} />
+              </clipPath>
+            </defs>
+            <path className={s.area} d={area} clipPath="url(#rw-above)" />
+            <path className={s.areaBad} d={area} clipPath="url(#rw-below)" />
+            <line className={s.zero} x1={PAD.left} x2={W - PAD.right} y1={y(0)} y2={y(0)} />
+            <text className={s.zeroLabel} x={W - PAD.right} y={y(0) - 6} textAnchor="end">
+              잔고 0
+            </text>
+          </>
+        ) : (
+          <path className={s.area} d={area} />
+        )}
 
         <path className={s.line} d={path} />
 
-        {/* 골짜기 최저점 — 바닥나는 달이 따로 있으면 그 점을 우선한다 */}
-        <circle
-          className={dry ? s.dotBad : s.dot}
-          cx={x(mark.month)}
-          cy={y(mark.balance)}
-          r={5}
-        />
-        <text className={dry ? s.markBad : s.mark} x={markAt.lx} y={markAt.ly} textAnchor={markAt.anchor}>
-          {dry ? `${mark.month}개월차에 바닥` : `가장 얕을 때 ${man(mark.balance)}`}
-        </text>
+        {/* 시작점 — 곡선이 어디서 출발하는지(계약하고 남은 돈)를 못박는다.
+            최저점이 곧 시작점이면(단조 상승 곡선) 아래 최저점 라벨과 같은 자리에
+            겹치므로 생략한다. */}
+        {mark.month !== 0 ? (
+          <>
+            <circle className={s.dot} cx={x(0)} cy={y(data.reserve)} r={4} />
+            <text className={s.mark} x={x(0) + 8} y={y(data.reserve) - 10} textAnchor="start">
+              시작 {man(data.reserve)}
+            </text>
+          </>
+        ) : null}
 
-        <text className={s.mark} x={x(last.month) - 4} y={y(last.balance) - 10} textAnchor="end">
-          {data.horizonMonths}개월 뒤 {signedMan(last.balance)}
-        </text>
+        {/* 골짜기 최저점 — 바닥나는 달이 따로 있으면 그 점을 우선한다.
+            일반 최저점이 끝점과 같은 달이면(단조 하락) 끝 라벨과 같은 자리라
+            생략한다 — 값도 같아서 잃는 정보가 없다. */}
+        {dry !== null || mark.month !== last.month ? (
+          <>
+            <circle
+              className={dry ? s.dotBad : s.dot}
+              cx={x(mark.month)}
+              cy={y(mark.balance)}
+              r={5}
+            />
+            <text className={dry ? s.markBad : s.mark} x={markAt.lx} y={markAt.ly} textAnchor={markAt.anchor}>
+              {dry ? `${mark.month}개월차에 바닥` : `가장 얕을 때 ${man(mark.balance)}`}
+            </text>
+          </>
+        ) : null}
+
+        {/* 끝점 — 바닥나는 달이 마침 끝 달이면 바닥 라벨이 우선한다 */}
+        {dry === null || dry.month !== last.month ? (
+          <text className={s.mark} x={x(last.month) - 4} y={y(last.balance) - 10} textAnchor="end">
+            {data.horizonMonths}개월 뒤 {signedMan(last.balance)}
+          </text>
+        ) : null}
 
         <text className={s.axis} x={x(0)} y={H - 8}>
           개업
@@ -93,8 +145,10 @@ export default function RunwayChart({ data }: { data: RunwayResponse }) {
         </text>
       </svg>
       <figcaption className={s.cap}>
-        계약하고 남은 돈이 다달이 어떻게 움직이는지예요. 점선 아래로 내려가면
-        그 달에 돈이 바닥난다는 뜻이에요.
+        계약하고 남은 돈이 다달이 어떻게 움직이는지예요.{" "}
+        {zeroVisible
+          ? "점선(잔고 0) 아래 빨갛게 칠해진 구간은 돈이 바닥나 있다는 뜻이에요."
+          : "잔고가 0에서 멀어서, 움직임이 잘 보이게 구간을 확대해 그렸어요."}
       </figcaption>
 
       <table className={s.srOnly}>

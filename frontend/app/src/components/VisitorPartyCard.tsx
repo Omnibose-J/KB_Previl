@@ -62,7 +62,7 @@ export default function VisitorPartyCard({ party }: { party: VisitorParty | null
               />
             </span>
             <span className={s.count}>
-              {item.share !== null ? `${Math.round(item.share * 100)}%` : "—"}
+              {item.share !== null ? `${Math.round(item.share * 100)}%` : "-"}
             </span>
           </div>
         ))}

@@ -292,10 +292,10 @@
   border-color: var(--fg-chipline);
 }
 
-/* 2026-08-03 사용자 지시: 부담률·승계 두 블록이 아래 KB 연계 판단의 근거라
-   범례 행보다 한 단계 크게 — 라벨은 문장급(15px/600), 값은 30px 로 세운다. */
+/* 2026-08-03 사용자 지시(2차): 숫자보다 «무엇의 값인지»가 먼저 읽히게 —
+   라벨(제목)을 17px 로 올리고 값은 26px 로 낮춘다. */
 .successionLabel {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--fg-t2);
 }
@@ -304,7 +304,7 @@
 .successionValueDim {
   grid-row: span 2;
   align-self: center;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
 }
 
@@ -357,13 +357,13 @@
 
 .burdenLabel {
   flex: 1;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--fg-t2);
 }
 
 .burdenValue {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
   color: var(--fg-ink);
 }

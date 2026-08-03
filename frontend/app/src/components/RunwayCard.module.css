@@ -310,19 +310,14 @@
   .result + .result { border-left: 0; padding-left: 0; border-top: 1px solid var(--fg-line3); padding-top: 12px; }
 }
 
-/* 공정위 창업비용 참고 캡션 (2026-08-03). 이 카드의 초기투자는 보증금·권리금
-   포함 전액이라 원탭 주입은 없다 — 감 잡기용 문장 하나만. */
-.upfrontHint {
-  padding: 12px 16px;
-  border-radius: 10px;
-  background: var(--fg-wash);
-  border: 1px dashed var(--fg-chipline);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--fg-t5);
+/* 남은 돈 면적 채움 (2026-08-03 «그래프가 안 와닿는다» 피드백) — 0 선 위는
+   잉크 워시(돈이 남아 있는 부피), 아래는 빨강(바닥난 구간)으로 읽힌다. */
+.area {
+  fill: var(--fg-ink);
+  opacity: 0.06;
 }
 
-.upfrontHint b {
-  font-weight: 700;
-  color: var(--fg-t2);
+.areaBad {
+  fill: var(--fg-red);
+  opacity: 0.12;
 }

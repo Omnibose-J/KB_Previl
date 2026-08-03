@@ -35,9 +35,12 @@
   color: var(--fg-t4);
 }
 
-/* inputs */
+/* inputs — 두 입력 카드가 폭을 나눠 갖고, 유형자산 버튼은 아래 전폭 행으로.
+   (2026-08-03 «맨위 카드 크기·정렬이 이상하다» 피드백 — 예전엔 min-width 만
+   있는 카드 둘 + 가운데 뜬 버튼이라 오른쪽이 비었다.) */
 .inputs {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
   align-items: stretch;
   gap: 12px;
 }
@@ -50,7 +53,12 @@
   border-radius: 10px;
   background: var(--fg-card-warm);
   border: 1px solid var(--fg-line2);
-  min-width: 180px;
+  min-width: 0;
+}
+
+/* 옆 카드(계약 기간)가 더 키가 커서, 입력줄은 남는 공간 가운데 둔다. */
+.field .fieldInput {
+  margin: auto 0;
 }
 
 .fieldLabel {
@@ -112,7 +120,7 @@
   border-radius: 10px;
   background: var(--fg-card-warm);
   border: 1px solid var(--fg-line2);
-  min-width: 232px;
+  min-width: 0;
 }
 
 .leaseHead {
@@ -177,7 +185,7 @@
 }
 
 .addAsset {
-  align-self: center;
+  grid-column: 1 / -1;
   padding: 10px 16px;
   border: 1px dashed var(--fg-chipline);
   border-radius: 10px;
@@ -269,12 +277,28 @@
   text-align: center;
 }
 
-/* headline */
+/* headline — 판정 칩과 금액 줄을 세로로 쌓는다. 한 줄에 섞으면 칩(작은 상자)과
+   28px 숫자의 세로 중심이 어긋나 «정렬이 깨진» 인상을 준다. */
 .headline {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* 결과 묶음 — 카드 본체와 같은 세로 리듬을 유지한다(래퍼 div 가 없으면
+   .card 의 gap 이 결과 블록들 사이에 먹었었다). */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 재계산 중 — 입력(가정)을 바꾸면 결과가 다시 계산되고 있다는 것을 몸으로
+   보여준다. 이게 없으면 «바꿔도 안 변하는 것 같다»로 읽힌다. */
+.refreshing {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
 }
 
 .refGreen,
@@ -667,10 +691,8 @@
 }
 
 /* ---- responsive ---- */
-@media (max-width: 1024px) {
-  .inputs { flex-wrap: wrap; }
-  .field { flex: 1 1 160px; min-width: 0; }
-  .leaseField { flex: 1 1 232px; min-width: 0; }
+@media (max-width: 680px) {
+  .inputs { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {

@@ -331,7 +331,7 @@ export default function GridMap({
         {/* 413 은 변명할 실패가 아니다. 표본으로 솎은 지도는 커버리지를 잘못
             말하므로 서버가 솎기를 거부한다(§B 계약). */}
         {q.error instanceof ApiError && q.error.status === 413 ? (
-          <p className={s.zoomHint}>격자가 너무 많습니다 — 지도를 확대해주세요.</p>
+          <p className={s.zoomHint}>격자가 너무 많습니다. 지도를 확대해주세요.</p>
         ) : q.isError ? (
           <ErrorState onRetry={() => q.refetch()} detail={String(q.error)} />
         ) : null}

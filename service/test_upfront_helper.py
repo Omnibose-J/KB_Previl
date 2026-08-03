@@ -10,8 +10,11 @@ import json
 
 import pytest
 
-from scripts.franchise_costs import SAMPLE_2024, map_rows, validate_rows
 from service import runway_params
+
+# 인제스트 스크립트(scripts/)와 패키징(tools/)은 출하본에 없다 — 그 대상을
+# 재는 테스트만 각자 importorskip 으로 감싼다. 로더 계약 테스트는 출하본에서도
+# 그대로 돈다(감사 게이트가 벗겨낸 트리에서 pytest 를 돌린다).
 
 
 def test_loader_missing_file_yields_empty_hint(monkeypatch, tmp_path):
@@ -47,16 +50,18 @@ def test_loader_shapes_shipped_file():
 
 
 def test_identity_guard_catches_field_meaning_change():
-    rows = [dict(r) for r in SAMPLE_2024] * 2
-    validate_rows(rows)  # 실측 픽스처는 통과
+    fc = pytest.importorskip("scripts.franchise_costs")
+    rows = [dict(r) for r in fc.SAMPLE_2024] * 2
+    fc.validate_rows(rows)  # 실측 픽스처는 통과
     rows[0]["frcsCnt"] = 12  # «진짜 count» 가 된 세상 — 합이 무너진다
     with pytest.raises(SystemExit):
-        validate_rows(rows)
+        fc.validate_rows(rows)
 
 
 def test_cafe_maps_to_coffee_not_beverages():
     """부분일치였다면 «음료 (커피 외)» 에 걸렸을 함정의 고정."""
-    helper, _ = map_rows([dict(r) for r in SAMPLE_2024])
+    fc = pytest.importorskip("scripts.franchise_costs")
+    helper, _ = fc.map_rows([dict(r) for r in fc.SAMPLE_2024])
     assert helper["까페"]["sourceIndustry"] == "커피"
     # 헬퍼 합에 보증금(frcsCnt)이 섞이지 않는다
     assert helper["까페"]["value"] == 109 + 86 + 2544
@@ -78,9 +83,9 @@ def test_meta_serves_upfront_helper_camelcase():
 
 def test_shipped_json_matches_loader_source():
     """manifest 가 싣는 파일이 로더가 읽는 바로 그 경로다."""
-    from tools.manifest import SHIP_FILES
+    manifest = pytest.importorskip("tools.manifest")
 
-    arcs = {arc for _src, arc in SHIP_FILES}
+    arcs = {arc for _src, arc in manifest.SHIP_FILES}
     assert "service/data/franchise_costs.json" in arcs
     raw = json.loads(
         runway_params.UPFRONT_HELPER_PATH.read_text(encoding="utf-8")

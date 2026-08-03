@@ -138,7 +138,7 @@ def calculate(
         math.isfinite(value)
         for value in (reserve, need, curve[-1]["cum"])
     ):
-        raise api.ApiInputError("계산이 유한한 값을 벗어났습니다 — 입력을 확인하세요.")
+        raise api.ApiInputError("계산이 유한한 값을 벗어났습니다. 입력을 확인하세요.")
 
     return {
         "grid_id": grid_id,

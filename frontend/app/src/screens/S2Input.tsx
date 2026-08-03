@@ -211,7 +211,7 @@ export default function S2Input({ go }: { go: (s: Screen) => void }) {
               <div>
                 <span>상위 추천 후보</span>
                 <strong className={s.fY}>
-                  {search.uptae && passing !== null ? `${int(passing)}곳` : rec.isError ? "—" : "…"}
+                  {search.uptae && passing !== null ? `${int(passing)}곳` : rec.isError ? "-" : "…"}
                 </strong>
               </div>
             </div>

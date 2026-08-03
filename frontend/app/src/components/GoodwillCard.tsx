@@ -135,7 +135,11 @@ export default function GoodwillCard({ d, uptae }: { d: GridDetail; uptae: strin
       ) : q.isError ? (
         <ErrorState onRetry={() => q.refetch()} detail={String(q.error)} />
       ) : (
-        <Result r={q.data} />
+        // 입력을 바꾸면 재계산 동안 결과를 흐리게 — «바꿔도 안 변한다»로 읽히지
+        // 않게 계산이 돌고 있다는 것을 보여준다(2026-08-03 피드백).
+        <div className={q.isFetching ? `${s.result} ${s.refreshing}` : s.result}>
+          <Result r={q.data} />
+        </div>
       )}
     </section>
   );
@@ -231,12 +235,10 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
       <details className={s.fold}>
         <summary className={s.foldHead}>어떤 값으로 계산했는지 보기</summary>
 
+      {/* 조정계수·adjustmentReasons 는 화면에서 뺐다(2026-08-03 «불필요한 어휘»
+          피드백) — v1 은 계수가 항상 1 이라 사용자에게 아무 정보가 없다. */}
       <p className={s.valuation}>
         무형 {man(r.intangibleValue)} + 유형 {man(r.tangibleValue)}
-        <em>
-          조정계수 {r.adjustmentFactor}
-          {r.adjustmentReasons.length > 0 ? ` — ${r.adjustmentReasons.join(" · ")}` : ""}
-        </em>
       </p>
 
       {r.tangibleAssets.length > 0 ? (
@@ -399,7 +401,7 @@ function Decomposition({
           없는지 말한다. */}
       <p className={s.decompBench}>
         바닥권리금은 «부르는 것이 값»이라 비교할 시세가 없어요. 그래서 «평균 대비 얼마»는 내지
-        않았어요 — 대신 위 참고가와 얼마나 벌어지는지로 보세요.
+        않았어요. 대신 위 참고가와 얼마나 벌어지는지로 보세요.
       </p>
     </section>
   );
@@ -451,7 +453,7 @@ function SensitivityPivot({ r }: { r: import("../api/types").GoodwillResponse })
                   m === r.operatingMargin && dr === r.discountRate && y === r.valuationYears;
                 return (
                   <td key={dr} className={served ? s.sensOn : undefined}>
-                    {c ? man(c.estimatedGoodwill) : "—"}
+                    {c ? man(c.estimatedGoodwill) : "-"}
                   </td>
                 );
               })}

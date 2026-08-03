@@ -43,7 +43,7 @@ export default function SurvivalTrend({ data }: { data: SurvivalYear[] }) {
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={
-          `서울 음식점 3년 생존율 — ${data[peak].year}년 개업 ${pct(data[peak].survival)}에서 ` +
+          `서울 음식점 3년 생존율. ${data[peak].year}년 개업 ${pct(data[peak].survival)}에서 ` +
           `${data[last].year}년 개업 ${pct(data[last].survival)}로 내려왔어요`
         }
       >

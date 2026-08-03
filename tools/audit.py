@@ -555,6 +555,13 @@ def gate_behaviour(v):
         tests = [p for p in (ROOT / "service").glob("test_*.py")]
         for t in tests:
             shutil.copy2(t, tmp / "service" / t.name)
+        # zip 에 실리는 서비스 데이터 파일(예: franchise_costs.json)도 함께 —
+        # 빼면 로더 계약 테스트가 실제 출하와 다른 세상을 재게 된다.
+        for src, arc in SHIP_FILES:
+            if arc.startswith("service/") and not arc.endswith(".py"):
+                dst = tmp / arc
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(ROOT / src, dst)
         db = ROOT / "kb-demo.db"
         if not db.is_file():
             print("[behaviour] FAIL — kb-demo.db 없어 검사를 돌릴 수 없다. "

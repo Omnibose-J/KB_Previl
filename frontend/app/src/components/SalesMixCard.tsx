@@ -64,7 +64,7 @@ export default function SalesMixCard({ mix }: { mix: SalesMix | null }) {
               />
             </span>
             <span className={s.count}>
-              {item.share !== null ? pct0(item.share) : "—"}
+              {item.share !== null ? pct0(item.share) : "-"}
             </span>
           </div>
         ))}
