@@ -1,7 +1,37 @@
 """Single source of truth for what ships. audit.py gates it, package.py builds it."""
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+ENV_KEY_WORDS = ("KEY", "SECRET", "TOKEN", "CLIENT_ID", "SERVICE")
+
+
+def submission_env(source, python_paths):
+    """Build the minimal .env payload used by the shipped Python code."""
+    pattern = re.compile(r'''['"]([A-Z][A-Z0-9_]{4,})['"]''')
+    needed = set()
+    for path in python_paths:
+        for match in pattern.finditer(path.read_text("utf-8")):
+            key = match.group(1)
+            if any(word in key for word in ENV_KEY_WORDS):
+                needed.add(key)
+
+    kept, dropped = [], []
+    for line in source.read_text(encoding="utf-8-sig").splitlines():
+        text = line.strip()
+        if not text or text.startswith("#") or "=" not in text:
+            continue
+        key = text.split("=", 1)[0].strip()
+        (kept if key in needed else dropped).append((key, text))
+
+    body = ["# KB Previl — 이 서비스가 읽는 키만 담았습니다.",
+            "# run.py 가 이 파일을 이 위치에서 찾습니다.", ""]
+    body += [line for _, line in sorted(kept)]
+    payload = ("\n".join(body) + "\n").encode("utf-8")
+    kept_keys = {key for key, _ in kept}
+    return payload, sorted(kept_keys), sorted(key for key, _ in dropped), \
+        sorted(needed - kept_keys)
 
 # Entry points the shipped tree must be reachable from.
 ENTRY_IMPORT = ("service.app", "pipeline.bootstrap")
@@ -17,11 +47,11 @@ ENTRY_CLI = (
 
 SHIP_PKGS = ("service", "model", "pipeline")
 
-# 코드 zip 이 이 폴더 하나로 풀린다. DB zip 은 kb-demo.db 단일 항목이라
-# 이 폴더 «안에» 풀어야 한다 — README 가 그렇게 안내한다.
+# KB_Previl.zip extracts into this single root. The database and filtered
+# environment file live directly inside it with the launchers.
 ZIP_ROOT = "previl"
 
-# 합본 zip 과 DB zip 이 담는 유일한 데이터 파일.
+# The only database shipped in KB_Previl.zip.
 DB_NAME = "kb-demo.db"
 
 # 서빙이 이 두 표를 읽는다. 비어 있으면 화면은 뜨지만 추천이 나오지 않는다.

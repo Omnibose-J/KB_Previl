@@ -15,7 +15,8 @@ from .manifest import (ALLOWED_SUFFIXES, BANNED_COMMENT, DB_NAME, DB_TABLES,
                        ENTRY_CLI, ENTRY_IMPORT, FORBIDDEN_DIRS,
                        FORBIDDEN_NAMES, HEADERS, MAX_LINES, ROOT, SHIP_FILES,
                        SHIP_PKGS, SHIP_TREES, SIZE_EXEMPT, TREE_EXCLUDE,
-                       TREE_EXCLUDE_DIRS, TREE_EXCLUDE_FILES, ZIP_ROOT)
+                       TREE_EXCLUDE_DIRS, TREE_EXCLUDE_FILES, ZIP_ROOT,
+                       submission_env)
 from .strip import StripError, strip_python, strip_web_batch
 
 
@@ -428,48 +429,18 @@ def _db_verdict(archive, arc):
     return None
 
 
-def gate_db_zip(v, zip_path):
-    """DB zip 은 `kb-demo.db` 하나짜리다 — 구조가 달라 코드 zip 게이트로는 못 본다."""
-    import zipfile
-    if not Path(zip_path).is_file():
-        print(f"[db-zip] FAIL — {zip_path} 없음. 먼저 빌드할 것")
-        return 1
-    archive = zipfile.ZipFile(zip_path)
+def _inspect_zip(v, archive):
+    """Inspect one open submission archive against the current source tree."""
     names = archive.namelist()
     bad = []
-    if archive.testzip() is not None:
-        bad.append((archive.testzip(), "CRC 오류"))
-    if names != [DB_NAME]:
-        bad.append((", ".join(names) or "(비어 있음)", f"{DB_NAME} 하나여야 한다"))
-    else:
-        why = _db_verdict(archive, DB_NAME)
-        if why:
-            bad.append((DB_NAME, why))
-    print(f"[db-zip] {len(names)}개 항목 · 위반 {len(bad)}건")
-    for n, why in bad:
-        print(f"    {n}  — {why}")
-    return len(bad)
-
-
-def gate_zip(v, zip_path, allow_db=False):
-    """zip 이 계약대로인지. 없는 zip 은 «검사할 것이 없음» 이 아니라 실패다.
-
-    이름만 맞추면 내용이 빈 껍데기도 통과한다 — 필수 7개와 DB 이름만 담은
-    8항목짜리 가짜 zip 이 실제로 통과했다. 그래서 출하 목록과 정확히 대조하고
-    바이트까지 맞춰 본다.
-    """
-    import zipfile
-    if not Path(zip_path).is_file():
-        print(f"[zip] FAIL — {zip_path} 없음. 먼저 빌드할 것")
-        return 1
-    archive = zipfile.ZipFile(zip_path)
-    names = archive.namelist()
-    bad = []
-    if archive.testzip() is not None:
-        bad.append((archive.testzip(), "CRC 오류"))
-    if len(names) != len(set(names)):
-        seen = set()
-        bad += [(n, "중복 항목") for n in names if n in seen or seen.add(n)]
+    broken = archive.testzip()
+    if broken is not None:
+        bad.append((broken, "CRC 오류"))
+    seen = set()
+    for name in names:
+        if name in seen:
+            bad.append((name, "중복 항목"))
+        seen.add(name)
     roots = {n.split("/")[0] for n in names}
     if roots != {ZIP_ROOT}:
         bad.append((", ".join(sorted(roots)), f"최상위가 {ZIP_ROOT} 하나가 아니다"))
@@ -478,22 +449,23 @@ def gate_zip(v, zip_path, allow_db=False):
             bad.append((must, "필수 항목 누락"))
 
     db_arc = f"{ZIP_ROOT}/{DB_NAME}"
+    env_arc = f"{ZIP_ROOT}/.env"
     db_entries = [n for n in names if n.endswith(".db")]
-    if allow_db and db_entries != [db_arc]:
+    if db_entries != [db_arc]:
         bad.append((", ".join(db_entries) or "(없음)",
-                    f"합본에는 {db_arc} 하나만 있어야 한다"))
-    elif allow_db:
+                    f"제출물에는 {db_arc} 하나만 있어야 한다"))
+    else:
         why = _db_verdict(archive, db_arc)
         if why:
             bad.append((db_arc, why))
 
     expected = {arc: (src, is_stripped(src, arc)) for src, arc in ship_items()}
-    want = set(expected) | ({db_arc} if allow_db else set())
+    want = set(expected) | {db_arc, env_arc}
     have = set(names)
     bad += [(n, "출하 목록에 있는데 zip 에 없다") for n in sorted(want - have)]
     bad += [(n, "출하 목록에 없는데 zip 에 있다") for n in sorted(have - want)]
     stale = 0
-    for arc in sorted((want & have) - {db_arc}):
+    for arc in sorted((want & have) - {db_arc, env_arc}):
         src, stripped = expected[arc]
         try:
             wanted = shipped_text(src).encode("utf-8") if stripped else src.read_bytes()
@@ -504,26 +476,34 @@ def gate_zip(v, zip_path, allow_db=False):
             stale += 1
             bad.append((arc, "내용이 지금 만들 것과 다르다 — 낡은 zip"))
 
-    forbidden = set(FORBIDDEN_NAMES)
-    allowed_suffixes = set(ALLOWED_SUFFIXES)
-    if allow_db:
-        forbidden.discard("kb-demo.db")
-        allowed_suffixes.add(".db")
+    if env_arc in have:
+        try:
+            py, _ = ship_paths()
+            wanted_env, _, _, _ = submission_env(ROOT / ".env", py)
+        except (OSError, UnicodeError) as exc:
+            bad.append((env_arc, f"원본 .env 대조 실패 — {exc}"))
+        else:
+            if archive.read(env_arc) != wanted_env:
+                stale += 1
+                bad.append((env_arc, "필수 키만 추린 현재 .env 와 다르다"))
+
     for n in names:
         parts = n.split("/")
         name = parts[-1]
         if ".." in parts or n.startswith("/") or ":" in parts[0]:
             bad.append((n, "경로 탈출"))
             continue
+        if n in {db_arc, env_arc}:
+            continue
         if n == f"{ZIP_ROOT}/README.md":
             continue                      # 유일하게 허용되는 문서
-        if name in forbidden or FORBIDDEN_DIRS & set(parts[:-1]):
+        if name in FORBIDDEN_NAMES or FORBIDDEN_DIRS & set(parts[:-1]):
             bad.append((n, "금지 이름·폴더"))
         elif name.endswith(".md") and n != f"{ZIP_ROOT}/README.md":
             bad.append((n, "문서 — 루트 README 하나만 허용"))
         elif TREE_EXCLUDE_DIRS & set(parts[:-1]) or name in TREE_EXCLUDE_FILES:
             bad.append((n, "캐시·빌드 산출물"))
-        elif Path(name).suffix.lower() not in allowed_suffixes:
+        elif Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
             # 블록리스트는 빠뜨린 패턴을 못 잡는다. 모르는 확장자는 일단 세운다.
             bad.append((n, f"허용 목록에 없는 확장자 {Path(name).suffix or '(없음)'}"))
     print(f"[zip] {len(names):,}개 항목 · 위반 {len(bad)}건"
@@ -533,6 +513,21 @@ def gate_zip(v, zip_path, allow_db=False):
     if len(bad) > 20 and not v:
         print(f"    … 외 {len(bad) - 20}건 (-v 로 전부)")
     return len(bad)
+
+
+def gate_zip(v, zip_path):
+    """Fail unless zip_path is the exact current single-file submission."""
+    import zipfile
+    path = Path(zip_path)
+    if not path.is_file():
+        print(f"[zip] FAIL — {path} 없음. 먼저 빌드할 것")
+        return 1
+    try:
+        with zipfile.ZipFile(path) as archive:
+            return _inspect_zip(v, archive)
+    except (OSError, zipfile.BadZipFile) as exc:
+        print(f"[zip] FAIL — {path} 열기 실패: {exc}")
+        return 1
 
 
 def gate_behaviour(v):
@@ -679,21 +674,16 @@ def main():
     ap = argparse.ArgumentParser(description="제출물 게이트")
     for name in GATES:
         ap.add_argument(f"--{name}", action="store_true")
-    ap.add_argument("--zip", metavar="PATH", help="빌드된 코드 zip 검사")
-    ap.add_argument("--db-zip", metavar="PATH", help="나누어 낼 때의 DB zip 검사")
-    ap.add_argument("--allow-db", action="store_true",
-                    help="--zip 과 함께 — 코드와 DB 를 한 zip 에 담은 합본")
+    ap.add_argument("--zip", metavar="PATH", help="빌드된 제출용 zip 검사")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
 
     picked = [n for n in GATES if getattr(a, n)]
-    if not picked and not (a.zip or a.db_zip):
+    if not picked and not a.zip:
         picked = list(GATES)
     fails = sum(GATES[n](a.verbose) for n in picked)
     if a.zip:
-        fails += gate_zip(a.verbose, a.zip, a.allow_db)
-    if a.db_zip:
-        fails += gate_db_zip(a.verbose, a.db_zip)
+        fails += gate_zip(a.verbose, a.zip)
     print("\n" + ("게이트 통과" if not fails else f"게이트 실패 — 위반 {fails}건"))
     return 1 if fails else 0
 

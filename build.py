@@ -1,10 +1,9 @@
 """제출물을 다시 만든다. 서비스가 바뀌면 이것만 다시 돌리면 된다.
 
-기본은 합본이다 — `KB_Previl_all.zip`(코드 + DB) 과 `.env` 두 개.
+산출물은 `KB_Previl.zip` 하나다. 코드 + DB + 필수 `.env` 를 함께 담는다.
 
     python build.py              게이트 -> 화면 빌드 -> 패키징
     python build.py --rehearse   위에 더해 빈 폴더에서 실제로 띄워 본다
-    python build.py --split      코드 zip 과 DB zip 을 나누어 낸다
     python build.py --check      게이트만
 """
 import argparse
@@ -47,8 +46,6 @@ def main():
     ap = argparse.ArgumentParser(description="제출물 재빌드")
     ap.add_argument("--rehearse", action="store_true")
     ap.add_argument("--check", action="store_true", help="게이트만 실행")
-    ap.add_argument("--split", action="store_true",
-                    help="코드와 DB 를 나누어 낸다 (제출물 3종). 기본은 합본")
     a = ap.parse_args()
 
     # 화면을 먼저 빌드한다. 게이트와 패키징이 같은 `dist` 를 보게 하려면
@@ -64,20 +61,12 @@ def main():
     if a.check:
         return 0
     argv = ["tools.package"]
-    if a.split:
-        argv.append("--split")
     if a.rehearse:
         argv.append("--rehearse")
     if run(argv, "3. 패키징" + (" + 리허설" if a.rehearse else "")):
         return 1
     out = ROOT / "SUBMISSION"
-    name = "KB_Previl_service.zip" if a.split else "KB_Previl_all.zip"
-    check = ["tools.audit", "--zip", str(out / name)]
-    if a.split:
-        # DB zip 도 검사한다. 구조가 달라 코드 zip 게이트로는 안 보인다.
-        check += ["--db-zip", str(out / "KB_Previl_db.zip")]
-    else:
-        check.append("--allow-db")
+    check = ["tools.audit", "--zip", str(out / "KB_Previl.zip")]
     return run(check, "4. zip 내용 검사")
 
 

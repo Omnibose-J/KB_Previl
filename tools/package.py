@@ -1,4 +1,4 @@
-"""제출물 3종을 만들고, 심사자와 같은 조건으로 리허설한다.
+"""제출용 zip 하나를 만들고, 심사자와 같은 조건으로 리허설한다.
 
     python -m tools.package              # 빌드만
     python -m tools.package --rehearse   # 빈 폴더에 풀고 새 venv 로 실제 기동
@@ -16,17 +16,20 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from .audit import is_stripped, ship_items, ship_paths, shipped_text
-from .manifest import ROOT, ZIP_ROOT
-
-ENV_KEY_WORDS = ("KEY", "SECRET", "TOKEN", "CLIENT_ID", "SERVICE")
+from .audit import gate_zip, is_stripped, ship_items, ship_paths, shipped_text
+from .manifest import ROOT, ZIP_ROOT, submission_env
 
 OUT = ROOT / "SUBMISSION"
-SERVICE_ZIP = OUT / "KB_Previl_service.zip"
-DB_ZIP = OUT / "KB_Previl_db.zip"
-BUNDLE_ZIP = OUT / "KB_Previl_all.zip"
+SUBMISSION_ZIP = OUT / "KB_Previl.zip"
 DB_FILE = ROOT / "kb-demo.db"
 REHEARSAL_PORT = 8123
+LEGACY_OUTPUTS = (
+    OUT / "KB_Previl_all.zip",
+    OUT / "KB_Previl_service.zip",
+    OUT / "KB_Previl_db.zip",
+    OUT / ".env",
+)
+TEMP_ZIP = OUT / ".KB_Previl.zip.tmp"
 
 
 def service_items():
@@ -54,110 +57,58 @@ def _drop_stale(*paths):
         try:
             path.unlink()
             print(f"   낡은 산출물 삭제 — {path.name}")
-        except PermissionError:
-            print(f"   [경고] {path.name} 을 지우지 못했다 (열려 있음). "
-                  "이번에 만든 것이 아니므로 제출하지 말 것")
+        except PermissionError as exc:
+            raise SystemExit(
+                f"낡은 산출물 {path.name} 삭제 실패 — 압축 프로그램이나 탐색기 "
+                "미리보기 창을 닫고 다시 실행할 것") from exc
 
 
-def build_service():
-    items = service_items()
-    OUT.mkdir(parents=True, exist_ok=True)
-    _clear(SERVICE_ZIP)
-    with zipfile.ZipFile(SERVICE_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
-        for src, arc in items:
-            if is_stripped(src, arc):
-                z.writestr(arc, shipped_text(src))
-            else:
-                z.write(src, arc)
-    mb = SERVICE_ZIP.stat().st_size / 1e6
-    print(f"① {SERVICE_ZIP.name:<26} {mb:>6.1f} MB · {len(items):,}개 파일")
-    top = {}
-    for _, arc in items:
-        rest = arc[len(ZIP_ROOT) + 1:]
-        key = rest.split("/")[0] if "/" in rest else "(루트)"
-        top[key] = top.get(key, 0) + 1
-    for k, v in sorted(top.items(), key=lambda x: -x[1]):
-        print(f"     {k:<22} {v:>5}")
-    return SERVICE_ZIP
-
-
-def build_db():
-    if not DB_FILE.is_file():
-        raise SystemExit(f"{DB_FILE.name} 없음 — `python -m service.demo_db` 로 만든다")
-    OUT.mkdir(parents=True, exist_ok=True)
-    _clear(DB_ZIP)
-    with zipfile.ZipFile(DB_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
-        z.write(DB_FILE, DB_FILE.name)
-    raw = DB_FILE.stat().st_size / 1e6
-    mb = DB_ZIP.stat().st_size / 1e6
-    print(f"② {DB_ZIP.name:<26} {mb:>6.1f} MB  (원본 {raw:,.0f} MB)")
-    return DB_ZIP
-
-
-def build_bundle():
-    """코드와 DB 를 한 zip 에 담는다. 나누어 낼 수 없을 때 쓴다."""
+def build_bundle(env_payload):
+    """Write code, database, and the filtered environment into one zip."""
     if not DB_FILE.is_file():
         raise SystemExit(f"{DB_FILE.name} 없음 — `python -m service.demo_db` 로 만든다")
     items = service_items()
     OUT.mkdir(parents=True, exist_ok=True)
-    _clear(BUNDLE_ZIP)
-    with zipfile.ZipFile(BUNDLE_ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
-        for src, arc in items:
-            if is_stripped(src, arc):
-                z.writestr(arc, shipped_text(src))
-            else:
-                z.write(src, arc)
-        z.write(DB_FILE, f"{ZIP_ROOT}/{DB_FILE.name}")
-    mb = BUNDLE_ZIP.stat().st_size / 1e6
-    print(f"① {BUNDLE_ZIP.name:<26} {mb:>6.1f} MB · {len(items) + 1:,}개 파일 "
-          f"(코드 + DB)")
-    return BUNDLE_ZIP
-
-
-def needed_env_keys():
-    """출하 코드가 실제로 읽는 환경 키. 목록을 손으로 들고 있지 않는다."""
-    import re
-    py, _ = ship_paths()
-    pat = re.compile(r"""['"]([A-Z][A-Z0-9_]{4,})['"]""")
-    found = set()
-    for p in py:
-        for m in pat.finditer(p.read_text("utf-8")):
-            if any(w in m.group(1) for w in ENV_KEY_WORDS):
-                found.add(m.group(1))
-    return found
+    _clear(TEMP_ZIP)
+    try:
+        with zipfile.ZipFile(TEMP_ZIP, "w", zipfile.ZIP_DEFLATED,
+                             compresslevel=6) as z:
+            for src, arc in items:
+                if is_stripped(src, arc):
+                    z.writestr(arc, shipped_text(src))
+                else:
+                    z.write(src, arc)
+            z.write(DB_FILE, f"{ZIP_ROOT}/{DB_FILE.name}")
+            z.writestr(f"{ZIP_ROOT}/.env", env_payload)
+        TEMP_ZIP.replace(SUBMISSION_ZIP)
+    except PermissionError as exc:
+        raise SystemExit(
+            f"{SUBMISSION_ZIP.name} 교체 실패 — 압축 프로그램이나 탐색기 "
+            "미리보기 창을 닫고 다시 실행할 것") from exc
+    finally:
+        TEMP_ZIP.unlink(missing_ok=True)
+    mb = SUBMISSION_ZIP.stat().st_size / 1e6
+    print(f"① {SUBMISSION_ZIP.name:<26} {mb:>6.1f} MB · {len(items) + 2:,}개 파일 "
+          f"(코드 + DB + .env)")
+    return SUBMISSION_ZIP
 
 
 def stage_env():
-    """제품이 쓰는 키만 골라 낸다. 나머지는 낼 이유가 없는 남의 비밀이다."""
+    """Return only the secrets read by the shipped product."""
     src = ROOT / ".env"
-    dst = OUT / ".env"
     if not src.is_file():
-        # 낡은 사본을 남겨 두면 «이번에 만든 것» 으로 오인해 옛 키를 제출한다.
-        _drop_stale(dst)
-        print(f"③ .env  FAIL — {src} 없음. 산출물이 완성되지 않았다")
+        print(f"② .env  FAIL — {src} 없음. 산출물이 완성되지 않았다")
         return None
-    needed = needed_env_keys()
-    kept, dropped = [], []
-    for line in src.read_text(encoding="utf-8-sig").splitlines():
-        t = line.strip()
-        if not t or t.startswith("#") or "=" not in t:
-            continue
-        key = t.split("=", 1)[0].strip()
-        (kept if key in needed else dropped).append((key, t))
-
-    body = ["# KB Previl — 이 서비스가 읽는 키만 담았습니다.",
-            "# run.py 가 이 파일을 이 위치에서 찾습니다.", ""]
-    body += [line for _, line in sorted(kept)]
-    dst.write_text("\n".join(body) + "\n", encoding="utf-8")
-    print(f"③ {dst.name:<26} {dst.stat().st_size:>6,} B  "
-          f"(키 {len(kept)}종 — zip 에 없음)")
+    py, _ = ship_paths()
+    payload, kept, dropped, missing = submission_env(src, py)
+    print(f"② previl/.env{'':<15} {len(payload):>6,} B  "
+          f"(키 {len(kept)}종 — zip 내부)")
     if dropped:
         print(f"     제외 {len(dropped)}종 — 이 제품이 안 쓰는 키: "
-              f"{', '.join(k for k, _ in sorted(dropped))}")
-    missing = sorted(needed - {k for k, _ in kept})
+              f"{', '.join(dropped)}")
     for key in missing:
         print(f"     [경고] {key} 가 .env 에 없다 — 백필이 그 단계에서 멈춘다")
-    return dst
+    return payload
 
 
 def _get(url, timeout=10):
@@ -200,23 +151,17 @@ def _stop_tree(proc):
         proc.kill()
 
 
-def rehearse(bundled=False):
+def rehearse():
     """실제로 낼 zip 을 빈 폴더에 풀고 run.py 하나로 띄워 본다."""
     outer = Path(tempfile.mkdtemp(prefix="kb-rehearsal-"))
     tmp = outer / ZIP_ROOT
     proc = None
     try:
-        print(f"\n[리허설] {outer}  ({'합본' if bundled else '분리 2종'})")
-        if bundled:
-            with zipfile.ZipFile(BUNDLE_ZIP) as f:
-                f.extractall(outer)
-        else:
-            with zipfile.ZipFile(SERVICE_ZIP) as f:
-                f.extractall(outer)
-            with zipfile.ZipFile(DB_ZIP) as f:
-                f.extractall(tmp)
+        print(f"\n[리허설] {outer}  ({SUBMISSION_ZIP.name})")
+        with zipfile.ZipFile(SUBMISSION_ZIP) as f:
+            f.extractall(outer)
         for must in ("README.md", "run.py", "run.bat", "requirements.txt",
-                     "kb-demo.db", "service/app.py", "web/index.html",
+                     "kb-demo.db", ".env", "service/app.py", "web/index.html",
                      "service/data/franchise_costs.json", "verify.ipynb"):
             ok = (tmp / must).is_file()
             print(f"  [{'PASS' if ok else 'FAIL'}] {must}")
@@ -301,8 +246,7 @@ def rehearse(bundled=False):
                 print(f"      {label}: {', '.join(bad)}")
 
         ok = boot_ok and grid_ok and map_ok
-        count = "2종(합본 + .env)" if bundled else "3종"
-        print(f"\n리허설 통과 — 이 {count} 은 제출 가능하다" if ok else "\n리허설 실패")
+        print(f"\n리허설 통과 — {SUBMISSION_ZIP.name} 제출 가능" if ok else "\n리허설 실패")
         return 0 if ok else 1
     finally:
         _stop_tree(proc)
@@ -315,22 +259,21 @@ def main():
             s.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="제출물 빌드 + 리허설")
     ap.add_argument("--rehearse", action="store_true")
-    ap.add_argument("--split", action="store_true",
-                    help="코드와 DB 를 나누어 낸다 (제출물 3종). 기본은 합본")
     a = ap.parse_args()
     print(f"제출물 → {OUT}")
-    if a.split:
-        build_service()
-        build_db()
-        _drop_stale(BUNDLE_ZIP)
-    else:
-        build_bundle()
-        _drop_stale(SERVICE_ZIP, DB_ZIP)
-    if stage_env() is None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    env_payload = stage_env()
+    if env_payload is None:
+        _clear(SUBMISSION_ZIP)
         return 1
+    build_bundle(env_payload)
+    _drop_stale(*LEGACY_OUTPUTS)
     if not a.rehearse:
         return 0
-    return rehearse(bundled=not a.split)
+    if gate_zip(False, SUBMISSION_ZIP):
+        print("\n리허설 중단 — zip 내용 검사 실패")
+        return 1
+    return rehearse()
 
 
 if __name__ == "__main__":
