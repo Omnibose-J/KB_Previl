@@ -1,3 +1,4 @@
+from pipeline.config import SEOUL_BBOX
 from pipeline.grid import in_seoul, to_grid_id
 
 from . import base
@@ -117,8 +118,15 @@ def grids(uptae, bbox, max_cells=MAX_GRID_CELLS):
     lon_min, lat_min, lon_max, lat_max = bbox
     if lon_min >= lon_max or lat_min >= lat_max:
         raise ApiInputError("bbox는 lon_min,lat_min,lon_max,lat_max 순서여야 합니다.")
-    if not in_seoul(lon_min, lat_min) or not in_seoul(lon_max, lat_max):
-        raise ApiInputError("bbox는 서울 범위의 WGS84 좌표여야 합니다.")
+    # 뷰포트가 서울보다 넓은 것은 잘못된 입력이 아니라 «줌아웃»이다. 예전엔 네
+    # 귀퉁이가 전부 서울 안이어야 해서, 지도를 조금만 넓게 열면 화면에 날 것의
+    # 422 가 떴다(2026-08-03 실사고). 서울과의 교집합으로 좁혀서 답하고, 겹치는
+    # 데가 아예 없을 때만 거절한다 — 너무 넓으면 아래 413 이 «확대하세요»로 받는다.
+    seoul_lon_min, seoul_lat_min, seoul_lon_max, seoul_lat_max = SEOUL_BBOX
+    lon_min, lat_min = max(lon_min, seoul_lon_min), max(lat_min, seoul_lat_min)
+    lon_max, lat_max = min(lon_max, seoul_lon_max), min(lat_max, seoul_lat_max)
+    if lon_min >= lon_max or lat_min >= lat_max:
+        raise ApiInputError("서울과 겹치는 범위가 없습니다. 서울 안에서 찾아 주세요.")
 
     with base.readonly_connection() as con:
         _ensure_uptae(con, uptae)

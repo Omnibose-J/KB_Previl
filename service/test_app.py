@@ -920,6 +920,37 @@ def test_grids_returns_closed_wgs84_polygons_and_caps_large_viewports():
     assert too_large.json()["maxCells"] == api.MAX_GRID_CELLS
 
 
+def test_grids_clamps_a_viewport_wider_than_seoul_instead_of_422():
+    """줌아웃한 지도가 «잘못된 입력»이 되면 안 된다(2026-08-03 실사고).
+
+    화면에 뜬 것은 날 것의 422 였다. 서울과 겹치는 부분으로 좁혀 답하되,
+    그렇게 좁혀도 칸이 너무 많으면 «확대하세요»(413)로 받는다."""
+    sample = _sample_grid()
+
+    zoomed_out = client.get(
+        "/api/grids",
+        # 실제로 화면이 보냈던 값 — 네 귀퉁이가 서울 경계를 넘는다.
+        params={"uptae": sample["uptae"], "bbox": "126.73,37.398,127.26,37.71"},
+    )
+    assert zoomed_out.status_code == 413
+
+    # 좁게 잡되 한쪽 변만 서울 밖으로 걸치면 그 안의 칸이 그대로 나온다.
+    lon, lat = sample["center_lon"], sample["center_lat"]
+    edge = client.get(
+        "/api/grids",
+        params={"uptae": sample["uptae"], "bbox": f"126.0,{lat - 0.002},{lon + 0.002},{lat + 0.002}"},
+    )
+    assert edge.status_code == 200
+    assert edge.json()["items"]
+
+    # 서울과 아예 안 겹치면 그건 진짜 잘못된 요청이다(부산 앞바다).
+    elsewhere = client.get(
+        "/api/grids",
+        params={"uptae": sample["uptae"], "bbox": "128.9,35.0,129.2,35.3"},
+    )
+    assert elsewhere.status_code == 422
+
+
 def test_missing_grid_is_not_found_across_detail_and_post_routes():
     uptae = client.get("/api/meta").json()["uptae"][0]
     missing_grid = "0_0"
