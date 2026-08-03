@@ -728,3 +728,37 @@
 .fold > *:not(summary) {
   margin: 0 16px 14px;
 }
+
+/* 부동산원 실태조사값 — 우리 추정과 계보가 다르므로 헤드라인/괴리 행과 톤을
+   나눈다. 같은 강도로 그리면 «두 번째 추정치»로 읽힌다. */
+.anchor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-wash);
+}
+
+.anchorLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-t2);
+}
+
+.anchorLine {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg-t2);
+}
+
+.anchorLine b {
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.anchorSource {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-t7);
+}

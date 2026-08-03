@@ -396,6 +396,27 @@ def c_crosssource(con):
     return r >= 0.70
 
 
+# ---------------------------------------------------------------- rone
+@check("roneisolation", "부동산원 참고값은 점수 계보에 들어가지 않는다")
+def c_rone_isolation(con):
+    """R-ONE 은 표기 전용이다 — 순위를 만드는 코드가 읽으면 안 된다.
+
+    공간단위가 시도·상권이라 격자 간 순위에 쓰면 같은 상권 격자가 통째로 같은
+    값을 받아 «거친 데이터를 격자에 배분» 하는 것과 같아진다(CLAUDE.md 3).
+    DB 로는 못 잡는다 — 조인은 코드에 있지 테이블에 없다. 그래서 순위를 만드는
+    경로의 소스를 직접 훑는다. 여기에 걸리면 그 커밋이 순위를 오염시킨 것이다.
+    """
+    from .config import ROOT
+    scored = [ROOT / "service" / "precompute.py", ROOT / "pipeline" / "features.py",
+              *sorted((ROOT / "model").glob("*.py"))]
+    hits = [p.name for p in scored
+            if p.exists() and "rone_" in p.read_text(encoding="utf-8")]
+    print(f"  순위 경로 {len(scored)}개 파일 중 rone_ 참조: {len(hits)}개")
+    if hits:
+        print(f"  참조한 파일: {hits}")
+    return not hits
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("checks", nargs="*")

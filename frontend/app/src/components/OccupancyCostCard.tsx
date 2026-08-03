@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { EstimateInput, EstimateResponse, RecoverySource, Sales } from "../api/types";
-import { int, man, pct1, quarter, uptaeLabel } from "../lib/format";
+import type {
+  EstimateInput,
+  EstimateResponse,
+  FloorReference,
+  MarketRent,
+  RecoverySource,
+  Sales,
+} from "../api/types";
+import { int, man, pct1, perM2Man, quarter, ronePeriod, uptaeLabel } from "../lib/format";
 import NumField from "./NumField";
 import { ErrorState, Loading } from "./states";
 import s from "./OccupancyCostCard.module.css";
@@ -218,6 +225,8 @@ function Result({ data, sales, uptae }: {
           «승계가 이렇다 → 그래서 이걸 하세요» 가 끊기지 않는다. */}
       <SuccessionRow prob={data.successionProb} source={data.recoverySource} />
 
+      <MarketRow rent={data.marketRent} floor={data.floorReference} />
+
       <p className={s.notice}>{data.notice}</p>
     </>
   );
@@ -369,3 +378,61 @@ function Row({
   );
 }
 
+/**
+ * 부동산원 참고값 — **표기 전용**이다. 실질 점유비용 계산에는 한 항도 들어가지
+ * 않는다.
+ *
+ * 공간단위가 우리 격자와 다르다(시도·부동산원 상권). 그래서 «이 자리의 시세»로
+ * 쓰지 않고, 사용자가 이미 아는 자기 임대료를 대볼 기준선으로만 낸다 — 방향이
+ * 반대라 해상도 문제가 생기지 않는다. 조사 대상이 주요 상권이라는 사실도 문장에
+ * 남긴다. 골목 상권은 애초에 조사되지 않으므로 «서울 전체 중 몇 등»으로 읽으면
+ * 틀린다.
+ */
+function MarketRow({
+  rent,
+  floor,
+}: {
+  rent: MarketRent | null;
+  floor: FloorReference | null;
+}) {
+  if (!rent && !floor) return null;
+  // percentile 은 임대료나 면적이 비면 null 이다. 0 으로 그리면 «서울에서 가장
+  // 싼 자리»라는, 사용자가 넣지도 않은 주장이 만들어진다.
+  const cheaper =
+    rent && rent.percentile !== null
+      ? Math.round((rent.percentile / 100) * rent.areaCount)
+      : null;
+
+  return (
+    <div className={s.market}>
+      <span className={s.marketLabel}>시세와 견주면</span>
+      {rent && rent.userPerM2 !== null && cheaper !== null ? (
+        <p className={s.marketLine}>
+          넣으신 임대료는 ㎡당 <b>{perM2Man(rent.userPerM2)}</b>이에요. 부동산원이 조사하는 서울
+          주요 상권 {int(rent.areaCount)}곳과 견주면 <b>{int(cheaper)}곳보다 비싼</b> 편이에요.
+        </p>
+      ) : null}
+      {rent ? (
+        <p className={s.marketLine}>
+          서울 소규모 상가 평균은 ㎡당 <b>{perM2Man(rent.seoulAvg)}</b>
+          {rent.vacancy !== null ? (
+            <>
+              , 빈 가게는 <b>{rent.vacancy.toFixed(1)}%</b>예요.
+            </>
+          ) : (
+            "이에요."
+          )}
+        </p>
+      ) : null}
+      {floor ? (
+        <p className={s.marketLine}>
+          {floor.floor}은 서울에서 1층 임대료의 <b>{Math.round(floor.utilityRatio)}%</b> 수준이에요.
+        </p>
+      ) : null}
+      <p className={s.marketSource}>
+        {ronePeriod(rent?.period ?? floor?.period ?? "")} · 한국부동산원 · 이 자리의 점수와 등급에는
+        쓰이지 않아요
+      </p>
+    </div>
+  );
+}

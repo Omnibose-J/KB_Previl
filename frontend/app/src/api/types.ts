@@ -523,7 +523,52 @@ export interface GoodwillResponse {
     discountRate: number;
     estimatedGoodwill: number;
   }>;
+  /** 우리 산식과 무관한 외부 실태조사값. 서울 × 음식점업 한 덩어리라 자리별로
+   *  다르지 않다 — 추정가를 «시장에서는 이만큼» 과 나란히 놓는 용도다.
+   *  수집을 건너뛴 설치에서는 null 이고, 그때는 줄을 그리지 않는다. */
+  marketAnchor: MarketAnchor | null;
   notice: string;
+}
+
+/** 부동산원 상가건물 임대차 실태조사. 금액 단위는 만원, 비율은 %. */
+export interface MarketAnchor {
+  region: string;
+  industry: string;
+  period: string;
+  source: string;
+  median: number;
+  mean: number;
+  perM2: number;
+  hasGoodwillRate: number;
+}
+
+/** 부동산원 층별 효용비율. **표기 전용** — 실질 점유비용 계산에는 안 들어간다.
+ *  1층·2층·지하1층만 조사되므로 나머지 층은 null 이다. */
+export interface FloorReference {
+  floor: string;
+  utilityRatio: number;
+  firstFloorRent: number;
+  unit: string;
+  period: string;
+  source: string;
+}
+
+/** 부동산원 소규모 상가 임대료 분포. `percentile` 은 입력 임대료가 조사 상권
+ *  안에서 서는 위치이고, 조사 대상은 주요 상권이라 서울 대표 표본이 아니다.
+ *  임대료나 면적이 비면 null — 0 으로 셈해 «최저가»로 만들지 않는다. */
+export interface MarketRent {
+  /** 넣은 임대료를 ㎡당 천원으로 환산한 값. 화면이 다시 셈하면 서버 산식의
+   *  사본이 되므로 환산도 서버가 한다. 임대료·면적이 비면 null. */
+  userPerM2: number | null;
+  seoulAvg: number;
+  vacancy: number | null;
+  period: string;
+  unit: string;
+  areaCount: number;
+  min: number;
+  max: number;
+  percentile: number | null;
+  source: string;
 }
 
 // --- 실질 월 점유비용 · 후보 비교 -------------------------------------------
@@ -620,6 +665,9 @@ export interface EstimateResponse {
   burdenRateBand: { low: number; high: number } | null;
   /** 비어 있는 축 이름 — 화면은 채우지 않고 비었다고 말한다 */
   missingAxes: string[];
+  /** 부동산원 참고값 둘. 계산에 안 들어가고, 없으면 null 이라 줄이 사라진다. */
+  floorReference: FloorReference | null;
+  marketRent: MarketRent | null;
   notice: string;
   /** 서버가 생략된 입력까지 채워 실제 계산에 쓴 값. 화면 각주의 유일한 근거다. */
   paramsUsed: Required<CostParams>;

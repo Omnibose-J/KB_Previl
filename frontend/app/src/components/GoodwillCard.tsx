@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { GoodwillAssetInput, GoodwillInput, GridDetail } from "../api/types";
-import { int, man, pct1, signedMan, uptaeLabel, yearsLabel } from "../lib/format";
+import type { GoodwillAssetInput, GoodwillInput, GridDetail, MarketAnchor } from "../api/types";
+import { int, man, pct1, ronePeriod, signedMan, uptaeLabel, yearsLabel } from "../lib/format";
 import { cleanText, parseNum } from "../lib/guard";
 import NumField from "./NumField";
 import { ErrorState, Loading } from "./states";
@@ -317,6 +317,8 @@ function Result({ r }: { r: import("../api/types").GoodwillResponse }) {
         <SensitivityPivot r={r} />
       </details>
 
+      <MarketAnchorRow anchor={r.marketAnchor} />
+
       <p className={s.notice}>{r.notice}</p>
     </>
   );
@@ -494,5 +496,30 @@ function AssetNum({
       />
       <em>{unit}</em>
     </span>
+  );
+}
+
+/**
+ * 부동산원 실태조사 권리금 — 우리 추정가와 **계보가 다른** 외부 값이다.
+ *
+ * 우리 추정가는 이 자리의 매출에서 뽑은 것이고, 이 값은 서울 음식점업 전체를
+ * 한 덩어리로 조사한 결과다. 그래서 «맞다/틀리다»의 판정이 아니라 «시장에서는
+ * 이 정도가 오간다»는 별개의 사실로 나란히 둔다. 산식에 되먹이지 않는다 —
+ * 넣는 순간 두 값이 같은 계보가 되어 비교 자체가 성립하지 않는다.
+ */
+function MarketAnchorRow({ anchor }: { anchor: MarketAnchor | null }) {
+  if (anchor === null) return null;
+  return (
+    <div className={s.anchor}>
+      <span className={s.anchorLabel}>실제로 오가는 권리금</span>
+      <p className={s.anchorLine}>
+        서울 음식점 가운데 <b>{Math.round(anchor.hasGoodwillRate)}%</b>가 권리금을 내고, 그 금액은
+        중간이 <b>{man(anchor.median)}</b>·평균이 <b>{man(anchor.mean)}</b>이에요.
+      </p>
+      <p className={s.anchorSource}>
+        {ronePeriod(anchor.period)} {anchor.source} · 서울 전체 음식점 기준이라 자리별로 다르지
+        않고, 위 추정에는 쓰이지 않았어요
+      </p>
+    </div>
   );
 }

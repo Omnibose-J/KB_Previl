@@ -182,6 +182,25 @@ CREATE TABLE IF NOT EXISTS grid_feature (
   confidence          TEXT NOT NULL   -- 'full' | 'partial'
 );
 
+-- 부동산원(R-ONE) 참고 통계. 표기 전용 — 점수·등급·추천 순위 어디에도 쓰지 않는다.
+-- 공간단위가 시도(권리금) 또는 부동산원 상권(임대료·공실률)이라 100m 격자에 붙일
+-- 근거가 없다. 상권 경계 폴리곤이 오픈API 에 없고, 상권명 지오코딩은 랜드마크로
+-- 끌려가 중심이 최대 3km 어긋난다(동대문→홍릉시험림). 그래서 격자와 조인하지
+-- 않고, 사용자가 입력한 값을 이 분포에 대보는 기준선으로만 쓴다.
+-- axis 는 2차 축(업종/층)이고 없는 종류는 '' — 복합 PK 라 NULL 을 못 쓴다.
+-- value 는 원천이 결측이면 행을 만들지 않는다(0 으로 채우지 않는다).
+CREATE TABLE IF NOT EXISTS rone_ref (
+  kind          TEXT,          -- goodwill | floor_ratio | rent | vacancy
+  region_cd     TEXT,
+  region_nm     TEXT,          -- '전국' | '서울' | '서울>도심>명동'
+  axis          TEXT NOT NULL DEFAULT '',
+  item          TEXT,
+  unit          TEXT,
+  period        TEXT,
+  value         REAL NOT NULL,
+  PRIMARY KEY (kind, region_cd, axis, item, period)
+);
+
 -- API 호출 기록 (일일 한도 관리)
 CREATE TABLE IF NOT EXISTS api_log (
   day           TEXT,

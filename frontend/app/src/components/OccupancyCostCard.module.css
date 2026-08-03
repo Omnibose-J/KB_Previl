@@ -448,3 +448,37 @@
     grid-column: 2 / -1;
   }
 }
+
+/* 부동산원 참고값 — 계산에 안 들어가는 값이라 계산 결과 블록과 톤을 나눈다.
+   테두리 없는 얕은 판으로 두어 «옆에 놓인 참고»로 읽히게 한다. */
+.market {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--fg-wash);
+}
+
+.marketLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-t2);
+}
+
+.marketLine {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg-t2);
+}
+
+.marketLine b {
+  font-weight: 700;
+  color: var(--fg-ink);
+}
+
+.marketSource {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-t7);
+}

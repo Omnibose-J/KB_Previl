@@ -4,7 +4,7 @@ import math
 import statistics
 
 from pipeline.config import UPTAE_INDUTY
-from service import api
+from service import api, rone
 from service.bands import _percentile
 from service.economics import grade_survival_curves
 
@@ -309,6 +309,9 @@ def calculate(
         "asking_gap_rate": asking_gap / estimated if estimated > 0 else None,
         "negotiation_reference": negotiation_reference,
         "sensitivity": sensitivity,
+        # 우리 산식과 무관한 외부 실태조사값. 산식에 되먹이지 않는다 — 대조용이라
+        # 계산에 넣는 순간 «우리 추정 vs 시장» 이라는 비교 자체가 성립하지 않는다.
+        "market_anchor": rone.market_anchor(),
         "notice": (
             "서울시 상권분석서비스 최신 분기 점포당 추정매출을 사용한 "
             "공개 데이터 기반 참고용 추정치이며 감정평가가 아닙니다."

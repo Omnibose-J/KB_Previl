@@ -3234,3 +3234,132 @@ def test_sales_mix_outside_trade_area_is_unavailable_not_zero():
     assert mix["available"] is False
     assert mix["items"] == []
     assert mix["totalAmount"] is None
+
+
+# ── 부동산원 참고값 (표기 전용) ─────────────────────────────────────────
+def _rone_rows(kind):
+    with api.base.readonly_connection() as connection:
+        try:
+            return connection.execute(
+                "SELECT COUNT(*) FROM rone_ref WHERE kind = ?", (kind,)
+            ).fetchone()[0]
+        except sqlite3.OperationalError:
+            return 0
+
+
+def test_goodwill_market_anchor():
+    """우리 산식과 무관한 외부 실태조사값이 대조용으로 함께 나온다."""
+    if not _rone_rows("goodwill"):
+        pytest.skip("rone_ref 미수집 — python -m pipeline.rone")
+    sample = _sample_goodwill_grid()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("service.goodwill.grade_survival_curves", _constant_curves)
+        body = client.post(
+            "/api/goodwill",
+            json={
+                "gridId": sample["grid_id"],
+                "uptae": sample["uptae"],
+                "askingGoodwill": 500,
+                "leaseRemainingYears": 5,
+                "assets": [],
+            },
+        ).json()
+
+    anchor = body["marketAnchor"]
+    assert anchor["region"] == "서울"
+    assert anchor["industry"] == "숙박 및 음식점업"
+    assert anchor["median"] > 0 and anchor["mean"] > 0
+    assert 0 < anchor["hasGoodwillRate"] <= 100
+    assert "부동산원" in anchor["source"]
+    assert anchor["period"]
+    # 대조용이므로 추정가에 되먹이지 않는다 — 앵커가 있어도 산식 결과는 그대로다.
+    assert body["estimatedGoodwill"] == pytest.approx(
+        body["intangibleValue"] + body["tangibleValue"]
+    )
+
+
+def test_estimate_floor_reference():
+    """층 참고값은 원천에 있는 세 층에만 붙고, 실질 점유비용은 건드리지 않는다."""
+    if not _rone_rows("floor_ratio"):
+        pytest.skip("rone_ref 미수집 — python -m pipeline.rone")
+    sample = _sample_goodwill_grid()
+
+    first = client.post("/api/estimate", json=_estimate_payload(sample, floor=1)).json()
+    assert first["floorReference"]["floor"] == "1층"
+    assert first["floorReference"]["utilityRatio"] == pytest.approx(100.0, abs=0.5)
+
+    basement = client.post(
+        "/api/estimate", json=_estimate_payload(sample, floor=-1)
+    ).json()
+    assert basement["floorReference"]["floor"] == "지하1층"
+    assert basement["floorReference"]["utilityRatio"] < 100
+    # 층이 달라도 계산은 같다 — 참고값은 표기 전용이다.
+    assert basement["effectiveCost"] == pytest.approx(first["effectiveCost"])
+
+    # 부동산원이 조사하지 않는 층은 인접 층에서 끌어오지 않고 없는 채로 둔다.
+    third = client.post("/api/estimate", json=_estimate_payload(sample, floor=3)).json()
+    assert third["floorReference"] is None
+
+
+def test_estimate_market_rent():
+    """입력 임대료가 조사 상권 분포에서 서는 위치를 낸다."""
+    if not _rone_rows("rent"):
+        pytest.skip("rone_ref 미수집 — python -m pipeline.rone")
+    sample = _sample_goodwill_grid()
+
+    body = client.post(
+        "/api/estimate", json=_estimate_payload(sample, monthlyRent=250, areaM2=45)
+    ).json()
+    rent = body["marketRent"]
+    assert rent["areaCount"] >= 50
+    assert rent["min"] <= rent["seoulAvg"] <= rent["max"]
+    assert 0 <= rent["percentile"] <= 100
+    assert rent["unit"] and rent["period"]
+
+    # 비싼 자리일수록 백분위가 높아야 한다 — 방향이 뒤집히면 환산이 틀린 것이다.
+    pricier = client.post(
+        "/api/estimate", json=_estimate_payload(sample, monthlyRent=900, areaM2=45)
+    ).json()["marketRent"]
+    assert pricier["percentile"] > rent["percentile"]
+
+
+def test_estimate_market_rent_no_percentile_without_rent():
+    """임대료가 0 이면 백분위는 null 이다 — 0 으로 셈해 «최저가»로 만들지 않는다."""
+    if not _rone_rows("rent"):
+        pytest.skip("rone_ref 미수집 — python -m pipeline.rone")
+    sample = _sample_goodwill_grid()
+
+    rent = client.post(
+        "/api/estimate", json=_estimate_payload(sample, monthlyRent=0)
+    ).json()["marketRent"]
+    assert rent["percentile"] is None
+    assert rent["seoulAvg"] > 0
+
+
+def test_rone_absent_keeps_endpoints_alive(monkeypatch):
+    """참고값이 없는 설치(수집 생략)에서도 200 이고 필드만 null 이다."""
+    monkeypatch.setattr("service.rone.market_anchor", lambda: None)
+    monkeypatch.setattr("service.rone.floor_reference", lambda floor: None)
+    monkeypatch.setattr("service.rone.market_rent", lambda *a, **k: None)
+    sample = _sample_goodwill_grid()
+
+    estimate = client.post("/api/estimate", json=_estimate_payload(sample))
+    assert estimate.status_code == 200
+    assert estimate.json()["floorReference"] is None
+    assert estimate.json()["marketRent"] is None
+
+    with pytest.MonkeyPatch.context() as inner:
+        inner.setattr("service.goodwill.grade_survival_curves", _constant_curves)
+        goodwill = client.post(
+            "/api/goodwill",
+            json={
+                "gridId": sample["grid_id"],
+                "uptae": sample["uptae"],
+                "askingGoodwill": 500,
+                "leaseRemainingYears": 5,
+                "assets": [],
+            },
+        )
+    assert goodwill.status_code == 200
+    assert goodwill.json()["marketAnchor"] is None

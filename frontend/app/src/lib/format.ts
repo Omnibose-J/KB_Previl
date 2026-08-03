@@ -35,6 +35,20 @@ export const quarter = (v: string): string => {
   return m ? `${m[1]}년 ${m[2]}분기` : v;
 };
 
+/** 부동산원 기간 코드. 분기 통계는 6자리("202602" -> "2026년 2분기"), 연간
+ *  통계는 4자리("2025" -> "2025년")다. 서울 상권 분기 코드(5자리)와 자릿수가
+ *  달라 `quarter` 로 못 읽으므로 따로 둔다. 형식이 어긋나면 원문을 그대로 낸다. */
+export const ronePeriod = (v: string): string => {
+  const t = v.trim();
+  const q = /^(\d{4})0([1-4])$/.exec(t);
+  if (q) return `${q[1]}년 ${q[2]}분기`;
+  return /^\d{4}$/.test(t) ? `${t}년` : t;
+};
+
+/** 천원/㎡ -> "5.6만원". 만 단위 정수인 `man` 은 5.6 을 6 으로 만들어, 이 축에서는
+ *  한 자리 차이가 그대로 시세 오독이 된다. */
+export const perM2Man = (thousandWon: number) => `${(thousandWon / 10).toFixed(1)}만원`;
+
 /** §0 원칙 2 — 숫자보다 문장 먼저. 값은 API 실측치에서만 파생된다. */
 export const survivalSentence = (survival: number) =>
   `100곳 중 ${Math.round(survival * 100)}곳이 3년을 버텼어요`;

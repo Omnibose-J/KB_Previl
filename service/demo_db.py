@@ -44,6 +44,7 @@ TABLES = [
     "trdar_store",        #  12,204  상권 점포 수
     "trdar_sales",        #   6,573  상권 추정매출
     "trdar_party",        #           trade-area visitor party labels
+    "rone_ref",           #     540  부동산원 참고값 (표기 전용, 선택 수집)
     "cohort_survival",    #      44  개업연도별 생존율 (랜딩 추이 그래프)
     "score_meta",         #      41  헤드라인·곡선·밴드
     "score_run",          #       2  적재 이력

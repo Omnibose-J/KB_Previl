@@ -462,6 +462,53 @@ class ValueBandResponse(ApiModel):
     high: float
 
 
+# 아래 셋은 전부 부동산원 참고값이다. 공간단위가 시도·상권이라 격자에 붙이지
+# 않고 표기만 하며, 원천이 없으면 필드가 통째로 null 이 된다(합성 금지).
+class MarketAnchorResponse(ApiModel):
+    region: str
+    industry: str
+    period: str
+    source: str
+    median: float
+    mean: float
+    per_m2: float
+    has_goodwill_rate: float
+
+
+class FloorReferenceResponse(ApiModel):
+    floor: str
+    utility_ratio: float
+    first_floor_rent: float
+    unit: str
+    period: str
+    source: str
+
+
+class MarketRentResponse(ApiModel):
+    # 화면이 임대료÷면적을 다시 셈하면 서버 산식의 사본이 생긴다. 단위 환산이
+    # 한쪽만 바뀌는 순간 두 값이 갈리므로 환산도 서버가 한다.
+    user_per_m2: float | None
+    seoul_avg: float
+    vacancy: float | None
+    period: str
+    unit: str
+    area_count: Annotated[int, Field(ge=1)]
+    min: float
+    max: float
+    percentile: Annotated[
+        float | None,
+        Field(
+            ge=0,
+            le=100,
+            description=(
+                "입력 임대료가 조사 상권 분포에서 서는 위치. 조사 대상은 "
+                "부동산원이 고른 주요 상권이라 서울 전체의 대표 표본이 아닙니다."
+            ),
+        ),
+    ]
+    source: str
+
+
 class EstimateResponse(ApiModel):
     grid_id: str
     uptae: UptaeName
@@ -496,6 +543,8 @@ class EstimateResponse(ApiModel):
     burden_rate_band: ValueBandResponse | None
     missing_axes: list[str]
     params_used: CostParamsInput
+    floor_reference: FloorReferenceResponse | None
+    market_rent: MarketRentResponse | None
     notice: str
 
 
@@ -579,6 +628,7 @@ class GoodwillResponse(ApiModel):
     asking_gap_rate: float | None
     negotiation_reference: Literal["below_band", "within_band", "above_band"]
     sensitivity: list[SensitivityRow]
+    market_anchor: MarketAnchorResponse | None
     notice: str
 
 

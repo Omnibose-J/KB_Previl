@@ -4,7 +4,7 @@ from dataclasses import asdict
 import math
 import os
 
-from service import api
+from service import api, rone
 from service.cost import (CostParams, effective_monthly_cost,
                           effective_monthly_cost_band)
 from pipeline.config import UPTAE_INDUTY
@@ -235,6 +235,10 @@ def estimate_candidate(
         "burden_rate_band": burden_rate_band,
         "missing_axes": missing_axes,
         "params_used": cost_params,
+        # 부동산원 참고값 — 실질 점유비용 계산에는 들어가지 않는다. 층 보정을
+        # 계산식에 넣으면 층으로 보이던 차이가 면적이었다는 F-A5 를 되밟는다.
+        "floor_reference": rone.floor_reference(floor),
+        "market_rent": rone.market_rent(monthly_rent, area_m2),
         "notice": ESTIMATE_NOTICE,
     }
     return result, trade_area_code
